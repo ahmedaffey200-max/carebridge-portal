@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+<title>Carebridge Portal</title>
+<link rel="stylesheet" href="_ds/carebridge-design-system-1211a801-6b8c-4eac-9f98-9ed53e456f1c/styles.css" />
+<link rel="stylesheet" href="lib/portal.css" />
+<style>
+  html, body { margin: 0; height: 100%; background: var(--bg-page); }
+  #root { height: 100vh; }
+  #cb-splash {
+    position: fixed; inset: 0; display: grid; place-items: center;
+    background: var(--grad-bridge); z-index: 9999; transition: opacity .4s ease;
+  }
+  #cb-splash .m { width: 184px; height: 184px; border-radius: 28px; background: #fff;
+    display: grid; place-items: center; padding: 22px; box-shadow: 0 24px 60px -20px rgba(0,0,0,0.5);
+    animation: cbpulse 1.4s ease-in-out infinite; }
+  @keyframes cbpulse { 0%,100% { transform: scale(1); opacity: .8 } 50% { transform: scale(1.08); opacity: 1 } }
+</style>
+</head>
+<body>
+<div id="cb-splash"><div class="m">
+  <img src="assets/carebridge-logo.png" alt="Carebridge International" style="width:140px;height:auto;display:block" />
+</div></div>
+<div id="root"></div>
+
+<template id="__bundler_thumbnail" data-bg-color="#1B3A6B">
+  <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+    <rect width="200" height="200" fill="#1B3A6B"/>
+    <circle cx="100" cy="80" r="35" fill="none" stroke="#1CA89C" stroke-width="2"/>
+    <path d="M 70 120 Q 100 140 130 120" fill="none" stroke="#1CA89C" stroke-width="2" stroke-linecap="round"/>
+    <text x="100" y="170" font-size="16" font-weight="bold" fill="#ffffff" text-anchor="middle" font-family="sans-serif">Carebridge</text>
+  </svg>
+</template>
+
+<!-- React + Babel (pinned) -->
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<!-- Icons -->
+<script src="https://unpkg.com/lucide@latest"></script>
+
+<!-- Carebridge design-system component bundle -->
+<script src="_ds/carebridge-design-system-1211a801-6b8c-4eac-9f98-9ed53e456f1c/_ds_bundle.js"></script>
+
+<!-- Data + store -->
+<script src="lib/data.js"></script>
+<script src="lib/api-client.js"></script>
+<script src="lib/store.js"></script>
+
+<!-- App modules (Babel JSX) -->
+<script type="text/babel" src="lib/tweaks-panel.jsx"></script>
+<script type="text/babel" src="lib/ios-frame.jsx"></script>
+<script type="text/babel" src="lib/ui.jsx"></script>
+<script type="text/babel" src="lib/dashboard.jsx"></script>
+<script type="text/babel" src="lib/patients.jsx"></script>
+<script type="text/babel" src="lib/hospitals.jsx"></script>
+<script type="text/babel" src="lib/financial.jsx"></script>
+<script type="text/babel" src="lib/commissions.jsx"></script>
+<script type="text/babel" src="lib/expenses.jsx"></script>
+<script type="text/babel" src="lib/finance.jsx"></script>
+<script type="text/babel" src="lib/settings.jsx"></script>
+<script type="text/babel" src="lib/modules.jsx"></script>
+<script type="text/babel" src="lib/travel.jsx"></script>
+<script type="text/babel" src="lib/travel2.jsx"></script>
+<script type="text/babel" src="lib/centers.jsx"></script>
+<script type="text/babel" src="lib/security.jsx"></script>
+<script type="text/babel" src="lib/mobile.jsx"></script>
+<script type="text/babel" src="lib/app.jsx"></script>
+
+<script type="text/babel" data-presets="env,react">
+  (function () {
+    // Auth guard
+    (function () {
+      var token = localStorage.getItem('cb_token');
+      if (!token) { window.location.href = 'Carebridge Login.html'; }
+    })();
+
+    // Voice reminder
+    (function () {
+      try {
+        if (sessionStorage.getItem("cb_salawat_played") === "1") return;
+        if (!("speechSynthesis" in window)) return;
+        var text = "صَلِّ عَلَى النَّبِيّ";
+        var speak = function () {
+          var u = new SpeechSynthesisUtterance(text);
+          u.lang = "ar-SA";
+          var ar = (window.speechSynthesis.getVoices() || []).find(function (v) { return /^ar/i.test(v.lang); });
+          if (ar) u.voice = ar;
+          u.rate = 0.9;
+          try { window.speechSynthesis.cancel(); window.speechSynthesis.speak(u); } catch (e) {}
+        };
+        if ((window.speechSynthesis.getVoices() || []).length) speak();
+        else window.speechSynthesis.onvoiceschanged = speak;
+        sessionStorage.setItem("cb_salawat_played", "1");
+      } catch (e) {}
+    })();
+
+    // Remove splash once React mounts
+    var started = Date.now();
+    var urlRole = new URLSearchParams(window.location.search).get("role");
+    if (urlRole) {
+      localStorage.setItem("cb_token", "auto-" + urlRole);
+      localStorage.setItem("cb_role", urlRole);
+    }
+    var hide = function () {
+      var s = document.getElementById("cb-splash");
+      if (s) { s.style.opacity = "0"; setTimeout(function () { s.remove(); }, 420); }
+    };
+    var tries = 0;
+    var t = setInterval(function () {
+      tries++;
+      var mounted = document.querySelector(".cb-app");
+      var elapsed = Date.now() - started;
+      if ((mounted && elapsed > 1600) || tries > 60) { clearInterval(t); hide(); }
+    }, 100);
+  })();
+</script>
+
+<!-- Supabase: injected dynamically so it never delays DOMContentLoaded or Babel -->
+<script>
+(function() {
+  function loadSupabase() {
+    var cdn = document.createElement('script');
+    cdn.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js';
+    cdn.onload = function() {
+      var client = document.createElement('script');
+      client.src = 'lib/supabase-client.js';
+      document.head.appendChild(client);
+    };
+    document.head.appendChild(cdn);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadSupabase);
+  } else {
+    loadSupabase();
+  }
+})();
+</script>
+</body>
+</html>

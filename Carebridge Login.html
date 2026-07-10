@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sign in &middot; Carebridge International</title>
+<link rel="stylesheet" href="_ds/carebridge-design-system-1211a801-6b8c-4eac-9f98-9ed53e456f1c/styles.css" />
+<link rel="stylesheet" href="lib/login.css" />
+<style>
+  @keyframes cbShake {
+    0%,100% { transform: translateX(0); }
+    20% { transform: translateX(-7px); }
+    40% { transform: translateX(7px); }
+    60% { transform: translateX(-5px); }
+    80% { transform: translateX(4px); }
+  }
+</style>
+</head>
+<body>
+<div class="auth">
+
+  <!-- ===== Brand panel ===== -->
+  <section class="auth__brand">
+    <svg class="auth__arc" viewBox="0 0 600 200" fill="none" preserveAspectRatio="none" aria-hidden="true">
+      <path d="M-20 180 C 120 60, 200 60, 300 110 S 480 140, 620 40" stroke="rgba(255,255,255,0.22)" stroke-width="2" />
+      <path d="M-20 200 C 140 90, 220 90, 300 130 S 470 160, 620 70" stroke="rgba(28,168,156,0.4)" stroke-width="2" />
+    </svg>
+
+    <div class="auth__brandhead">
+      <div class="auth__logobox"><img src="assets/carebridge-logo.png" alt="Carebridge International" /></div>
+    </div>
+
+    <div class="auth__brandbody">
+      <div class="auth__eyebrow">Secure portal access</div>
+      <h1>Your trusted bridge to world-class medical care.</h1>
+      <p>Sign in to follow your treatment journey, coordinate care with our team, and access your documents &mdash; securely, every step of the way.</p>
+    </div>
+
+    <div class="auth__trust">
+      <div class="auth__trustrow"><i data-lucide="shield-check"></i><span>Bank-grade encryption protects every session</span></div>
+      <div class="auth__trustrow"><i data-lucide="lock"></i><span>Your credentials are stored locally &amp; securely</span></div>
+      <div class="auth__trustrow"><i data-lucide="hand-heart"></i><span>Your health information stays private &amp; protected</span></div>
+    </div>
+  </section>
+
+  <!-- ===== Auth panel ===== -->
+  <section class="auth__panel">
+    <div class="auth__card" id="auth-card">
+
+      <div class="auth__mobilebrand">
+        <img src="assets/carebridge-logo.png" alt="Carebridge International" />
+      </div>
+
+      <h2 class="auth__title">Welcome back</h2>
+      <p class="auth__sub" id="role-sub">Staff sign-in for coordinators, doctors and administrators.</p>
+
+      <div class="auth__roles" role="group" aria-label="Choose portal">
+        <button type="button" class="auth__role" data-role="admin" aria-pressed="true">
+          <i data-lucide="shield"></i> Staff &amp; admin
+        </button>
+        <button type="button" class="auth__role" data-role="client" aria-pressed="false">
+          <i data-lucide="hand-heart"></i> Patient &amp; family
+        </button>
+      </div>
+
+      <!-- Error message -->
+      <div class="auth__hint" id="login-error" style="display:none;background:#fff1f2;border-color:#fda4af;">
+        <i data-lucide="alert-circle" style="color:#e11d48;flex:none;margin-top:1px"></i>
+        <span style="color:#be123c"><b>Incorrect username or password.</b> Please try again.</span>
+      </div>
+
+      <form id="login-form" novalidate>
+        <div class="auth__field">
+          <label class="auth__label" for="email" id="email-label">Username</label>
+          <div class="auth__inputwrap">
+            <i data-lucide="shield" id="email-icon"></i>
+            <input class="auth__input" type="text" id="email" name="email" placeholder="admin" autocomplete="username" />
+          </div>
+        </div>
+
+        <div class="auth__field">
+          <label class="auth__label" for="password">Password</label>
+          <div class="auth__inputwrap">
+            <i data-lucide="lock"></i>
+            <input class="auth__input" type="password" id="password" name="password" placeholder="Enter your password" autocomplete="current-password" />
+            <button type="button" class="auth__reveal" id="reveal" aria-label="Show password"><i data-lucide="eye"></i></button>
+          </div>
+        </div>
+
+        <div class="auth__meta">
+          <div class="auth__remember" id="remember" role="checkbox" aria-checked="false" tabindex="0">
+            <span class="auth__check"><i data-lucide="check"></i></span>
+            Keep me signed in
+          </div>
+          <a class="auth__forgot" href="#" id="forgot">Forgot password?</a>
+        </div>
+
+        <button type="submit" class="auth__btn auth__btn--primary" id="submit-btn" data-role="admin">
+          <span id="submit-label">Sign in to staff portal</span>
+          <i data-lucide="arrow-right"></i>
+        </button>
+      </form>
+
+      <div class="auth__secnote" style="margin-top:24px"><i data-lucide="shield-check"></i> Secured &amp; encrypted connection</div>
+    </div>
+  </section>
+</div>
+
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" onload="if(window.CB_InitSupabase)window.CB_InitSupabase()"></script>
+<script src="lib/supabase-client.js"></script>
+<script>
+(function () {
+  if (window.lucide) lucide.createIcons();
+
+  // ---- Credentials stored in localStorage ----
+  // Default: username = admin, password = Carebridge2024
+  // Change from Settings > Security inside the portal.
+  function getCredentials() {
+    try {
+      var raw = localStorage.getItem("cb_credentials");
+      if (raw) return JSON.parse(raw);
+    } catch (e) {}
+    return { username: "admin", password: "Carebridge2024" };
+  }
+
+  var role = "admin";
+
+  var COPY = {
+    admin: {
+      sub: "Staff sign-in for coordinators, doctors and administrators.",
+      emailLabel: "Username",
+      placeholder: "admin",
+      submit: "Sign in to staff portal",
+      icon: "shield",
+    },
+    client: {
+      sub: "Sign in to your patient portal to follow your care journey.",
+      emailLabel: "Email address",
+      placeholder: "you@example.com",
+      submit: "Sign in to patient portal",
+      icon: "mail",
+    },
+  };
+
+  var roleBtns = document.querySelectorAll(".auth__role");
+  var submitBtn = document.getElementById("submit-btn");
+
+  function setRole(r) {
+    role = r;
+    roleBtns.forEach(function (b) {
+      b.setAttribute("aria-pressed", b.dataset.role === r ? "true" : "false");
+    });
+    document.getElementById("role-sub").textContent = COPY[r].sub;
+    document.getElementById("email-label").textContent = COPY[r].emailLabel;
+    document.getElementById("submit-label").textContent = COPY[r].submit;
+    document.getElementById("email").placeholder = COPY[r].placeholder;
+    var eIcon = document.getElementById("email-icon");
+    if (eIcon) eIcon.setAttribute("data-lucide", COPY[r].icon);
+    submitBtn.setAttribute("data-role", r);
+    hideError();
+    if (window.lucide) lucide.createIcons();
+  }
+
+  roleBtns.forEach(function (b) {
+    b.addEventListener("click", function () { setRole(b.dataset.role); });
+  });
+
+  // password reveal toggle
+  var reveal = document.getElementById("reveal");
+  var pwInput = document.getElementById("password");
+  reveal.addEventListener("click", function () {
+    var show = pwInput.type === "password";
+    pwInput.type = show ? "text" : "password";
+    reveal.innerHTML = '<i data-lucide="' + (show ? "eye-off" : "eye") + '"></i>';
+    reveal.setAttribute("aria-label", show ? "Hide password" : "Show password");
+    if (window.lucide) lucide.createIcons();
+  });
+
+  // remember me checkbox
+  var remember = document.getElementById("remember");
+  function toggleRemember() {
+    remember.setAttribute("aria-checked",
+      remember.getAttribute("aria-checked") === "true" ? "false" : "true");
+  }
+  remember.addEventListener("click", toggleRemember);
+  remember.addEventListener("keydown", function (e) {
+    if (e.key === " " || e.key === "Enter") { e.preventDefault(); toggleRemember(); }
+  });
+
+  function hideError() {
+    document.getElementById("login-error").style.display = "none";
+  }
+
+  function showError() {
+    var el = document.getElementById("login-error");
+    el.style.display = "flex";
+    if (window.lucide) lucide.createIcons();
+    var card = document.getElementById("auth-card");
+    card.style.animation = "none";
+    void card.offsetHeight;
+    card.style.animation = "cbShake 0.38s ease";
+  }
+
+  function enterPortal(supabaseSession) {
+    if (supabaseSession) {
+      localStorage.setItem("cb_token", "sb-" + supabaseSession.access_token.slice(0, 20));
+    } else {
+      localStorage.setItem("cb_token", "auth-" + role);
+    }
+    localStorage.setItem("cb_role", role);
+    window.location.href = "Carebridge Portal.html?role=" + role;
+  }
+
+  // ---- Submit: try Supabase Auth first, fall back to local credentials ----
+  document.getElementById("login-form").addEventListener("submit", async function (e) {
+    e.preventDefault();
+    hideError();
+
+    var username = document.getElementById("email").value.trim();
+    var password = document.getElementById("password").value;
+
+    var btn = document.getElementById("submit-btn");
+    btn.disabled = true;
+    document.getElementById("submit-label").textContent = "Signing in…";
+
+    // Try Supabase Auth (email login) if available
+    if (window.CB_Auth && role === "admin") {
+      try {
+        // Username could be an email or plain username — try as email first
+        var email = username.includes("@") ? username : username + "@carebridge.local";
+        var res = await window.CB_Auth.signIn(email, password);
+        if (res.data && res.data.session) {
+          enterPortal(res.data.session);
+          return;
+        }
+      } catch (err) { /* fall through to local check */ }
+    }
+
+    // Fall back to local credentials (username/password stored in localStorage)
+    var creds = getCredentials();
+    var valid = false;
+    if (role === "admin") {
+      valid = (username === creds.username && password === creds.password);
+    } else {
+      valid = (username.length > 0 && password.length > 0);
+    }
+
+    if (!valid) {
+      btn.disabled = false;
+      document.getElementById("submit-label").textContent = COPY[role].submit;
+      showError();
+      document.getElementById("password").value = "";
+      document.getElementById("password").focus();
+      return;
+    }
+
+    setTimeout(function () { enterPortal(null); }, 400);
+  });
+
+  // Clear error when user starts typing
+  document.getElementById("email").addEventListener("input", hideError);
+  document.getElementById("password").addEventListener("input", hideError);
+
+  // Forgot password
+  document.getElementById("forgot").addEventListener("click", function (e) {
+    e.preventDefault();
+    alert("To reset your password, open the portal > Settings & admin > Change password.\n\nDefault credentials: admin / Carebridge2024");
+  });
+
+  setRole("admin");
+})();
+</script>
+</body>
+</html>

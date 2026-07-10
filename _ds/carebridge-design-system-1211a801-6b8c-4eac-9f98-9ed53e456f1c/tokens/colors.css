@@ -1,0 +1,96 @@
+/* ============================================================
+   Carebridge — Color tokens
+   Navy is the dominant brand color (trust, the "bridge").
+   Teal is the energizing accent (care, the "heartbeat").
+   Sky/Steel blue is the supporting tint (the "globe").
+   Do not introduce off-brand hues.
+   ============================================================ */
+:root {
+  /* ---- Brand scales -------------------------------------- */
+  /* Navy — primary */
+  --navy-900: #0E2148;
+  --navy-800: #152A47;   /* near-black navy, body text on light */
+  --navy-700: #15315C;
+  --navy-600: #1B3A6B;   /* PRIMARY brand navy */
+  --navy-500: #2C5089;
+  --navy-400: #4A6FA5;
+  --navy-300: #7C97BE;
+  --navy-200: #B6C6DC;
+  --navy-100: #E2E9F2;
+  --navy-50:  #F1F4F9;
+
+  /* Teal — accent */
+  --teal-900: #0B4A45;
+  --teal-800: #11645C;
+  --teal-700: #157E74;
+  --teal-600: #19938A;
+  --teal-500: #1CA89C;   /* SECONDARY brand teal */
+  --teal-400: #3CBDB1;
+  --teal-300: #74D2C8;
+  --teal-200: #ABE4DD;
+  --teal-100: #D7F2EF;
+  --teal-50:  #ECF9F7;
+
+  /* Sky / Steel blue — supporting tint */
+  --sky-700: #5C7C9E;
+  --sky-600: #7C99B8;
+  --sky-500: #A8C0D6;   /* SUPPORTING tint */
+  --sky-400: #BDD0E0;
+  --sky-300: #D2DFEB;
+  --sky-200: #E4ECF3;
+  --sky-100: #F0F4F8;
+
+  /* Warm neutrals — paper & ink */
+  --warm-white: #F7F5F0;  /* BACKGROUND warm off-white */
+  --paper:      #FFFFFF;
+  --sand-100:   #EFEBE2;
+  --sand-200:   #E5DFD3;
+  --ink-900:    #152A47;
+  --ink-700:    #3A4A63;
+  --ink-500:    #5C6B82;
+  --ink-400:    #8593A6;
+  --ink-300:    #AEB9C8;
+
+  /* Semantic status (kept on-brand & muted) */
+  --success: #1CA89C;
+  --success-soft: #D7F2EF;
+  --warning: #C8862B;
+  --warning-soft: #F6EAD3;
+  --danger:  #B4453C;
+  --danger-soft: #F4DEDB;
+  --info:    #2C5089;
+  --info-soft: #E2E9F2;
+
+  /* ---- Semantic aliases ---------------------------------- */
+  --brand-primary:   var(--navy-600);
+  --brand-secondary: var(--teal-500);
+  --brand-tint:      var(--sky-500);
+
+  --bg-page:        var(--warm-white);
+  --bg-page-alt:    var(--sky-100);
+  --surface-card:   var(--paper);
+  --surface-sunken: var(--sky-100);
+  --surface-navy:   var(--navy-600);
+  --surface-navy-deep: var(--navy-900);
+
+  --text-strong:   var(--navy-800);   /* headlines */
+  --text-body:     var(--ink-700);    /* paragraph */
+  --text-muted:    var(--ink-500);    /* captions, meta */
+  --text-faint:    var(--ink-400);
+  --text-on-dark:  #FFFFFF;
+  --text-on-dark-muted: rgba(255,255,255,0.72);
+  --text-link:     var(--teal-600);
+
+  --border-subtle: #E7E2D8;           /* warm hairline on paper */
+  --border-default: #DDE5EE;          /* cool hairline */
+  --border-strong: var(--navy-200);
+  --border-on-dark: rgba(255,255,255,0.16);
+
+  --focus-ring: var(--teal-500);
+
+  /* ---- Brand gradients (use sparingly: hero / CTA) ------- */
+  --grad-bridge: linear-gradient(120deg, var(--navy-700) 0%, var(--navy-600) 42%, var(--teal-600) 100%);
+  --grad-bridge-deep: linear-gradient(135deg, var(--navy-900) 0%, var(--navy-700) 55%, var(--teal-700) 120%);
+  --grad-tint: linear-gradient(180deg, #FFFFFF 0%, var(--sky-100) 100%);
+  --grad-heartbeat: linear-gradient(90deg, var(--teal-500), var(--teal-300));
+}

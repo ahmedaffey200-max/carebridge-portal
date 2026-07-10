@@ -1,0 +1,9 @@
+/* ============================================================
+   Carebridge — Webfonts
+   Display:  Plus Jakarta Sans  (geometric-humanist, premium)
+   Body:     Source Sans 3      (warm, highly readable)
+   Loaded from Google Fonts. @font-face rules live in the imported
+   stylesheet so the compiler ships these as the brand webfonts.
+   NOTE: swap to self-hosted .woff2 if offline use is required.
+   ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&family=Source+Sans+3:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');

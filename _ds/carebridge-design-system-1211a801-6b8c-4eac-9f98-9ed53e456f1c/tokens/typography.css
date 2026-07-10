@@ -1,0 +1,49 @@
+/* ============================================================
+   Carebridge — Typography tokens
+   Display: Plus Jakarta Sans · Body: Source Sans 3
+   Type scale is a ~1.22 modular scale, tuned for editorial,
+   confident headlines with calm, highly readable body copy.
+   ============================================================ */
+:root {
+  /* ---- Families ------------------------------------------ */
+  --font-display: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-body:    "Source Sans 3", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-eyebrow: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+
+  /* ---- Weights ------------------------------------------- */
+  --fw-regular: 400;   /* @kind other */
+  --fw-medium:  500;   /* @kind other */
+  --fw-semibold: 600;  /* @kind other */
+  --fw-bold:    700;   /* @kind other */
+  --fw-extrabold: 800; /* @kind other */
+
+  /* ---- Type scale (px) ----------------------------------- */
+  --fs-display:  64px;   /* hero headline */
+  --fs-h1:       48px;
+  --fs-h2:       38px;
+  --fs-h3:       28px;
+  --fs-h4:       22px;
+  --fs-lead:     20px;   /* intro paragraph */
+  --fs-body:     17px;   /* base body */
+  --fs-sm:       15px;
+  --fs-xs:       13px;
+  --fs-eyebrow:  13px;
+
+  /* ---- Line heights -------------------------------------- */
+  --lh-tight:   1.06;  /* @kind other */
+  --lh-snug:    1.18;  /* @kind other */
+  --lh-heading: 1.22;  /* @kind other */
+  --lh-body:    1.6;   /* @kind other */
+  --lh-relaxed: 1.72;  /* @kind other */
+
+  /* ---- Letter spacing ------------------------------------ */
+  --ls-tight:   -0.02em; /* @kind other */
+  --ls-snug:    -0.01em; /* @kind other */
+  --ls-normal:  0;       /* @kind other */
+  --ls-eyebrow: 0.14em;  /* @kind other - uppercase eyebrows */
+  --ls-wide:    0.04em;  /* @kind other */
+
+  /* ---- Semantic aliases ---------------------------------- */
+  --text-display-font: var(--font-display);
+  --text-body-font:    var(--font-body);
+}
