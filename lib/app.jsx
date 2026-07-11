@@ -121,7 +121,7 @@ function Sidebar({ active, go, role }) {
   );
 }
 
-function Topbar({ view, onMenu, privacy, onPrivacy, onLock, onAdd, onSearch }) {
+function Topbar({ view, onMenu, privacy, onPrivacy, onLock, onAdd, onSearch, theme, onTheme }) {
   const m = META[view] || META.dashboard;
   return (
     <header className="cb-top">
@@ -138,6 +138,7 @@ function Topbar({ view, onMenu, privacy, onPrivacy, onLock, onAdd, onSearch }) {
       </button>
       <div className="cb-top__actions">
         <button className={"cb-icon-pill" + (privacy ? " cb-privacy-on" : "")} data-real aria-label="Toggle privacy mode" title={privacy ? "Privacy mode on — patient data hidden" : "Privacy mode off"} aria-pressed={privacy} onClick={onPrivacy}><i data-lucide={privacy ? "eye-off" : "eye"} /></button>
+        <button className="cb-icon-pill" data-real aria-label="Toggle dark mode" title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"} onClick={onTheme}><i data-lucide={theme === "dark" ? "sun" : "moon"} /></button>
         <button className="cb-icon-pill cb-help-hide" data-real aria-label="Lock session now" title="Lock session" onClick={onLock}><i data-lucide="lock" /></button>
         <button className="cb-icon-pill" aria-label="Notifications" data-toast="You're all caught up" data-toast-icon="bell"><i data-lucide="bell" /><span className="cb-dot" /></button>
         <button className="cb-icon-pill" data-real aria-label="Add patient" title="Add patient" onClick={onAdd} style={{ background: "var(--navy-600)", color: "#fff", border: "none" }}><i data-lucide="plus" /></button>
@@ -354,7 +355,7 @@ function App() {
       <div className="cb-scrim" onClick={() => setNavOpen(false)} aria-hidden="true" />
       <Sidebar active={view.name} go={(n) => go(n)} role={role} />
       <main className="cb-main" ref={mainRef}>
-        <Topbar view={view.name} onMenu={() => setNavOpen(true)} privacy={privacy} onPrivacy={() => setPrivacy((p) => !p)} onLock={() => setLocked(true)} onAdd={() => setAddOpen(true)} onSearch={() => setSearchOpen(true)} />
+        <Topbar view={view.name} onMenu={() => setNavOpen(true)} privacy={privacy} onPrivacy={() => setPrivacy((p) => !p)} onLock={() => setLocked(true)} onAdd={() => setAddOpen(true)} onSearch={() => setSearchOpen(true)} theme={t.theme} onTheme={() => setTweak("theme", t.theme === "dark" ? "light" : "dark")} />
         <div className="cb-page">{content}</div>
       </main>
       {locked ? <LockScreen user={user} onUnlock={() => setLocked(false)} /> : null}
