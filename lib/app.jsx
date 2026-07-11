@@ -85,7 +85,13 @@ function Sidebar({ active, go, role }) {
     : NAV;
   const user = isClient
     ? { initials: "HA", color: "var(--navy-600)", name: "Hodan Ali", urole: "Patient · CB-2039" }
-    : { initials: "AY", color: "var(--teal-600)", name: "Amina Yusuf", urole: "Lead coordinator" };
+    : (function() {
+        var n = localStorage.getItem("cb_user_name") || "Administrator";
+        var r = localStorage.getItem("cb_user_role") || "admin";
+        var label = r.charAt(0).toUpperCase() + r.slice(1);
+        var inits = n.split(" ").map(function(w){ return w[0]; }).slice(0,2).join("").toUpperCase();
+        return { initials: inits || "AD", color: "var(--teal-600)", name: n, urole: label };
+      })();
   return (
     <aside className="cb-side">
       <Brandmark />
@@ -235,7 +241,7 @@ function App() {
   const lockTimer = useRefA(null);
   const user = role === "client"
     ? { name: "Hodan Ali" }
-    : { name: "Amina Yusuf" };
+    : { name: localStorage.getItem("cb_user_name") || "Administrator" };
   useLucideObserver(rootRef);
 
   // Inactivity auto-lock (2 min). Real timeout is enforced server-side.
