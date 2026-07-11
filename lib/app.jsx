@@ -30,6 +30,7 @@ const NAV = [
   ]},
   { group: "Administration", items: [
     { id: "ai-assistant", label: "AI Intelligence", icon: "brain-circuit" },
+    { id: "patient-portal", label: "Patient Invitations", icon: "send" },
     { id: "security", label: "Security & access", icon: "shield-check" },
     { id: "settings", label: "Settings & admin", icon: "settings" },
   ]},
@@ -53,6 +54,7 @@ const META = {
   analytics: { title: "Analytics & reporting", crumb: "Network & business" },
   mobile: { title: "Patient mobile app", crumb: "Patient experience" },
   "ai-assistant": { title: "AI Intelligence Assistant", crumb: "Administration" },
+  "patient-portal": { title: "Patient Invitations", crumb: "Administration" },
   security: { title: "Security & access center", crumb: "Administration" },
   settings: { title: "Settings & administration", crumb: "Administration" },
 };
@@ -348,6 +350,7 @@ function App() {
     case "analytics": content = <AnalyticsView />; break;
     case "mobile": content = <MobileView />; break;
     case "ai-assistant": content = <AIAssistantView />; break;
+    case "patient-portal": content = <PatientInvitationsView />; break;
     case "security": content = <SecurityView />; break;
     case "settings": content = <SettingsView />; break;
     default: content = <Dashboard direction={t.dashboard} go={go} />;
