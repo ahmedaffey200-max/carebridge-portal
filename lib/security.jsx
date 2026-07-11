@@ -314,6 +314,13 @@ function SecData() {
 
 /* ---- Staff Accounts ---- */
 const ROLES_LIST = ["admin", "coordinator", "doctor", "finance", "viewer"];
+const INVITE_BASE = "https://ahmedaffey200-max.github.io/carebridge-portal/Carebridge%20Set%20Password.html";
+
+function _genToken() {
+  var arr = new Uint8Array(32);
+  crypto.getRandomValues(arr);
+  return Array.from(arr).map(function(b){ return b.toString(16).padStart(2,"0"); }).join("");
+}
 
 function StaffAccounts() {
   const [users, setUsers] = useStateS([]);
@@ -322,11 +329,14 @@ function StaffAccounts() {
   const [delTarget, setDelTarget] = useStateS(null);
   const [err, setErr] = useStateS("");
   const [saving, setSaving] = useStateS(false);
+  const [inviteLink, setInviteLink] = useStateS(""); // shown after invite creation
 
   const load = async () => {
     const sb = _getSB();
     if (!sb) { setLoading(false); return; }
-    const { data } = await sb.from("portal_users").select("*").order("created_at", { ascending: true });
+    const { data } = await sb.from("portal_users")
+      .select("id, username, name, email, role, active, created_at, last_login, invite_token, invite_expires_at, password_set")
+      .order("created_at", { ascending: true });
     setUsers(data || []);
     setLoading(false);
   };
@@ -354,29 +364,67 @@ function StaffAccounts() {
     setSaving(true); setErr("");
     try {
       if (modal === "create") {
-        if (!form.username.trim() || !form.name.trim() || !form.password.trim()) {
-          setErr("Username, full name and password are required."); setSaving(false); return;
+        if (!form.username.trim() || !form.name.trim()) {
+          setErr("Username and full name are required."); setSaving(false); return;
         }
-        const hash = await _sha256(form.password);
-        const { error } = await sb.from("portal_users").insert({
-          username: form.username.trim().toLowerCase(),
-          name: form.name.trim(),
-          email: form.email.trim() || null,
-          role: form.role,
-          password_hash: hash,
-          active: true,
-        });
-        if (error) { setErr(error.message); setSaving(false); return; }
+        if (form.useInvite) {
+          // Generate invite token — staff member sets their own password
+          var tok = _genToken();
+          var exp = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+          const { error } = await sb.from("portal_users").insert({
+            username: form.username.trim().toLowerCase(),
+            name: form.name.trim(),
+            email: form.email.trim() || null,
+            role: form.role,
+            password_hash: "__invite_pending__",
+            active: false,
+            invite_token: tok,
+            invite_expires_at: exp,
+            password_set: false,
+          });
+          if (error) { setErr(error.message); setSaving(false); return; }
+          await load();
+          setModal(null);
+          setInviteLink(INVITE_BASE + "?token=" + tok);
+        } else {
+          if (!form.password.trim()) {
+            setErr("Password is required when not using an invite link."); setSaving(false); return;
+          }
+          const hash = await _sha256(form.password);
+          const { error } = await sb.from("portal_users").insert({
+            username: form.username.trim().toLowerCase(),
+            name: form.name.trim(),
+            email: form.email.trim() || null,
+            role: form.role,
+            password_hash: hash,
+            active: true,
+            password_set: true,
+          });
+          if (error) { setErr(error.message); setSaving(false); return; }
+          await load();
+          setModal(null);
+        }
       } else {
+        // Edit existing
         const patch = { name: form.name.trim(), email: form.email.trim() || null, role: form.role };
         if (form.password.trim()) patch.password_hash = await _sha256(form.password);
         const { error } = await sb.from("portal_users").update(patch).eq("id", modal.id);
         if (error) { setErr(error.message); setSaving(false); return; }
+        await load();
+        setModal(null);
       }
-      await load();
-      setModal(null);
     } catch(e) { setErr("Unexpected error. Check console."); }
     setSaving(false);
+  };
+
+  const resendInvite = async (u) => {
+    const sb = _getSB();
+    if (!sb) return;
+    var tok = _genToken();
+    var exp = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    await sb.from("portal_users").update({ invite_token: tok, invite_expires_at: exp, active: false }).eq("id", u.id);
+    await load();
+    setInviteLink(INVITE_BASE + "?token=" + tok);
   };
 
   const toggleActive = async (u) => {
@@ -396,15 +444,61 @@ function StaffAccounts() {
     window.cbToast && window.cbToast("Account deleted: " + u.name, { icon: "trash-2" });
   };
 
+  const copyToClipboard = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      window.cbToast && window.cbToast("Invite link copied to clipboard!", { icon: "copy" });
+    } catch(e) {}
+  };
+
   const roleChip = (r) => {
     const map = { admin: "navy", coordinator: "teal", doctor: "sky", finance: "warm", viewer: "" };
     return <Pill tone={map[r] || ""}>{r}</Pill>;
   };
 
+  const isPending = (u) => !!(u.invite_token && !u.password_set);
+
   return (
     <div className="cb-grid" style={{ gap: "var(--gap-grid)" }}>
       {modal ? <UserModal user={modal === "create" ? null : modal} saving={saving} err={err}
         onSave={saveUser} onClose={() => { setModal(null); setErr(""); }} /> : null}
+
+      {/* Invite link dialog */}
+      {inviteLink ? (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 900, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div style={{ background: "var(--surface)", borderRadius: "var(--radius-xl)", padding: 32, width: "100%", maxWidth: 520, boxShadow: "var(--shadow-lg)" }}>
+            <div className="cb-between" style={{ marginBottom: 18 }}>
+              <div className="cb-row" style={{ gap: 12 }}>
+                <div className="cb-chip" style={{ width: 42, height: 42 }}><Icon name="send" size={20} /></div>
+                <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-strong)" }}>Send this invite link</h2>
+              </div>
+              <button className="cb-icon-pill" data-real onClick={() => setInviteLink("")}
+                style={{ width: 34, height: 34, border: "none", background: "transparent" }}>
+                <Icon name="x" size={18} />
+              </button>
+            </div>
+            <p style={{ fontSize: 14, color: "var(--text-muted)", marginBottom: 18, lineHeight: 1.6 }}>
+              Copy this link and send it via <b>WhatsApp, email, or SMS</b>. The staff member clicks it and creates their own password. Their account activates automatically once they set it.
+            </p>
+            <div style={{ display: "flex", gap: 10, alignItems: "stretch", marginBottom: 16 }}>
+              <div style={{ flex: 1, padding: "11px 14px", background: "var(--sky-100)", borderRadius: "var(--radius-md)", border: "1px solid var(--sky-200)", fontFamily: "monospace", fontSize: 11.5, wordBreak: "break-all", color: "var(--navy-700)", lineHeight: 1.5 }}>
+                {inviteLink}
+              </div>
+              <button className="cb-btn-primary" data-real style={{ flexShrink: 0, alignSelf: "stretch" }} onClick={() => copyToClipboard(inviteLink)}>
+                <Icon name="copy" size={15} /> Copy
+              </button>
+            </div>
+            <div className="cb-row" style={{ gap: 10, padding: "12px 16px", background: "var(--teal-50)", borderRadius: "var(--radius-md)", border: "1px solid var(--teal-200)", marginBottom: 20 }}>
+              <Icon name="clock" size={15} style={{ color: "var(--teal-700)", flexShrink: 0 }} />
+              <span style={{ fontSize: 13, color: "var(--teal-800)" }}>Link expires in <b>7 days</b>. The account shows as <b>Invite pending</b> until they set their password. You can regenerate it at any time.</span>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <button className="cb-btn-ghost" data-real onClick={() => setInviteLink("")}>Done</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {delTarget ? (
         <ConfirmDialog title={"Delete account for " + delTarget.name + "?"}
           body={"This permanently removes the login for \"" + delTarget.username + "\". They will not be able to sign in after this. This cannot be undone."}
@@ -415,7 +509,7 @@ function StaffAccounts() {
 
       <Card pad0>
         <div style={{ padding: "var(--pad-card) var(--pad-card) 0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <CardHead title="Staff accounts" sub="All portal logins — each person gets their own username and password" />
+          <CardHead title="Staff accounts" sub="Create an account and send each person their own invite link — they set their own password" />
           <button className="cb-btn-primary" data-real style={{ flexShrink: 0 }} onClick={() => { setErr(""); setModal("create"); }}>
             <Icon name="user-plus" size={15} /> Add account
           </button>
@@ -449,12 +543,21 @@ function StaffAccounts() {
                   </td>
                   <td style={{ fontFamily: "monospace", fontSize: 13 }}>{u.username}</td>
                   <td>{roleChip(u.role)}</td>
-                  <td><Pill tone={u.active ? "teal" : "muted"} dot>{u.active ? "Active" : "Inactive"}</Pill></td>
+                  <td>
+                    {isPending(u)
+                      ? <Pill tone="warn" dot>Invite pending</Pill>
+                      : <Pill tone={u.active ? "teal" : "muted"} dot>{u.active ? "Active" : "Inactive"}</Pill>}
+                  </td>
                   <td style={{ fontSize: 13, color: "var(--text-muted)" }}>{fmtAgo(u.last_login)}</td>
                   <td style={{ fontSize: 13, color: "var(--text-muted)" }}>{fmtDate(u.created_at)}</td>
                   <td>
                     <div className="cb-row cb-rowactions" style={{ gap: 4, justifyContent: "flex-end" }}
                          onClick={(e) => e.stopPropagation()}>
+                      {isPending(u) ? (
+                        <button className="cb-rowbtn" data-real title="Resend invite link" onClick={() => resendInvite(u)}>
+                          <Icon name="send" size={15} />
+                        </button>
+                      ) : null}
                       <button className="cb-rowbtn" data-real title="Edit" onClick={() => { setErr(""); setModal(u); }}>
                         <Icon name="pencil" size={15} />
                       </button>
@@ -481,12 +584,12 @@ function StaffAccounts() {
       </Card>
 
       <Card>
-        <CardHead title="How it works" sub="Quick reference for managing staff logins" />
+        <CardHead title="How it works" sub="Three steps to get any staff member set up" />
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 18 }}>
           {[
-            { icon: "user-plus", title: "Create account", desc: "Each coordinator, doctor or admin gets their own username and password. They log in at the Carebridge Login page." },
-            { icon: "shield", title: "Role controls access", desc: "admin = full access. coordinator = patients & comms. doctor = reports only. finance = invoices. viewer = read-only." },
-            { icon: "key-round", title: "Reset password", desc: "Click the pencil icon to edit any account. Leave password blank to keep it unchanged, or enter a new one to reset it." },
+            { icon: "user-plus", title: "1 · Create account", desc: "Enter the staff member's name, choose their username and role, then click \"Send invite link\"." },
+            { icon: "send", title: "2 · Share the link", desc: "Copy the generated link and send it via WhatsApp, email or SMS. The link works for 7 days." },
+            { icon: "key-round", title: "3 · They set their password", desc: "Staff member opens the link, types a password of their choice, and their account activates immediately." },
           ].map((h, i) => (
             <div key={i} style={{ padding: "16px 18px", borderRadius: "var(--radius-md)", background: "var(--sky-100)", border: "1px solid var(--sky-200)" }}>
               <div className="cb-chip" style={{ width: 38, height: 38, marginBottom: 12 }}><Icon name={h.icon} size={18} /></div>
@@ -507,6 +610,7 @@ function UserModal({ user, saving, err, onSave, onClose }) {
     email: user ? (user.email || "") : "",
     role: user ? user.role : "coordinator",
     password: "",
+    useInvite: !user, // new accounts default to invite flow
   });
   const set = (k, v) => setForm(function(f){ return Object.assign({}, f, { [k]: v }); });
 
@@ -545,11 +649,39 @@ function UserModal({ user, saving, err, onSave, onClose }) {
             <label className="cb-label">Email address</label>
             <input className="cb-input" type="email" value={form.email} onChange={(e) => set("email", e.target.value)} placeholder="staff@carebridge.so (optional)" />
           </div>
-          <div className="cb-field">
-            <label className="cb-label">{user ? "New password (leave blank to keep current)" : "Password *"}</label>
-            <input className="cb-input" type="password" value={form.password} onChange={(e) => set("password", e.target.value)}
-              placeholder={user ? "Enter new password to reset…" : "Min 8 characters"} />
-          </div>
+
+          {/* Password setup — only for new accounts */}
+          {!user ? (
+            <div>
+              <div className="cb-label" style={{ marginBottom: 8 }}>Password setup *</div>
+              <div style={{ display: "flex", borderRadius: "var(--radius-md)", border: "1px solid var(--border-subtle)", overflow: "hidden" }}>
+                <button type="button" data-real onClick={() => set("useInvite", false)}
+                  style={{ flex: 1, padding: "10px 12px", fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer", borderRight: "1px solid var(--border-subtle)",
+                    background: form.useInvite ? "transparent" : "var(--teal-600)", color: form.useInvite ? "var(--text-muted)" : "#fff" }}>
+                  Set password now
+                </button>
+                <button type="button" data-real onClick={() => set("useInvite", true)}
+                  style={{ flex: 1, padding: "10px 12px", fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                    background: form.useInvite ? "var(--teal-600)" : "transparent", color: form.useInvite ? "#fff" : "var(--text-muted)" }}>
+                  <Icon name="send" size={13} /> Send invite link
+                </button>
+              </div>
+              {form.useInvite ? (
+                <div style={{ marginTop: 10, padding: "10px 14px", background: "var(--teal-50)", borderRadius: "var(--radius-md)", fontSize: 13, color: "var(--teal-800)", lineHeight: 1.5 }}>
+                  A unique link will be created. Send it to the staff member — they open it and choose their own password. The link expires in 7 days.
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          {/* Show password field when not using invite (new) or always (edit) */}
+          {(!user && !form.useInvite) || !!user ? (
+            <div className="cb-field">
+              <label className="cb-label">{user ? "New password (leave blank to keep current)" : "Password *"}</label>
+              <input className="cb-input" type="password" value={form.password} onChange={(e) => set("password", e.target.value)}
+                placeholder={user ? "Enter new password to reset…" : "Min 8 characters"} />
+            </div>
+          ) : null}
 
           {err ? (
             <div className="cb-row" style={{ gap: 8, padding: "10px 14px", background: "#fff1f2", border: "1px solid #fda4af", borderRadius: 8, color: "#be123c", fontSize: 13 }}>
@@ -561,8 +693,8 @@ function UserModal({ user, saving, err, onSave, onClose }) {
           <div className="cb-row" style={{ gap: 10, justifyContent: "flex-end", marginTop: 4 }}>
             <button className="cb-btn-ghost" data-real onClick={onClose} disabled={saving}>Cancel</button>
             <button className="cb-btn-primary" data-real disabled={saving} onClick={() => onSave(form)}>
-              <Icon name={saving ? "loader" : "save"} size={15} />
-              {saving ? "Saving…" : user ? "Save changes" : "Create account"}
+              <Icon name={saving ? "loader" : (!user && form.useInvite ? "send" : "save")} size={15} />
+              {saving ? "Saving…" : !user && form.useInvite ? "Create & get invite link" : user ? "Save changes" : "Create account"}
             </button>
           </div>
         </div>
