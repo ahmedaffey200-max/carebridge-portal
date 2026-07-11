@@ -236,6 +236,108 @@ function formatDateTime(v) {
   } catch (e) { return v; }
 }
 
+function PatientLocation({ patientId }) {
+  const [loc, setLoc] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const reload = React.useCallback(async () => {
+    var sb = window.CB_SB;
+    if (!sb) { setLoading(false); return; }
+    var res = await sb.from("patient_locations")
+      .select("*")
+      .eq("patient_id", patientId)
+      .order("recorded_at", { ascending: false })
+      .limit(1)
+      .single();
+    setLoc(res.data || null);
+    setLoading(false);
+  }, [patientId]);
+
+  React.useEffect(() => {
+    reload();
+    var t = setInterval(reload, 60000);
+    return function() { clearInterval(t); };
+  }, [reload]);
+
+  const ago = (ts) => {
+    if (!ts) return "";
+    var diff = Date.now() - new Date(ts).getTime();
+    var m = Math.floor(diff / 60000);
+    if (m < 1) return "just now";
+    if (m < 60) return m + "m ago";
+    var h = Math.floor(m / 60);
+    if (h < 24) return h + "h ago";
+    return Math.floor(h / 24) + "d ago";
+  };
+
+  const mapsUrl = (lat, lon) => "https://www.google.com/maps?q=" + lat + "," + lon;
+  const osmUrl  = (lat, lon) => "https://www.openstreetmap.org/?mlat=" + lat + "&mlon=" + lon + "&zoom=14";
+
+  return (
+    <Card>
+      <CardHead title="Patient location" sub="GPS ping from patient portal · updates on login" />
+      {loading ? (
+        <div style={{ fontSize: 13, color: "var(--text-faint)", padding: "8px 0" }}>Checking…</div>
+      ) : !loc ? (
+        <div className="cb-row" style={{ gap: 10, color: "var(--text-muted)", fontSize: 13.5, padding: "6px 0" }}>
+          <Icon name="map-pin-off" size={16} style={{ color: "var(--text-faint)" }} />
+          Location not shared yet — patient must log in to the portal to share.
+        </div>
+      ) : (
+        <div>
+          <div className="cb-row" style={{ gap: 10, marginBottom: 12 }}>
+            <div style={{ width: 36, height: 36, borderRadius: "50%", background: "var(--teal-50, #f0fdfa)", display: "grid", placeItems: "center", flexShrink: 0 }}>
+              <Icon name="map-pin" size={18} style={{ color: "var(--teal-600, #0d9488)" }} />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-strong)" }}>
+                {[loc.city, loc.country].filter(Boolean).join(", ") || "Location recorded"}
+              </div>
+              <div style={{ fontSize: 12, color: "var(--text-faint)", marginTop: 2 }}>Last seen {ago(loc.recorded_at)}</div>
+            </div>
+          </div>
+          <div className="cb-soft-panel" style={{ marginBottom: 14 }}>
+            <InfoRow label="Latitude">{Number(loc.latitude).toFixed(6)}°</InfoRow>
+            <InfoRow label="Longitude">{Number(loc.longitude).toFixed(6)}°</InfoRow>
+            {loc.accuracy ? <InfoRow label="Accuracy">±{Math.round(loc.accuracy)}m</InfoRow> : null}
+          </div>
+          {/* Embedded map preview via OpenStreetMap tile */}
+          <div style={{ borderRadius: 10, overflow: "hidden", border: "1px solid var(--border-subtle)", marginBottom: 12, lineHeight: 0 }}>
+            <iframe
+              title="Patient location map"
+              width="100%"
+              height="180"
+              style={{ border: "none", display: "block" }}
+              src={"https://www.openstreetmap.org/export/embed.html?bbox=" +
+                (loc.longitude - 0.01) + "%2C" + (loc.latitude - 0.008) + "%2C" +
+                (loc.longitude + 0.01) + "%2C" + (loc.latitude + 0.008) +
+                "&layer=mapnik&marker=" + loc.latitude + "%2C" + loc.longitude}
+              loading="lazy"
+            />
+          </div>
+          <div className="cb-row" style={{ gap: 8 }}>
+            <a href={mapsUrl(loc.latitude, loc.longitude)} target="_blank" rel="noreferrer"
+              className="cb-btn-primary" data-real
+              style={{ flex: 1, textAlign: "center", textDecoration: "none", fontSize: 13, padding: "8px 0", borderRadius: 8 }}>
+              <Icon name="map" size={14} style={{ marginRight: 5, verticalAlign: "middle" }} />
+              Google Maps
+            </a>
+            <a href={osmUrl(loc.latitude, loc.longitude)} target="_blank" rel="noreferrer"
+              className="cb-btn-ghost" data-real
+              style={{ flex: 1, textAlign: "center", textDecoration: "none", fontSize: 13, padding: "8px 0", borderRadius: 8 }}>
+              <Icon name="external-link" size={14} style={{ marginRight: 5, verticalAlign: "middle" }} />
+              OpenStreetMap
+            </a>
+            <button className="cb-icon-pill" data-real title="Refresh location" style={{ width: 36, height: 36 }} onClick={reload}>
+              <Icon name="refresh-cw" size={15} />
+            </button>
+          </div>
+        </div>
+      )}
+    </Card>
+  );
+}
+
 function PatientOverview({ p, dest, co, hosp }) {
   useStore();
   const travel = window.CBStore.getTravel(p.id);
@@ -344,6 +446,7 @@ function PatientOverview({ p, dest, co, hosp }) {
             </div>
           )}
         </Card>
+        <PatientLocation patientId={p.id} />
       </div>
     </div>
   );
