@@ -1,12 +1,15 @@
 /* ============================================================
    Carebridge Portal — AI Intelligence Assistant
-   Uses Anthropic API directly from the browser (streaming)
+   Calls a Supabase Edge Function (key stored server-side, never in browser)
    ============================================================ */
 const { useState: useStateAI, useEffect: useEffectAI, useRef: useRefAI, useCallback: useCallbackAI } = React;
 
-const AI_KEY_STORAGE = "cb_ai_api_key";
 const AI_HISTORY_STORAGE = "cb_ai_chat_history";
-const AI_MODEL = "claude-opus-4-8";
+
+// Supabase project constants (public values — same as supabase-client.js)
+const SB_URL  = "https://htvjjwfenvittdritjni.supabase.co";
+const SB_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh0dmpqd2ZlbnZpdHRkcml0am5pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2NTQ3OTAsImV4cCI6MjA5OTIzMDc5MH0.AMKUctPj49ahqXAFZbzJ341ZFH5XTckBUQaDmF5ZLj8";
+const EDGE_FN = SB_URL + "/functions/v1/ai-chat";
 
 const SUGGESTED_QUESTIONS = [
   "Give me a full summary of all active patients and their status",
@@ -103,8 +106,7 @@ function buildPortalContext() {
 }
 
 function buildSystemPrompt() {
-  const portalData = buildPortalContext();
-  return `You are the Carebridge Intelligence Assistant — an expert AI analyst embedded inside the Carebridge International medical coordination portal. You have full access to all portal data and you help admins and coordinators make fast, smart decisions.
+  return `You are the Carebridge Intelligence Assistant — an expert AI analyst embedded inside the Carebridge International medical coordination portal. You have full access to all portal data and help admins make fast, smart decisions.
 
 Your role:
 - Answer any question about patients, hospitals, finances, appointments, commissions, and expenses
@@ -113,7 +115,7 @@ Your role:
 - Be concise yet thorough — admins are busy
 
 Current portal snapshot (live data):
-${portalData}
+${buildPortalContext()}
 
 Guidelines:
 - Always refer to real data from the snapshot above
@@ -124,62 +126,73 @@ Guidelines:
 - Today's date context: ${new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}`;
 }
 
-async function streamClaude(apiKey, messages, onChunk, onDone, onError) {
+async function callAI(messages, onChunk, onDone, onError) {
   try {
-    const systemPrompt = buildSystemPrompt();
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
+    const res = await fetch(EDGE_FN, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-        "anthropic-dangerous-direct-browser-access": "true",
+        "Authorization": "Bearer " + SB_ANON,
+        "apikey": SB_ANON,
       },
       body: JSON.stringify({
-        model: AI_MODEL,
-        max_tokens: 2048,
-        stream: true,
-        system: systemPrompt,
+        system: buildSystemPrompt(),
         messages: messages,
       }),
     });
 
     if (!res.ok) {
-      const err = await res.json().catch(() => ({ error: { message: "HTTP " + res.status } }));
-      const msg = (err.error && err.error.message) ? err.error.message : "API error " + res.status;
-      onError(msg);
+      let errMsg = "Error " + res.status;
+      if (res.status === 404) {
+        errMsg = "AI function not deployed yet. Please follow the setup steps in Supabase Edge Functions.";
+      } else if (res.status === 401 || res.status === 403) {
+        errMsg = "Authentication error. Check your Supabase anon key.";
+      } else {
+        try { const j = await res.json(); errMsg = j.error || errMsg; } catch (_) {}
+      }
+      onError(errMsg);
       return;
     }
 
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop();
-      for (const line of lines) {
-        if (!line.startsWith("data: ")) continue;
-        const data = line.slice(6).trim();
-        if (data === "[DONE]") continue;
-        try {
-          const evt = JSON.parse(data);
-          if (evt.type === "content_block_delta" && evt.delta && evt.delta.text) {
-            onChunk(evt.delta.text);
-          }
-          if (evt.type === "message_stop") {
-            onDone();
-            return;
-          }
-        } catch (_) {}
+    // Try streaming first (text/event-stream)
+    const ct = res.headers.get("content-type") || "";
+    if (ct.includes("text/event-stream")) {
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop();
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const data = line.slice(6).trim();
+          if (data === "[DONE]") continue;
+          try {
+            const evt = JSON.parse(data);
+            if (evt.type === "content_block_delta" && evt.delta && evt.delta.text) {
+              onChunk(evt.delta.text);
+            }
+            if (evt.type === "message_stop") { onDone(); return; }
+          } catch (_) {}
+        }
+      }
+      onDone();
+    } else {
+      // Non-streaming JSON response
+      const data = await res.json();
+      const text = data.text || data.content || (data.content && data.content[0] && data.content[0].text) || "";
+      if (text) {
+        onChunk(text);
+        onDone();
+      } else {
+        onError("Empty response from AI function.");
       }
     }
-    onDone();
   } catch (err) {
-    onError(err.message || "Network error");
+    onError("Network error: " + (err.message || "Could not reach Supabase Edge Function."));
   }
 }
 
@@ -209,7 +222,7 @@ function ChatBubble({ msg }) {
         {isUser ? (
           <span>{msg.content}</span>
         ) : (
-          <MarkdownText text={msg.content} />
+          <MarkdownText text={msg.content || "…"} />
         )}
         {msg.streaming && <span className="cb-ai-cursor" />}
       </div>
@@ -217,43 +230,7 @@ function ChatBubble({ msg }) {
   );
 }
 
-function ApiKeySetup({ onSave }) {
-  const [key, setKey] = useStateAI("");
-  const [show, setShow] = useStateAI(false);
-  return (
-    <div className="cb-ai-setup">
-      <div className="cb-ai-setup__icon"><i data-lucide="key-round" /></div>
-      <h3>Connect your Anthropic API key</h3>
-      <p>The AI Assistant uses Claude claude-opus-4-8 to analyze all your portal data in real time. Your key is stored only in this browser and never sent anywhere except Anthropic.</p>
-      <div className="cb-ai-setup__field">
-        <input
-          type={show ? "text" : "password"}
-          value={key}
-          onChange={(e) => setKey(e.target.value)}
-          placeholder="sk-ant-api03-…"
-          onKeyDown={(e) => { if (e.key === "Enter" && key.startsWith("sk-ant-")) onSave(key.trim()); }}
-        />
-        <button className="cb-icon-pill" data-real onClick={() => setShow((s) => !s)} title={show ? "Hide key" : "Show key"}>
-          <i data-lucide={show ? "eye-off" : "eye"} />
-        </button>
-      </div>
-      <button
-        className="cb-btn cb-btn--primary"
-        data-real
-        disabled={!key.startsWith("sk-ant-")}
-        onClick={() => onSave(key.trim())}
-      >
-        <i data-lucide="zap" /> Activate AI Assistant
-      </button>
-      <p className="cb-ai-setup__hint">
-        Get your key at <strong>console.anthropic.com</strong> → API Keys. Usage is billed to your Anthropic account.
-      </p>
-    </div>
-  );
-}
-
 function AIAssistantView() {
-  const [apiKey, setApiKey] = useStateAI(() => localStorage.getItem(AI_KEY_STORAGE) || "");
   const [messages, setMessages] = useStateAI(() => {
     try {
       const saved = localStorage.getItem(AI_HISTORY_STORAGE);
@@ -278,11 +255,6 @@ function AIAssistantView() {
     try { localStorage.setItem(AI_HISTORY_STORAGE, JSON.stringify(msgs.slice(-40))); } catch (_) {}
   };
 
-  const handleSave = (key) => {
-    localStorage.setItem(AI_KEY_STORAGE, key);
-    setApiKey(key);
-  };
-
   const sendMessage = useCallbackAI((text) => {
     const q = (text || input).trim();
     if (!q || loading) return;
@@ -290,22 +262,18 @@ function AIAssistantView() {
     setError("");
     const userMsg = { role: "user", content: q };
     const assistantMsg = { role: "assistant", content: "", streaming: true };
-    const updated = [...messages, userMsg, assistantMsg];
-    setMessages(updated);
+    const newMessages = [...messages, userMsg, assistantMsg];
+    setMessages(newMessages);
     setLoading(true);
 
-    const apiMessages = updated
-      .filter((m) => !m.streaming)
-      .concat({ role: "user", content: q })
-      .filter((m) => m.role === "user" || (m.role === "assistant" && m.content))
-      .map((m) => ({ role: m.role, content: m.content }));
+    // Build messages list for the API (exclude the empty streaming placeholder)
+    const apiMessages = [...messages, userMsg]
+      .map((m) => ({ role: m.role, content: m.content }))
+      .filter((m) => m.content)
+      .slice(-20);
 
-    // keep only the last 20 turns for context
-    const trimmed = apiMessages.slice(-20);
-
-    streamClaude(
-      apiKey,
-      trimmed,
+    callAI(
+      apiMessages,
       (chunk) => {
         setMessages((prev) => {
           const copy = [...prev];
@@ -335,27 +303,19 @@ function AIAssistantView() {
           const copy = [...prev];
           const last = copy[copy.length - 1];
           if (last && last.streaming) {
-            copy[copy.length - 1] = { ...last, content: "Sorry, I encountered an error: " + errMsg, streaming: false };
+            copy[copy.length - 1] = { ...last, content: "Error: " + errMsg, streaming: false };
           }
           return copy;
         });
         setError(errMsg);
       }
     );
-  }, [apiKey, input, messages, loading]);
+  }, [input, messages, loading]);
 
   const clearChat = () => {
     setMessages([]);
     localStorage.removeItem(AI_HISTORY_STORAGE);
   };
-
-  const changeKey = () => {
-    localStorage.removeItem(AI_KEY_STORAGE);
-    setApiKey("");
-    setMessages([]);
-  };
-
-  if (!apiKey) return <ApiKeySetup onSave={handleSave} />;
 
   const hasMessages = messages.length > 0;
 
@@ -366,7 +326,7 @@ function AIAssistantView() {
           <div className="cb-ai-header__icon"><i data-lucide="brain-circuit" /></div>
           <div>
             <div className="cb-ai-header__title">Carebridge Intelligence</div>
-            <div className="cb-ai-header__sub">Powered by Claude claude-opus-4-8 · Full portal access</div>
+            <div className="cb-ai-header__sub">Powered by Claude Opus 4.8 via Supabase · Full portal access</div>
           </div>
         </div>
         <div className="cb-ai-header__actions">
@@ -375,9 +335,6 @@ function AIAssistantView() {
               <i data-lucide="trash-2" />
             </button>
           )}
-          <button className="cb-icon-pill" data-real title="Change API key" onClick={changeKey}>
-            <i data-lucide="key-round" />
-          </button>
         </div>
       </div>
 
@@ -445,7 +402,7 @@ function AIAssistantView() {
             {loading ? <i data-lucide="loader-2" /> : <i data-lucide="send" />}
           </button>
         </div>
-        <div className="cb-ai-footer__hint">Enter to send · Shift+Enter for new line · All data stays in your browser</div>
+        <div className="cb-ai-footer__hint">Enter to send · Shift+Enter for new line · Secured via Supabase</div>
       </div>
     </div>
   );
