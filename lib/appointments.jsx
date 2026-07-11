@@ -387,12 +387,27 @@ function AppointmentsView() {
     setAppts(prev => [...prev, newAppt]);
     setBookOpen(false);
     window.cbToast("Appointment booked", { icon: "calendar-check" });
+    if (window.cbTrackActivity && form.patientId) {
+      const dateLabel = form.date ? new Date(form.date + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "long", year: "numeric" }) : "";
+      const details = [form.doctor ? "Doctor: " + form.doctor : "", form.location ? "Location: " + form.location : "", dateLabel ? "Date: " + dateLabel : "", form.time ? "Time: " + form.time : "", form.timezone ? "(" + form.timezone.split("/").pop().replace(/_/g," ") + ")" : ""].filter(Boolean).join(" | ");
+      window.cbTrackActivity(form.patientId, "appointment_booked", "Appointment booked: " + form.type, details, null, form.type);
+    }
   };
 
   const saveAppt = (form) => {
-    setAppts(prev => prev.map(a => a.id === form.id ? form : a));
+    const prev = appts.find(a => a.id === form.id) || {};
+    setAppts(prev2 => prev2.map(a => a.id === form.id ? form : a));
     setEditAppt(null);
     window.cbToast("Appointment updated", { icon: "check-circle-2" });
+    if (window.cbTrackActivity && form.patientId) {
+      const changes = [];
+      if (prev.status !== form.status) changes.push("Status: " + form.status);
+      if (prev.doctor !== form.doctor && form.doctor) changes.push("Doctor: " + form.doctor);
+      if (prev.location !== form.location && form.location) changes.push("Location: " + form.location);
+      if (prev.date !== form.date && form.date) changes.push("Date: " + new Date(form.date + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "long", year: "numeric" }));
+      if (prev.time !== form.time && form.time) changes.push("Time: " + form.time);
+      if (changes.length) window.cbTrackActivity(form.patientId, "appointment_updated", "Appointment updated: " + form.type, changes.join(" | "), prev.status, form.status);
+    }
   };
 
   const cancelAppt = (id) => {

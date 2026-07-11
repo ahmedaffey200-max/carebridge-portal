@@ -763,65 +763,121 @@ function MessagesTab({ invitation }) {
 }
 
 function JourneyTab({ invitation }) {
-  const [appointments, setAppointments] = useState(null);
-  useEffect(() => {
-    (async () => {
-      const { data } = await sb.from("appointments").select("*").eq("patient_id", invitation.patient_id).order("date", { ascending: true }).limit(20);
-      setAppointments(data || []);
-    })();
+  const [activities, setActivities] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const load = useCallback(async () => {
+    const { data } = await sb
+      .from("patient_activities")
+      .select("*")
+      .eq("patient_id", invitation.patient_id)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    setActivities(data || []);
   }, [invitation.patient_id]);
 
-  const statusDot = (s) => {
-    if (!s) return "pp-pill--navy";
-    const sl = s.toLowerCase();
-    if (sl.includes("complet") || sl.includes("done")) return "pp-pill--ok";
-    if (sl.includes("cancel")) return "pp-pill--danger";
-    if (sl.includes("upcom") || sl.includes("schedul")) return "pp-pill--teal";
-    return "pp-pill--navy";
+  useEffect(() => { load(); }, [load]);
+
+  const refresh = async () => {
+    setRefreshing(true);
+    await load();
+    setRefreshing(false);
+  };
+
+  const fmtTime = (ts) => {
+    const d = new Date(ts);
+    const now = new Date();
+    const diffMs = now - d;
+    const diffMin = Math.floor(diffMs / 60000);
+    const diffHr  = Math.floor(diffMin / 60);
+    const diffDay = Math.floor(diffHr / 24);
+    if (diffMin < 1)  return "Just now";
+    if (diffMin < 60) return diffMin + "m ago";
+    if (diffHr  < 24) return diffHr  + "h ago";
+    if (diffDay < 7)  return diffDay + "d ago";
+    return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  };
+
+  const typeConfig = {
+    stage_change:       { icon: "route",          color: "#1CA89C", label: "Stage Update"      },
+    appointment_booked: { icon: "calendar-check",  color: "#2C5089", label: "Appointment"       },
+    appointment_updated:{ icon: "calendar",        color: "#4A6FA5", label: "Appt. Updated"     },
+    specialty_change:   { icon: "stethoscope",     color: "#C8862B", label: "Specialty"         },
+    priority_change:    { icon: "alert-circle",    color: "#B4453C", label: "Priority"          },
+    condition_update:   { icon: "clipboard",       color: "#6B7280", label: "Condition"         },
+    destination_change: { icon: "map-pin",         color: "#7C3AED", label: "Destination"       },
   };
 
   return (
     <div className="pp-content">
       <div className="pp-card">
-        <div className="pp-card-header"><div className="pp-card-title"><Icon name="route" /> My Treatment Journey</div></div>
-        {appointments === null ? <div className="pp-loading"><div className="pp-spin" /> Loading…</div>
-          : appointments.length === 0 ? (
-            <div className="pp-card-body"><div style={{ textAlign: "center", padding: "24px 0", color: "var(--text-faint)" }}><Icon name="calendar" size={36} /><p style={{ marginTop: 12, fontSize: 14 }}>Your treatment journey details will appear here once your coordinator has set them up.</p></div></div>
-          ) : (
-            <div className="pp-journey-list">
-              {appointments.map((appt, i) => (
-                <div key={appt.id || i} className="pp-journey-item">
-                  <div className="pp-journey-dot-col"><div className="pp-journey-dot" />{i < appointments.length - 1 && <div className="pp-journey-line" />}</div>
-                  <div className="pp-journey-body">
-                    <div className="pp-journey-title">{appt.title || appt.type || "Appointment"}</div>
-                    {appt.hospital && <div className="pp-journey-sub">{appt.hospital}</div>}
-                    {appt.notes    && <div className="pp-journey-sub" style={{ marginTop: 4 }}>{appt.notes}</div>}
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}>
-                      {appt.date   && <span className="pp-journey-date"><Icon name="calendar" size={12} /> {new Date(appt.date).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" })}</span>}
-                      {appt.status && <span className={"pp-pill " + statusDot(appt.status)} style={{ fontSize: 11, padding: "2px 8px" }}>{appt.status}</span>}
+        <div className="pp-card-header" style={{ justifyContent: "space-between" }}>
+          <div className="pp-card-title"><Icon name="route" /> My Treatment Journey</div>
+          <button onClick={refresh} disabled={refreshing}
+            style={{ background: "var(--teal-pale)", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: "var(--teal)", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
+            <Icon name="refresh-cw" size={13} style={refreshing ? { animation: "ppspin 0.8s linear infinite" } : {}} />
+            {refreshing ? "Refreshing…" : "Refresh"}
+          </button>
+        </div>
+
+        {activities === null ? (
+          <div className="pp-loading"><div className="pp-spin" /> Loading your journey…</div>
+        ) : activities.length === 0 ? (
+          <div className="pp-card-body">
+            <div style={{ textAlign: "center", padding: "32px 0", color: "var(--text-faint)" }}>
+              <Icon name="route" size={40} />
+              <p style={{ marginTop: 14, fontSize: 14, lineHeight: 1.6 }}>
+                Your treatment journey updates will appear here as your coordinator makes progress on your case.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div style={{ padding: "8px 0" }}>
+            {activities.map((act, i) => {
+              const cfg = typeConfig[act.activity_type] || { icon: "circle", color: "#9CA3AF", label: "Update" };
+              return (
+                <div key={act.id} style={{ display: "flex", gap: 0, padding: "0 20px" }}>
+                  {/* Timeline line + dot */}
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 36, flexShrink: 0 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: "50%", background: cfg.color + "18", border: "2px solid " + cfg.color, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color: cfg.color, marginTop: 14 }}>
+                      <Icon name={cfg.icon} size={14} />
                     </div>
+                    {i < activities.length - 1 && (
+                      <div style={{ width: 2, flex: 1, minHeight: 16, background: "var(--border)", margin: "4px 0" }} />
+                    )}
+                  </div>
+                  {/* Content */}
+                  <div style={{ flex: 1, padding: "14px 0 14px 14px", borderBottom: i < activities.length - 1 ? "none" : "none" }}>
+                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
+                          <span style={{ background: cfg.color + "18", color: cfg.color, fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20, textTransform: "uppercase", letterSpacing: "0.05em" }}>{cfg.label}</span>
+                        </div>
+                        <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", lineHeight: 1.4 }}>{act.title}</div>
+                        {act.description && (
+                          <div style={{ fontSize: 12.5, color: "var(--text-sub)", marginTop: 4, lineHeight: 1.5 }}>{act.description}</div>
+                        )}
+                        {act.old_value && act.new_value && act.old_value !== act.new_value && (
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 5, fontSize: 11.5 }}>
+                            <span style={{ color: "var(--text-faint)", textDecoration: "line-through" }}>{act.old_value}</span>
+                            <Icon name="arrow-right" size={11} style={{ color: "var(--text-faint)" }} />
+                            <span style={{ color: cfg.color, fontWeight: 600 }}>{act.new_value}</span>
+                          </div>
+                        )}
+                      </div>
+                      <div style={{ fontSize: 11.5, color: "var(--text-faint)", whiteSpace: "nowrap", marginTop: 2 }}>{fmtTime(act.created_at)}</div>
+                    </div>
+                    {act.created_by && (
+                      <div style={{ marginTop: 6, fontSize: 11, color: "var(--text-faint)", display: "flex", alignItems: "center", gap: 4 }}>
+                        <Icon name="user" size={10} /> {act.created_by}
+                      </div>
+                    )}
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-      </div>
-      <div className="pp-card">
-        <div className="pp-card-header"><div className="pp-card-title"><Icon name="info" /> What to expect</div></div>
-        <div className="pp-card-body">
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {[
-              { icon: "check-circle", text: "Your coordinator will update your journey as appointments are confirmed." },
-              { icon: "calendar",     text: "You will receive notification when new appointments are scheduled." },
-              { icon: "hospital",     text: "Hospital and travel details will be shared here and via your coordinator." },
-            ].map((item, i) => (
-              <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-                <span style={{ color: "var(--teal)", marginTop: 1, flexShrink: 0 }}><Icon name={item.icon} size={16} /></span>
-                <span style={{ fontSize: 13, color: "var(--text-sub)", lineHeight: 1.5 }}>{item.text}</span>
-              </div>
-            ))}
+              );
+            })}
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

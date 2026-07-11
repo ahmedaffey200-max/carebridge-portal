@@ -135,8 +135,11 @@ function PatientDetail({ id, go, onEdit }) {
           {window.CBStore.can("patients") ? <span style={{ fontSize: 12, color: "var(--text-faint)" }}>Tap a stage to update</span> : null}
         </div>
         <StageTrack current={p.stage} onSet={window.CBStore.can("patients") ? (i) => {
+          const oldStage = PD.STAGES[p.stage];
+          const newStage = PD.STAGES[i];
           window.CBStore.setStage(p.id, i);
-          window.cbToast("Stage updated → " + PD.STAGES[i], { icon: "route" });
+          window.cbToast("Stage updated → " + newStage, { icon: "route" });
+          if (window.cbTrackActivity) window.cbTrackActivity(p.id, "stage_change", "Journey stage updated to: " + newStage, "Previous stage: " + oldStage, oldStage, newStage);
         } : undefined} />
       </Card>
 
@@ -597,8 +600,8 @@ function PatientWorkflow({ p, hosp }) {
                     </form>
                   ) : (
                     <div className="cb-wf__actions">
-                      {!done && !current ? <button className="cb-wf__btn cb-wf__btn--go" data-real onClick={() => { window.CBStore.setStage(p.id, i); window.cbToast("Advanced to " + s, { icon: "route" }); }}><Icon name="arrow-right" size={14} />Move to this stage</button> : null}
-                      {current && i < stages.length - 1 ? <button className="cb-wf__btn cb-wf__btn--go" data-real onClick={() => { window.CBStore.setStage(p.id, i + 1); window.cbToast("Advanced to " + stages[i + 1], { icon: "route" }); }}><Icon name="arrow-right" size={14} />Advance to {stages[i + 1]}</button> : null}
+                      {!done && !current ? <button className="cb-wf__btn cb-wf__btn--go" data-real onClick={() => { const old = stages[p.stage]; window.CBStore.setStage(p.id, i); window.cbToast("Advanced to " + s, { icon: "route" }); if (window.cbTrackActivity) window.cbTrackActivity(p.id, "stage_change", "Journey stage updated to: " + s, "Previous stage: " + old, old, s); }}><Icon name="arrow-right" size={14} />Move to this stage</button> : null}
+                      {current && i < stages.length - 1 ? <button className="cb-wf__btn cb-wf__btn--go" data-real onClick={() => { const next = stages[i + 1]; window.CBStore.setStage(p.id, i + 1); window.cbToast("Advanced to " + next, { icon: "route" }); if (window.cbTrackActivity) window.cbTrackActivity(p.id, "stage_change", "Journey stage advanced to: " + next, "Previous stage: " + s, s, next); }}><Icon name="arrow-right" size={14} />Advance to {stages[i + 1]}</button> : null}
                       {(done || current) ? <button className="cb-wf__btn" data-real onClick={() => startNote(i)}><Icon name={entry && entry.note ? "pencil" : "plus"} size={14} />{entry && entry.note ? "Edit note" : "Add note"}</button> : null}
                     </div>
                   )
@@ -726,7 +729,21 @@ function AddPatientModal({ onClose, go, patient }) {
     if (!valid) return;
     const payload = { name: f.name.trim(), age: ageNum || 0, gender: f.gender, condition: f.condition.trim(), specialty: f.specialty === "Other" ? f.specialtyOther.trim() : f.specialty, dest: f.dest, destOther: f.dest === "OT" ? f.destOther.trim() : "", destCity: f.destCity.trim(), homeCountry: f.homeCountry.trim(), passportType: f.passportType, passportTypeOther: f.passportType === "other" ? f.passportTypeOther.trim() : "", passportCountry: f.passportCountry.trim(), priority: f.priority, coordinator: f.coordinator, phone: f.phone.trim(), email: f.email.trim(), emergencyName: f.emergencyName.trim(), emergencyPhone: f.emergencyPhone.trim(), emergencyCountry: f.emergencyCountry.trim(), emergencyRelation: f.emergencyRelation.trim(), pkg: f.pkg, pkgTotal: +f.pkgTotal || 0, pkgPaid: +f.pkgPaid || 0 };
     if (editing) {
+      const prev = window.CBStore.getPatients().find(function(x){ return x.id === patient.id; }) || {};
       window.CBStore.updatePatient(patient.id, payload);
+      if (window.cbTrackActivity) {
+        if (prev.specialty !== payload.specialty && payload.specialty)
+          window.cbTrackActivity(patient.id, "specialty_change", "Specialty updated: " + payload.specialty, null, prev.specialty, payload.specialty);
+        if (prev.priority !== payload.priority && payload.priority)
+          window.cbTrackActivity(patient.id, "priority_change", "Priority updated to: " + payload.priority, null, prev.priority, payload.priority);
+        if (prev.condition !== payload.condition && payload.condition)
+          window.cbTrackActivity(patient.id, "condition_update", "Condition recorded: " + payload.condition, null, prev.condition, payload.condition);
+        if (prev.dest !== payload.dest && payload.dest) {
+          var destInfo = window.CB_DATA && window.CB_DATA.destById ? window.CB_DATA.destById(payload.dest) : null;
+          var destName = destInfo ? destInfo.country : payload.dest;
+          window.cbTrackActivity(patient.id, "destination_change", "Treatment destination: " + destName, null, prev.dest, payload.dest);
+        }
+      }
       window.cbToast("Changes saved — " + payload.name, { icon: "check-circle-2", sub: "Patient record updated" });
       onClose();
     } else {
