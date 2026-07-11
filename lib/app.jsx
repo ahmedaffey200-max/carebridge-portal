@@ -19,19 +19,19 @@ const NAV = [
   ]},
   { group: "Network & business", items: [
     { id: "hospitals", label: "Hospital network", icon: "hospital" },
-    { id: "commissions", label: "Hospital commissions", icon: "badge-dollar-sign" },
-    { id: "financial", label: "Financial", icon: "wallet" },
-    { id: "finance", label: "Finance", icon: "line-chart" },
-    { id: "expenses", label: "Company expenses", icon: "receipt" },
+    { id: "commissions", label: "Hospital commissions", icon: "badge-dollar-sign", adminOnly: true },
+    { id: "financial", label: "Financial", icon: "wallet", adminOnly: true },
+    { id: "finance", label: "Finance", icon: "line-chart", adminOnly: true },
+    { id: "expenses", label: "Company expenses", icon: "receipt", adminOnly: true },
     { id: "analytics", label: "Analytics", icon: "bar-chart-3" },
   ]},
   { group: "Patient experience", items: [
     { id: "mobile", label: "Patient mobile app", icon: "smartphone" },
   ]},
   { group: "Administration", items: [
-    { id: "ai-assistant", label: "AI Intelligence", icon: "brain-circuit" },
+    { id: "ai-assistant", label: "AI Intelligence", icon: "brain-circuit", adminOnly: true },
     { id: "patient-portal", label: "Patient Invitations", icon: "send" },
-    { id: "security", label: "Security & access", icon: "shield-check" },
+    { id: "security", label: "Security & access", icon: "shield-check", adminOnly: true },
     { id: "settings", label: "Settings & admin", icon: "settings" },
   ]},
 ];
@@ -78,11 +78,13 @@ function Brandmark() {
 
 function Sidebar({ active, go, role }) {
   const isClient = role === "client";
+  const userRole = localStorage.getItem("cb_user_role") || "admin";
+  const isAdmin = userRole === "admin";
   const patients = usePatients();
   const counts = { patients: String(patients.length) };
   const filteredNav = isClient
     ? NAV.map((g) => ({ ...g, items: g.items.filter((it) => ["journey", "comms", "mobile"].includes(it.id)) })).filter((g) => g.items.length)
-    : NAV;
+    : NAV.map((g) => ({ ...g, items: g.items.filter((it) => isAdmin || !it.adminOnly) })).filter((g) => g.items.length);
   const user = isClient
     ? { initials: "HA", color: "var(--navy-600)", name: "Hodan Ali", urole: "Patient · CB-2039" }
     : (function() {
@@ -338,28 +340,41 @@ function App() {
     return () => document.removeEventListener("keydown", onKey);
   }, []);
 
+  const isAdmin = (localStorage.getItem("cb_user_role") || "admin") === "admin";
+  const ADMIN_ONLY = new Set(["commissions", "financial", "finance", "expenses", "ai-assistant", "security"]);
+
   let content = null;
-  switch (view.name) {
-    case "patients": content = <PatientsView go={go} onAdd={() => setAddOpen(true)} onEdit={(p) => setEditPatient(p)} />; break;
-    case "patient": content = <PatientDetail id={view.id} go={go} onEdit={(p) => setEditPatient(p)} />; break;
-    case "journey": content = <JourneyView go={go} />; break;
-    case "reports": content = <ReportsView />; break;
-    case "appointments": content = <AppointmentsView />; break;
-    case "travel": content = <TravelView go={go} />; break;
-    case "comms": content = <CommsView />; break;
-    case "hospitals": content = <HospitalsView go={go} />; break;
-    case "hospital": content = <HospitalProfile id={view.id} go={go} />; break;
-    case "commissions": content = <CommissionsView />; break;
-    case "financial": content = <FinancialView go={go} />; break;
-    case "finance": content = <FinanceView />; break;
-    case "expenses": content = <CompanyExpensesView />; break;
-    case "analytics": content = <AnalyticsView />; break;
-    case "mobile": content = <MobileView />; break;
-    case "ai-assistant": content = <AIAssistantView />; break;
-    case "patient-portal": content = <PatientInvitationsView />; break;
-    case "security": content = <SecurityView />; break;
-    case "settings": content = <SettingsView />; break;
-    default: content = <Dashboard direction={t.dashboard} go={go} />;
+  if (!isAdmin && ADMIN_ONLY.has(view.name)) {
+    content = (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "60vh", gap: 12, color: "var(--text-muted)" }}>
+        <i data-lucide="shield-off" style={{ width: 48, height: 48, color: "var(--sky-300)" }} />
+        <div style={{ fontSize: 18, fontWeight: 700, color: "var(--text-strong)" }}>Access restricted</div>
+        <div style={{ fontSize: 14 }}>This section is only available to administrators.</div>
+      </div>
+    );
+  } else {
+    switch (view.name) {
+      case "patients": content = <PatientsView go={go} onAdd={() => setAddOpen(true)} onEdit={(p) => setEditPatient(p)} />; break;
+      case "patient": content = <PatientDetail id={view.id} go={go} onEdit={(p) => setEditPatient(p)} />; break;
+      case "journey": content = <JourneyView go={go} />; break;
+      case "reports": content = <ReportsView />; break;
+      case "appointments": content = <AppointmentsView />; break;
+      case "travel": content = <TravelView go={go} />; break;
+      case "comms": content = <CommsView />; break;
+      case "hospitals": content = <HospitalsView go={go} />; break;
+      case "hospital": content = <HospitalProfile id={view.id} go={go} />; break;
+      case "commissions": content = <CommissionsView />; break;
+      case "financial": content = <FinancialView go={go} />; break;
+      case "finance": content = <FinanceView />; break;
+      case "expenses": content = <CompanyExpensesView />; break;
+      case "analytics": content = <AnalyticsView />; break;
+      case "mobile": content = <MobileView />; break;
+      case "ai-assistant": content = <AIAssistantView />; break;
+      case "patient-portal": content = <PatientInvitationsView />; break;
+      case "security": content = <SecurityView />; break;
+      case "settings": content = <SettingsView />; break;
+      default: content = <Dashboard direction={t.dashboard} go={go} />;
+    }
   }
 
   return (
