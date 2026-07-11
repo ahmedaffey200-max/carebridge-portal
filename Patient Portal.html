@@ -188,7 +188,10 @@
   .pp-msg--coordinator { align-self: flex-start; align-items: flex-start; }
   .pp-msg-bubble { padding: 10px 14px; border-radius: 18px; font-size: 14px; line-height: 1.5; }
   .pp-msg--patient .pp-msg-bubble { background: var(--teal); color: white; border-bottom-right-radius: 4px; }
-  .pp-msg--coordinator .pp-msg-bubble { background: var(--surface); border: 1px solid var(--border); color: var(--text); border-bottom-left-radius: 4px; box-shadow: var(--shadow); }
+  .pp-msg--coordinator .pp-msg-bubble { background: #e8edf5; border: 1px solid var(--border); color: #1a202c; border-bottom-left-radius: 4px; box-shadow: var(--shadow); }
+  @media (prefers-color-scheme: dark) {
+    .pp-msg--coordinator .pp-msg-bubble { background: #2a3f5f; border-color: #3d5a82; color: #f0f4f8; }
+  }
   .pp-msg-meta { font-size: 11px; color: var(--text-faint); padding: 0 4px; }
   .pp-msg-sender { font-size: 11px; font-weight: 600; color: var(--teal); margin-bottom: 2px; }
   .pp-no-messages { text-align: center; padding: 32px 16px; color: var(--text-faint); font-size: 14px; }
