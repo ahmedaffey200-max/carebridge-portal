@@ -583,7 +583,12 @@ function PatientDocuments({ pid }) {
         </div>
         <StatusSelect value={visaApp.status} options={["Processing", "Under Review", "Approved", "Rejected"]} readOnly={!canEdit}
           tone={(s) => s === "Approved" ? "teal" : s === "Rejected" ? "danger" : s === "Under Review" ? "navy" : "warn"}
-          onChange={(v) => { window.CBStore.setVisaApp(pid, v); window.cbToast("Visa application → " + v, { icon: "stamp" }); }} />
+          onChange={(v) => {
+            var prev = visaApp.status;
+            window.CBStore.setVisaApp(pid, v);
+            window.cbToast("Visa application → " + v, { icon: "stamp" });
+            window.cbTrackActivity && window.cbTrackActivity(pid, "visa_status", "Visa application: " + v, "Status changed from " + prev + " to " + v, prev, v);
+          }} />
       </div>
       {visaApp.history && visaApp.history.length ? (
         <div className="cb-visahist">
@@ -631,7 +636,12 @@ function PatientDocuments({ pid }) {
             <div className="cb-doccard__status">
               <span style={{ fontSize: 11.5, color: "var(--text-faint)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Status</span>
               <StatusSelect value={d.status} options={PD.DOC_STATUSES} readOnly={!canEdit}
-                onChange={(s) => { window.CBStore.setDocumentStatus(pid, d.id, s); window.cbToast("Status updated → " + s, { icon: "refresh-cw" }); }} />
+                onChange={(s) => {
+                  var prev = d.status;
+                  window.CBStore.setDocumentStatus(pid, d.id, s);
+                  window.cbToast("Status updated → " + s, { icon: "refresh-cw" });
+                  window.cbTrackActivity && window.cbTrackActivity(pid, "document_status", d.name + ": " + s, "Document \"" + d.name + "\" status changed from " + prev + " to " + s, prev, s);
+                }} />
             </div>
           </div>
         ))}
