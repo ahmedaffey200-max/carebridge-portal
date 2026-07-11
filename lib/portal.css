@@ -1,8 +1,64 @@
 /* ============================================================
    Carebridge Portal — application chrome
    Built strictly on Carebridge design tokens (var(--*)).
-   Tweak hooks: [data-density], [data-side], [data-accent] on .cb-app
+   Tweak hooks: [data-density], [data-side], [data-accent], [data-theme] on .cb-app
    ============================================================ */
+
+/* ---- Dark mode overrides ---- */
+.cb-app[data-theme="dark"] {
+  --bg-page:        #0f1923;
+  --surface-card:   #162032;
+  --surface-sunken: #111d2b;
+  --paper:          #1a2840;
+  --warm-white:     #0f1923;
+  --sky-100:        #162032;
+  --sky-200:        #1c2a3e;
+  --sky-300:        #243350;
+  --text-strong:    #e4eaf2;
+  --text-body:      #b0bfce;
+  --text-muted:     #7a8fa3;
+  --text-faint:     #526175;
+  --border-subtle:  rgba(255,255,255,0.07);
+  --border-default: rgba(255,255,255,0.10);
+  --border-strong:  rgba(255,255,255,0.16);
+  --sand-100:       #1c2a3e;
+  --sand-200:       #243350;
+  --navy-50:        #162032;
+  --navy-100:       #1c2a3e;
+  --warning-soft:   #3a2a0e;
+  --danger-soft:    #3a1212;
+  --success-soft:   #0e2e2b;
+  --info-soft:      #162032;
+  color: var(--text-body);
+  background: var(--bg-page);
+}
+.cb-app[data-theme="dark"] .cb-top {
+  background: rgba(15,25,35,0.88);
+  border-bottom-color: rgba(255,255,255,0.07);
+}
+.cb-app[data-theme="dark"] .cb-search {
+  background: #1a2840;
+  border-color: rgba(255,255,255,0.10);
+}
+.cb-app[data-theme="dark"] .cb-search--btn:hover { background: #1c2a3e; }
+.cb-app[data-theme="dark"] .cb-search__kbd { background: #243350; border-color: rgba(255,255,255,0.12); color: var(--text-muted); }
+.cb-app[data-theme="dark"] .cb-icon-pill { background: #1a2840; border-color: rgba(255,255,255,0.10); color: var(--text-muted); }
+.cb-app[data-theme="dark"] .cb-icon-pill:hover { background: #243350; color: var(--text-strong); }
+.cb-app[data-theme="dark"] Card,
+.cb-app[data-theme="dark"] .cb-card { background: #162032; border-color: rgba(255,255,255,0.08); }
+.cb-app[data-theme="dark"] .cb-soft-panel { background: #1c2a3e; border-color: rgba(255,255,255,0.07); }
+.cb-app[data-theme="dark"] .cb-input { background: #1a2840; border-color: rgba(255,255,255,0.12); color: var(--text-strong); }
+.cb-app[data-theme="dark"] .cb-input:focus { border-color: var(--teal-500); }
+.cb-app[data-theme="dark"] .cb-modal__card { background: #162032; border-color: rgba(255,255,255,0.08); }
+.cb-app[data-theme="dark"] .cb-modal { background: rgba(0,0,0,0.7); }
+.cb-app[data-theme="dark"] .cb-table th { background: #1c2a3e; }
+.cb-app[data-theme="dark"] .cb-table tr:hover td { background: #1c2a3e; }
+.cb-app[data-theme="dark"] .cb-table td, .cb-app[data-theme="dark"] .cb-table th { border-color: rgba(255,255,255,0.07); }
+.cb-app[data-theme="dark"] .appt-card { background: #162032; border-color: rgba(255,255,255,0.08); }
+.cb-app[data-theme="dark"] .appt-card:hover { background: #1c2a3e; }
+.cb-app[data-theme="dark"] .cb-main::-webkit-scrollbar-thumb { background: #243350; }
+
+/* ---- Appointment cards ---- */
 
 .cb-app {
   --side-w: 264px;
@@ -901,6 +957,26 @@
   .cb-app [style*="repeat(3"],
   .cb-app .cb-grid--fill { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
 }
+
+/* ---------- Appointment cards ---------- */
+.appt-card {
+  display: flex; align-items: center; gap: 16px;
+  background: var(--paper); border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md); padding: 16px 18px;
+  cursor: pointer; transition: background var(--dur-fast), box-shadow var(--dur-fast);
+  box-shadow: var(--shadow-xs);
+}
+.appt-card:hover { background: var(--sky-100); box-shadow: var(--shadow-sm); }
+.appt-time-col { display: flex; flex-direction: column; align-items: flex-end; min-width: 54px; flex: none; }
+.appt-time { font-size: 15px; font-weight: 800; color: var(--teal-600); font-family: var(--font-display); }
+.appt-dur  { font-size: 11.5px; color: var(--text-muted); font-weight: 500; margin-top: 2px; }
+.appt-bar  { width: 4px; height: 52px; border-radius: 3px; flex: none; }
+.appt-body { flex: 1; min-width: 0; }
+.appt-name { font-size: 15px; font-weight: 700; color: var(--text-strong); display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
+.appt-video-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; background: var(--sky-200); color: var(--navy-600); padding: 2px 8px; border-radius: 999px; }
+.appt-meta { font-size: 13px; color: var(--text-muted); margin-bottom: 2px; }
+.appt-loc  { font-size: 12px; color: var(--text-faint); display: flex; align-items: center; gap: 4px; margin-top: 3px; }
+.appt-status { font-size: 12px; font-weight: 700; padding: 5px 13px; border-radius: 999px; white-space: nowrap; flex: none; }
 
 /* ---- Small phones: single-column number cards ---- */
 @media (max-width: 420px) {

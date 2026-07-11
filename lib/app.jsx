@@ -13,6 +13,7 @@ const NAV = [
     { id: "reports", label: "Report review", icon: "file-text", count: "18" },
   ]},
   { group: "Coordination", items: [
+    { id: "appointments", label: "Appointments", icon: "calendar" },
     { id: "travel", label: "Travel coordination", icon: "plane" },
     { id: "comms", label: "Communication hub", icon: "messages-square", count: "7" },
   ]},
@@ -39,6 +40,7 @@ const META = {
   patient: { title: "Patient case", crumb: "Patient care · Patients" },
   journey: { title: "Treatment journey", crumb: "Patient care" },
   reports: { title: "Medical report review", crumb: "Patient care" },
+  appointments: { title: "Appointments", crumb: "Coordination" },
   travel: { title: "Medical travel coordination", crumb: "Coordination" },
   comms: { title: "Communication hub", crumb: "Coordination" },
   hospitals: { title: "Hospital network", crumb: "Network & business" },
@@ -58,6 +60,7 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "accent": "teal",
   "density": "comfortable",
   "sidebar": "navy",
+  "theme": "light",
   "autolock": true
 }/*EDITMODE-END*/;
 
@@ -330,6 +333,7 @@ function App() {
     case "patient": content = <PatientDetail id={view.id} go={go} onEdit={(p) => setEditPatient(p)} />; break;
     case "journey": content = <JourneyView go={go} />; break;
     case "reports": content = <ReportsView />; break;
+    case "appointments": content = <AppointmentsView />; break;
     case "travel": content = <TravelView go={go} />; break;
     case "comms": content = <CommsView />; break;
     case "hospitals": content = <HospitalsView go={go} />; break;
@@ -346,7 +350,7 @@ function App() {
   }
 
   return (
-    <div className={"cb-app" + (navOpen ? " nav-open" : "")} ref={rootRef} data-accent={t.accent} data-density={t.density} data-side={t.sidebar} data-privacy={privacy ? "on" : "off"}>
+    <div className={"cb-app" + (navOpen ? " nav-open" : "")} ref={rootRef} data-accent={t.accent} data-density={t.density} data-side={t.sidebar} data-theme={t.theme} data-privacy={privacy ? "on" : "off"}>
       <div className="cb-scrim" onClick={() => setNavOpen(false)} aria-hidden="true" />
       <Sidebar active={view.name} go={(n) => go(n)} role={role} />
       <main className="cb-main" ref={mainRef}>
@@ -364,6 +368,9 @@ function App() {
           options={[{ value: "overview", label: "Overview" }, { value: "operations", label: "Operations" }, { value: "executive", label: "Executive" }]}
           onChange={(v) => { setTweak("dashboard", v); go("dashboard"); }} />
         <TweakSection label="Appearance" />
+        <TweakRadio label="Theme" value={t.theme}
+          options={[{ value: "light", label: "☀️ Light" }, { value: "dark", label: "🌙 Dark" }]}
+          onChange={(v) => setTweak("theme", v)} />
         <TweakRadio label="Accent emphasis" value={t.accent}
           options={[{ value: "teal", label: "Teal" }, { value: "navy", label: "Navy" }]}
           onChange={(v) => setTweak("accent", v)} />
