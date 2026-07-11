@@ -615,34 +615,94 @@ function PatientWorkflow({ p, hosp }) {
   );
 }
 
+/* ---- Supabase messaging helpers (admin side) ---- */
+var _SB_URL  = "https://htvjjwfenvittdritjni.supabase.co";
+var _SB_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh0dmpqd2ZlbnZpdHRkcml0am5pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2NTQ3OTAsImV4cCI6MjA5OTIzMDc5MH0.AMKUctPj49ahqXAFZbzJ341ZFH5XTckBUQaDmF5ZLj8";
+
+async function sbGetMessages(patientId) {
+  try {
+    var r = await fetch(_SB_URL + "/rest/v1/patient_messages?patient_id=eq." + encodeURIComponent(patientId) + "&order=created_at.asc&limit=100", {
+      headers: { "apikey": _SB_KEY, "Authorization": "Bearer " + _SB_KEY }
+    });
+    return r.ok ? await r.json() : [];
+  } catch(e) { return []; }
+}
+
+async function sbSendMessage(patientId, senderName, content) {
+  try {
+    await fetch(_SB_URL + "/rest/v1/patient_messages", {
+      method: "POST",
+      headers: { "apikey": _SB_KEY, "Authorization": "Bearer " + _SB_KEY, "Content-Type": "application/json", "Prefer": "return=minimal" },
+      body: JSON.stringify({ patient_id: patientId, sender_role: "coordinator", sender_name: senderName, content: content })
+    });
+  } catch(e) { console.warn("Send msg:", e); }
+}
+
 function PatientComms({ p, co }) {
-  const msgs = useMessages(p.id);
+  const [msgs, setMsgs] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [text, setText] = useState("");
+  const [sending, setSending] = useState(false);
   const endRef = React.useRef(null);
-  React.useEffect(() => { if (endRef.current) endRef.current.scrollTop = endRef.current.scrollHeight; }, [msgs.length]);
-  const send = (e) => {
-    e && e.preventDefault();
-    if (!text.trim()) return;
-    window.CBStore.sendMessage(p.id, "admin", text);
-    setText("");
+  const pollRef = React.useRef(null);
+
+  const loadMsgs = React.useCallback(async () => {
+    const data = await sbGetMessages(p.id);
+    setMsgs(data);
+    setLoading(false);
+  }, [p.id]);
+
+  React.useEffect(() => {
+    loadMsgs();
+    pollRef.current = setInterval(loadMsgs, 15000);
+    return () => clearInterval(pollRef.current);
+  }, [loadMsgs]);
+
+  React.useEffect(() => {
+    if (endRef.current) endRef.current.scrollTop = endRef.current.scrollHeight;
+  }, [msgs.length]);
+
+  const fmtTime = (ts) => {
+    const d = new Date(ts), now = new Date();
+    if (d.toDateString() === now.toDateString()) return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" }) + " " + d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
+
+  const send = async (e) => {
+    e && e.preventDefault();
+    const content = text.trim();
+    if (!content || sending) return;
+    setSending(true);
+    setText("");
+    await sbSendMessage(p.id, co.name || "Coordinator", content);
+    await loadMsgs();
+    setSending(false);
+    window.cbToast("Message sent to " + p.name, { icon: "send" });
+  };
+
   return (
     <Card>
-      <CardHead title="Communication log" sub={"Secure thread with " + p.name + " · replies reach the patient app"} />
-      <div ref={endRef} style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 680, maxHeight: 420, overflowY: "auto" }}>
-        {msgs.map((m, i) => {
-          const me = m.from === "admin";
-          return (
-            <div key={i} style={{ alignSelf: me ? "flex-end" : "flex-start", maxWidth: "78%" }}>
-              <div style={{ padding: "11px 15px", borderRadius: me ? "16px 16px 4px 16px" : "16px 16px 16px 4px", background: me ? "var(--navy-600)" : "var(--sky-100)", color: me ? "#fff" : "var(--text-body)", fontSize: 14, lineHeight: 1.5 }}>{m.text}</div>
-              <div style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 4, textAlign: me ? "right" : "left" }}>{me ? co.name + " (you)" : p.name} · {m.time}</div>
-            </div>
-          );
-        })}
-      </div>
-      <form className="cb-row" onSubmit={send} style={{ gap: 10, marginTop: 18, paddingTop: 18, borderTop: "1px solid var(--border-subtle)" }}>
-        <div className="cb-search" style={{ flex: 1, minWidth: 0 }}><input value={text} onChange={(e) => setText(e.target.value)} placeholder="Reply to the patient…" /></div>
-        <button type="submit" className="cb-icon-pill" data-real aria-label="Send reply" style={{ background: "var(--teal-500)", color: "#fff", border: "none" }}><Icon name="send" size={18} /></button>
+      <CardHead title="Message patient" sub={"Live chat with " + p.name + " · patient sees this in their portal"} />
+      {loading ? (
+        <div style={{ textAlign: "center", padding: 24, color: "var(--text-muted)" }}>Loading messages…</div>
+      ) : (
+        <div ref={endRef} style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 680, maxHeight: 420, overflowY: "auto", padding: "4px 0 12px" }}>
+          {msgs.length === 0 ? (
+            <div style={{ textAlign: "center", padding: 24, color: "var(--text-faint)", fontSize: 14 }}>No messages yet. Send a message to {p.name} below.</div>
+          ) : msgs.map((m) => {
+            const me = m.sender_role === "coordinator";
+            return (
+              <div key={m.id} style={{ alignSelf: me ? "flex-end" : "flex-start", maxWidth: "78%" }}>
+                <div style={{ padding: "11px 15px", borderRadius: me ? "16px 16px 4px 16px" : "16px 16px 16px 4px", background: me ? "var(--navy-600)" : "var(--sky-100)", color: me ? "#fff" : "var(--text-body)", fontSize: 14, lineHeight: 1.5 }}>{m.content}</div>
+                <div style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 4, textAlign: me ? "right" : "left" }}>{m.sender_name} · {fmtTime(m.created_at)}</div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      <form className="cb-row" onSubmit={send} style={{ gap: 10, marginTop: 12, paddingTop: 14, borderTop: "1px solid var(--border-subtle)" }}>
+        <div className="cb-search" style={{ flex: 1, minWidth: 0 }}><input value={text} onChange={(e) => setText(e.target.value)} placeholder={"Message " + p.name + "…"} disabled={sending} /></div>
+        <button type="submit" className="cb-icon-pill" data-real aria-label="Send" disabled={!text.trim() || sending} style={{ background: "var(--teal-500)", color: "#fff", border: "none" }}><Icon name="send" size={18} /></button>
       </form>
     </Card>
   );
