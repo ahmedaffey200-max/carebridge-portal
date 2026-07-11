@@ -560,7 +560,7 @@ function PatientWorkflow({ p, hosp }) {
       <div className="cb-between" style={{ marginBottom: 6, flexWrap: "wrap", gap: 10 }}>
         <div>
           <h3 style={{ fontSize: 17, fontWeight: 700 }}>Treatment workflow</h3>
-          <div className="cb-sub" style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 2 }}>Nine stages from first consultation to follow-up — with timestamps and notes</div>
+          <div className="cb-sub" style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 2 }}>Eleven stages from first consultation to follow-up — with timestamps and notes</div>
         </div>
         <Pill tone="navy" icon="route">Stage {p.stage + 1} of {stages.length}</Pill>
       </div>
