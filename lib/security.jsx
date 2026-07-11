@@ -56,10 +56,20 @@ function LockScreen({ user, onUnlock }) {
   );
 }
 
+/* SHA-256 helper */
+async function _sha256(str) {
+  var buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(function(b){ return b.toString(16).padStart(2,"0"); }).join("");
+}
+
+function _getSB() {
+  return window.CB_SB || null;
+}
+
 /* ---------------- Security & access center (admin) ---------------- */
 function SecurityView() {
   const [tab, setTab] = useStateS("Overview");
-  const tabs = ["Overview", "Audit log", "Active sessions", "Roles & access", "Data protection"];
+  const tabs = ["Overview", "Audit log", "Active sessions", "Roles & access", "Staff accounts", "Data protection"];
   return (
     <div className="cb-grid" style={{ gap: "var(--gap-grid)" }}>
       {/* Posture banner */}
@@ -113,6 +123,7 @@ function SecurityView() {
       {tab === "Audit log" ? <SecAudit /> : null}
       {tab === "Active sessions" ? <SecSessions /> : null}
       {tab === "Roles & access" ? <SecRoles /> : null}
+      {tab === "Staff accounts" ? <StaffAccounts /> : null}
       {tab === "Data protection" ? <SecData /> : null}
     </div>
   );
@@ -298,6 +309,265 @@ function SecData() {
         ))}
       </div>
     </Card>
+  );
+}
+
+/* ---- Staff Accounts ---- */
+const ROLES_LIST = ["admin", "coordinator", "doctor", "finance", "viewer"];
+
+function StaffAccounts() {
+  const [users, setUsers] = useStateS([]);
+  const [loading, setLoading] = useStateS(true);
+  const [modal, setModal] = useStateS(null); // "create" | {user} for edit
+  const [delTarget, setDelTarget] = useStateS(null);
+  const [err, setErr] = useStateS("");
+  const [saving, setSaving] = useStateS(false);
+
+  const load = async () => {
+    const sb = _getSB();
+    if (!sb) { setLoading(false); return; }
+    const { data } = await sb.from("portal_users").select("*").order("created_at", { ascending: true });
+    setUsers(data || []);
+    setLoading(false);
+  };
+
+  useEffectS(() => { load(); }, []);
+
+  const fmtDate = (ts) => {
+    if (!ts) return "—";
+    return new Date(ts).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  };
+  const fmtAgo = (ts) => {
+    if (!ts) return "Never";
+    const d = Date.now() - new Date(ts).getTime();
+    const m = Math.floor(d / 60000);
+    if (m < 1) return "just now";
+    if (m < 60) return m + "m ago";
+    const h = Math.floor(m / 60);
+    if (h < 24) return h + "h ago";
+    return Math.floor(h / 24) + "d ago";
+  };
+
+  const saveUser = async (form) => {
+    const sb = _getSB();
+    if (!sb) { setErr("Supabase not ready. Refresh and try again."); return; }
+    setSaving(true); setErr("");
+    try {
+      if (modal === "create") {
+        if (!form.username.trim() || !form.name.trim() || !form.password.trim()) {
+          setErr("Username, full name and password are required."); setSaving(false); return;
+        }
+        const hash = await _sha256(form.password);
+        const { error } = await sb.from("portal_users").insert({
+          username: form.username.trim().toLowerCase(),
+          name: form.name.trim(),
+          email: form.email.trim() || null,
+          role: form.role,
+          password_hash: hash,
+          active: true,
+        });
+        if (error) { setErr(error.message); setSaving(false); return; }
+      } else {
+        const patch = { name: form.name.trim(), email: form.email.trim() || null, role: form.role };
+        if (form.password.trim()) patch.password_hash = await _sha256(form.password);
+        const { error } = await sb.from("portal_users").update(patch).eq("id", modal.id);
+        if (error) { setErr(error.message); setSaving(false); return; }
+      }
+      await load();
+      setModal(null);
+    } catch(e) { setErr("Unexpected error. Check console."); }
+    setSaving(false);
+  };
+
+  const toggleActive = async (u) => {
+    const sb = _getSB();
+    if (!sb) return;
+    await sb.from("portal_users").update({ active: !u.active }).eq("id", u.id);
+    await load();
+    window.cbToast && window.cbToast((u.active ? "Deactivated" : "Activated") + " " + u.name, { icon: u.active ? "user-x" : "user-check" });
+  };
+
+  const deleteUser = async (u) => {
+    const sb = _getSB();
+    if (!sb) return;
+    await sb.from("portal_users").delete().eq("id", u.id);
+    setDelTarget(null);
+    await load();
+    window.cbToast && window.cbToast("Account deleted: " + u.name, { icon: "trash-2" });
+  };
+
+  const roleChip = (r) => {
+    const map = { admin: "navy", coordinator: "teal", doctor: "sky", finance: "warm", viewer: "" };
+    return <Pill tone={map[r] || ""}>{r}</Pill>;
+  };
+
+  return (
+    <div className="cb-grid" style={{ gap: "var(--gap-grid)" }}>
+      {modal ? <UserModal user={modal === "create" ? null : modal} saving={saving} err={err}
+        onSave={saveUser} onClose={() => { setModal(null); setErr(""); }} /> : null}
+      {delTarget ? (
+        <ConfirmDialog title={"Delete account for " + delTarget.name + "?"}
+          body={"This permanently removes the login for \"" + delTarget.username + "\". They will not be able to sign in after this. This cannot be undone."}
+          confirmLabel="Delete account" danger
+          onCancel={() => setDelTarget(null)}
+          onConfirm={() => deleteUser(delTarget)} />
+      ) : null}
+
+      <Card pad0>
+        <div style={{ padding: "var(--pad-card) var(--pad-card) 0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <CardHead title="Staff accounts" sub="All portal logins — each person gets their own username and password" />
+          <button className="cb-btn-primary" data-real style={{ flexShrink: 0 }} onClick={() => { setErr(""); setModal("create"); }}>
+            <Icon name="user-plus" size={15} /> Add account
+          </button>
+        </div>
+
+        {loading ? (
+          <div style={{ textAlign: "center", padding: 40, color: "var(--text-faint)" }}>Loading accounts…</div>
+        ) : !_getSB() ? (
+          <div style={{ padding: "20px var(--pad-card)" }}>
+            <div className="cb-row" style={{ gap: 10, padding: "14px 18px", background: "var(--warning-soft,#fef9ec)", borderRadius: 10, border: "1px solid #fde68a" }}>
+              <Icon name="alert-triangle" size={18} style={{ color: "#92400e", flexShrink: 0 }} />
+              <div>
+                <div style={{ fontWeight: 700, color: "#92400e", fontSize: 14 }}>Supabase not connected</div>
+                <div style={{ fontSize: 13, color: "#a16207", marginTop: 2 }}>
+                  Run <code style={{ background: "#fef3c7", padding: "1px 6px", borderRadius: 4 }}>portal-users-setup.sql</code> in the Supabase SQL Editor first.
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <table className="cb-table">
+            <thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Status</th><th>Last login</th><th>Created</th><th></th></tr></thead>
+            <tbody>
+              {users.map((u) => (
+                <tr key={u.id} style={{ cursor: "default" }}>
+                  <td>
+                    <div className="cb-cellname">
+                      <Avatar initials={(u.name.match(/\b\w/g) || []).slice(0,2).join("").toUpperCase()} color="var(--navy-600)" size="sm" />
+                      <div><b>{u.name}</b><small>{u.email || "—"}</small></div>
+                    </div>
+                  </td>
+                  <td style={{ fontFamily: "monospace", fontSize: 13 }}>{u.username}</td>
+                  <td>{roleChip(u.role)}</td>
+                  <td><Pill tone={u.active ? "teal" : "muted"} dot>{u.active ? "Active" : "Inactive"}</Pill></td>
+                  <td style={{ fontSize: 13, color: "var(--text-muted)" }}>{fmtAgo(u.last_login)}</td>
+                  <td style={{ fontSize: 13, color: "var(--text-muted)" }}>{fmtDate(u.created_at)}</td>
+                  <td>
+                    <div className="cb-row cb-rowactions" style={{ gap: 4, justifyContent: "flex-end" }}
+                         onClick={(e) => e.stopPropagation()}>
+                      <button className="cb-rowbtn" data-real title="Edit" onClick={() => { setErr(""); setModal(u); }}>
+                        <Icon name="pencil" size={15} />
+                      </button>
+                      <button className="cb-rowbtn" data-real title={u.active ? "Deactivate" : "Activate"}
+                        onClick={() => toggleActive(u)}>
+                        <Icon name={u.active ? "user-x" : "user-check"} size={15} />
+                      </button>
+                      <button className="cb-rowbtn cb-rowbtn--danger" data-real title="Delete"
+                        onClick={() => setDelTarget(u)}>
+                        <Icon name="trash-2" size={15} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {users.length === 0 ? (
+                <tr><td colSpan={7} style={{ textAlign: "center", padding: 32, color: "var(--text-faint)" }}>
+                  No staff accounts yet. Click "Add account" to create the first one.
+                </td></tr>
+              ) : null}
+            </tbody>
+          </table>
+        )}
+      </Card>
+
+      <Card>
+        <CardHead title="How it works" sub="Quick reference for managing staff logins" />
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 18 }}>
+          {[
+            { icon: "user-plus", title: "Create account", desc: "Each coordinator, doctor or admin gets their own username and password. They log in at the Carebridge Login page." },
+            { icon: "shield", title: "Role controls access", desc: "admin = full access. coordinator = patients & comms. doctor = reports only. finance = invoices. viewer = read-only." },
+            { icon: "key-round", title: "Reset password", desc: "Click the pencil icon to edit any account. Leave password blank to keep it unchanged, or enter a new one to reset it." },
+          ].map((h, i) => (
+            <div key={i} style={{ padding: "16px 18px", borderRadius: "var(--radius-md)", background: "var(--sky-100)", border: "1px solid var(--sky-200)" }}>
+              <div className="cb-chip" style={{ width: 38, height: 38, marginBottom: 12 }}><Icon name={h.icon} size={18} /></div>
+              <div style={{ fontWeight: 700, fontSize: 14, color: "var(--text-strong)", marginBottom: 6 }}>{h.title}</div>
+              <div style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.5 }}>{h.desc}</div>
+            </div>
+          ))}
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function UserModal({ user, saving, err, onSave, onClose }) {
+  const [form, setForm] = useStateS({
+    username: user ? user.username : "",
+    name: user ? user.name : "",
+    email: user ? (user.email || "") : "",
+    role: user ? user.role : "coordinator",
+    password: "",
+  });
+  const set = (k, v) => setForm(function(f){ return Object.assign({}, f, { [k]: v }); });
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 800, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+      <div style={{ background: "var(--surface)", borderRadius: "var(--radius-xl)", padding: 32, width: "100%", maxWidth: 480, boxShadow: "var(--shadow-lg)" }}>
+        <div className="cb-between" style={{ marginBottom: 24 }}>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-strong)" }}>
+            {user ? "Edit account" : "New staff account"}
+          </h2>
+          <button className="cb-icon-pill" data-real onClick={onClose} style={{ width: 34, height: 34, border: "none", background: "transparent" }}>
+            <Icon name="x" size={18} />
+          </button>
+        </div>
+
+        <div className="cb-grid" style={{ gap: 16 }}>
+          <div className="cb-field">
+            <label className="cb-label">Full name *</label>
+            <input className="cb-input" value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="e.g. Amina Yusuf" />
+          </div>
+          <div className="cb-grid" style={{ gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <div className="cb-field">
+              <label className="cb-label">Username *</label>
+              <input className="cb-input" value={form.username} onChange={(e) => set("username", e.target.value)}
+                placeholder="e.g. amina" disabled={!!user} style={{ opacity: user ? 0.6 : 1 }} />
+              {user ? <div style={{ fontSize: 12, color: "var(--text-faint)", marginTop: 4 }}>Username cannot be changed.</div> : null}
+            </div>
+            <div className="cb-field">
+              <label className="cb-label">Role *</label>
+              <select className="cb-select" value={form.role} onChange={(e) => set("role", e.target.value)} data-real>
+                {ROLES_LIST.map((r) => <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="cb-field">
+            <label className="cb-label">Email address</label>
+            <input className="cb-input" type="email" value={form.email} onChange={(e) => set("email", e.target.value)} placeholder="staff@carebridge.so (optional)" />
+          </div>
+          <div className="cb-field">
+            <label className="cb-label">{user ? "New password (leave blank to keep current)" : "Password *"}</label>
+            <input className="cb-input" type="password" value={form.password} onChange={(e) => set("password", e.target.value)}
+              placeholder={user ? "Enter new password to reset…" : "Min 8 characters"} />
+          </div>
+
+          {err ? (
+            <div className="cb-row" style={{ gap: 8, padding: "10px 14px", background: "#fff1f2", border: "1px solid #fda4af", borderRadius: 8, color: "#be123c", fontSize: 13 }}>
+              <Icon name="alert-circle" size={15} style={{ flexShrink: 0 }} />
+              {err}
+            </div>
+          ) : null}
+
+          <div className="cb-row" style={{ gap: 10, justifyContent: "flex-end", marginTop: 4 }}>
+            <button className="cb-btn-ghost" data-real onClick={onClose} disabled={saving}>Cancel</button>
+            <button className="cb-btn-primary" data-real disabled={saving} onClick={() => onSave(form)}>
+              <Icon name={saving ? "loader" : "save"} size={15} />
+              {saving ? "Saving…" : user ? "Save changes" : "Create account"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
