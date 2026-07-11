@@ -414,7 +414,7 @@ function PatientOverview({ p, dest, co, hosp }) {
         <Card>
           <CardHead title="Care team" />
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {[co, PD.coordById("c2"), PD.coordById("c4")].map((m, i) => (
+            {[co].filter(function(m){ return m && m.name && m.name !== "—"; }).map((m, i) => (
               <div key={i} className="cb-row" style={{ gap: 11 }}>
                 <Avatar initials={m.initials} color={m.color} size="sm" />
                 <div style={{ flex: 1 }}><div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text-strong)" }}>{m.name}</div><div style={{ fontSize: 12, color: "var(--text-muted)" }}>{m.role}</div></div>
