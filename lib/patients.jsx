@@ -616,47 +616,66 @@ function PatientWorkflow({ p, hosp }) {
 }
 
 /* ---- Supabase messaging helpers (admin side) ---- */
-var _SB_URL  = "https://htvjjwfenvittdritjni.supabase.co";
-var _SB_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh0dmpqd2ZlbnZpdHRkcml0am5pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2NTQ3OTAsImV4cCI6MjA5OTIzMDc5MH0.AMKUctPj49ahqXAFZbzJ341ZFH5XTckBUQaDmF5ZLj8";
-
-async function sbGetMessages(patientId) {
-  try {
-    var r = await fetch(_SB_URL + "/rest/v1/patient_messages?patient_id=eq." + encodeURIComponent(patientId) + "&order=created_at.asc&limit=100", {
-      headers: { "apikey": _SB_KEY, "Authorization": "Bearer " + _SB_KEY }
-    });
-    return r.ok ? await r.json() : [];
-  } catch(e) { return []; }
-}
-
-async function sbSendMessage(patientId, senderName, content) {
-  try {
-    await fetch(_SB_URL + "/rest/v1/patient_messages", {
-      method: "POST",
-      headers: { "apikey": _SB_KEY, "Authorization": "Bearer " + _SB_KEY, "Content-Type": "application/json", "Prefer": "return=minimal" },
-      body: JSON.stringify({ patient_id: patientId, sender_role: "coordinator", sender_name: senderName, content: content })
-    });
-  } catch(e) { console.warn("Send msg:", e); }
+function _getAdminSB() {
+  /* Uses the shared Supabase SDK client from supabase-client.js */
+  if (window.CB_SB) return window.CB_SB;
+  /* Fallback: create our own if SDK is loaded */
+  if (window.supabase && window.supabase.createClient) {
+    return window.supabase.createClient(
+      "https://htvjjwfenvittdritjni.supabase.co",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh0dmpqd2ZlbnZpdHRkcml0am5pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2NTQ3OTAsImV4cCI6MjA5OTIzMDc5MH0.AMKUctPj49ahqXAFZbzJ341ZFH5XTckBUQaDmF5ZLj8"
+    );
+  }
+  return null;
 }
 
 function PatientComms({ p, co }) {
   const [msgs, setMsgs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [invPid, setInvPid] = useState(null); /* canonical patient_id from patient_invitations */
+  const [invId, setInvId] = useState(null);   /* invitation uuid */
+  const [noInv, setNoInv] = useState(false);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState("");
   const endRef = React.useRef(null);
   const pollRef = React.useRef(null);
 
-  const loadMsgs = React.useCallback(async () => {
-    const data = await sbGetMessages(p.id);
-    setMsgs(data);
-    setLoading(false);
+  /* Step 1: fetch the invitation so we know the canonical patient_id */
+  React.useEffect(() => {
+    var sb = _getAdminSB();
+    if (!sb) return;
+    sb.from("patient_invitations")
+      .select("id, patient_id")
+      .eq("patient_id", p.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .then(function(res) {
+        if (res.data && res.data.length > 0) {
+          setInvPid(res.data[0].patient_id);
+          setInvId(res.data[0].id);
+        } else {
+          /* No invitation yet — fall back to p.id */
+          setInvPid(p.id);
+          setNoInv(true);
+        }
+      });
   }, [p.id]);
 
+  const loadMsgs = React.useCallback(async (pid) => {
+    var sb = _getAdminSB();
+    if (!sb || !pid) return;
+    var res = await sb.from("patient_messages").select("*").eq("patient_id", pid).order("created_at", { ascending: true }).limit(100);
+    if (!res.error && res.data) setMsgs(res.data);
+    setLoading(false);
+  }, []);
+
   React.useEffect(() => {
-    loadMsgs();
-    pollRef.current = setInterval(loadMsgs, 15000);
-    return () => clearInterval(pollRef.current);
-  }, [loadMsgs]);
+    if (!invPid) return;
+    loadMsgs(invPid);
+    pollRef.current = setInterval(function() { loadMsgs(invPid); }, 12000);
+    return function() { clearInterval(pollRef.current); };
+  }, [invPid, loadMsgs]);
 
   React.useEffect(() => {
     if (endRef.current) endRef.current.scrollTop = endRef.current.scrollHeight;
@@ -671,23 +690,38 @@ function PatientComms({ p, co }) {
   const send = async (e) => {
     e && e.preventDefault();
     const content = text.trim();
-    if (!content || sending) return;
+    if (!content || sending || !invPid) return;
     setSending(true);
+    setSendError("");
     setText("");
-    await sbSendMessage(p.id, co.name || "Coordinator", content);
-    await loadMsgs();
+    var sb = _getAdminSB();
+    var payload = { patient_id: invPid, sender_role: "coordinator", sender_name: co.name || "Coordinator", content: content };
+    if (invId) payload.invitation_id = invId;
+    var res = await sb.from("patient_messages").insert(payload);
+    if (res.error) {
+      setSendError("Failed to send: " + res.error.message);
+      setText(content);
+      console.error("[CB] PatientComms send error:", res.error);
+    } else {
+      window.cbToast("Message sent to " + p.name, { icon: "send" });
+    }
+    await loadMsgs(invPid);
     setSending(false);
-    window.cbToast("Message sent to " + p.name, { icon: "send" });
   };
 
   return (
     <Card>
-      <CardHead title="Message patient" sub={"Live chat with " + p.name + " · patient sees this in their portal"} />
-      {loading ? (
-        <div style={{ textAlign: "center", padding: 24, color: "var(--text-muted)" }}>Loading messages…</div>
+      <CardHead title="Message patient" sub={"Secure thread with " + p.name + " · replies reach the patient app"} />
+      {loading && !invPid ? (
+        <div style={{ textAlign: "center", padding: 24, color: "var(--text-muted)" }}>Loading…</div>
       ) : (
         <div ref={endRef} style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 680, maxHeight: 420, overflowY: "auto", padding: "4px 0 12px" }}>
-          {msgs.length === 0 ? (
+          {noInv && (
+            <div style={{ background: "var(--warm-50,#fef9ec)", border: "1px solid var(--warm-200,#fde68a)", borderRadius: 8, padding: "10px 14px", fontSize: 13, color: "var(--warm-700,#92400e)", marginBottom: 4 }}>
+              No portal invitation found for this patient. Send an invitation first so messages reach them.
+            </div>
+          )}
+          {msgs.length === 0 && !loading ? (
             <div style={{ textAlign: "center", padding: 24, color: "var(--text-faint)", fontSize: 14 }}>No messages yet. Send a message to {p.name} below.</div>
           ) : msgs.map((m) => {
             const me = m.sender_role === "coordinator";
@@ -700,9 +734,10 @@ function PatientComms({ p, co }) {
           })}
         </div>
       )}
+      {sendError && <div style={{ color: "var(--red-600,#dc2626)", fontSize: 13, padding: "4px 0 8px" }}>{sendError}</div>}
       <form className="cb-row" onSubmit={send} style={{ gap: 10, marginTop: 12, paddingTop: 14, borderTop: "1px solid var(--border-subtle)" }}>
-        <div className="cb-search" style={{ flex: 1, minWidth: 0 }}><input value={text} onChange={(e) => setText(e.target.value)} placeholder={"Message " + p.name + "…"} disabled={sending} /></div>
-        <button type="submit" className="cb-icon-pill" data-real aria-label="Send" disabled={!text.trim() || sending} style={{ background: "var(--teal-500)", color: "#fff", border: "none" }}><Icon name="send" size={18} /></button>
+        <div className="cb-search" style={{ flex: 1, minWidth: 0 }}><input value={text} onChange={(e) => setText(e.target.value)} placeholder={"Message " + p.name + "…"} disabled={sending || !invPid} /></div>
+        <button type="submit" className="cb-icon-pill" data-real aria-label="Send" disabled={!text.trim() || sending || !invPid} style={{ background: "var(--teal-500)", color: "#fff", border: "none" }}><Icon name="send" size={18} /></button>
       </form>
     </Card>
   );
