@@ -53,27 +53,42 @@ function PatientReviewsCard() {
   var [ratings, setRatings] = React.useState([]);
   var [loading, setLoading] = React.useState(true);
   var labels = ["", "Poor", "Fair", "Good", "Very good", "Excellent"];
+  var channelRef = React.useRef(null);
 
   function loadRatings() {
     var sb = window.CB_SB;
-    if (!sb) { setLoading(false); return; }
+    if (!sb) return; // will be retried below
     sb.from("patient_ratings").select("*").order("created_at", { ascending: false }).then(function(res) {
       setRatings(res.data || []);
       setLoading(false);
+      // Set up real-time once we know CB_SB is ready
+      if (!channelRef.current) {
+        channelRef.current = sb.channel("patient-ratings-admin")
+          .on("postgres_changes", { event: "*", schema: "public", table: "patient_ratings" }, function() {
+            sb.from("patient_ratings").select("*").order("created_at", { ascending: false }).then(function(r) {
+              setRatings(r.data || []);
+            });
+          })
+          .subscribe();
+      }
     });
   }
 
   React.useEffect(function() {
-    loadRatings();
-    // Real-time subscription for new ratings
-    var sb = window.CB_SB;
-    if (!sb) return;
-    var channel = sb.channel("patient-ratings-admin")
-      .on("postgres_changes", { event: "*", schema: "public", table: "patient_ratings" }, function() {
-        loadRatings();
-      })
-      .subscribe();
-    return function() { sb.removeChannel(channel); };
+    // Poll until CB_SB is ready (it loads asynchronously after page mount)
+    var attempts = 0;
+    function tryLoad() {
+      if (window.CB_SB) { loadRatings(); return; }
+      if (++attempts < 20) setTimeout(tryLoad, 300);
+      else setLoading(false);
+    }
+    tryLoad();
+    return function() {
+      if (channelRef.current && window.CB_SB) {
+        window.CB_SB.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+    };
   }, []);
 
   var avg = ratings.length ? (ratings.reduce(function(s, r) { return s + (r.stars || 0); }, 0) / ratings.length).toFixed(1) : null;
