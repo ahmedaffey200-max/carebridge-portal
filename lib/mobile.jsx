@@ -40,22 +40,38 @@ function MTabBar({ active }) {
   );
 }
 
+/* Helper — resolves the currently logged-in patient (if any) */
+function useClientPatient() {
+  try {
+    var pid = localStorage.getItem("cb_patient_id");
+    var p = (pid && window.CBStore) ? window.CBStore.patientById(pid) : null;
+    return p || null;
+  } catch(e) { return null; }
+}
+
 /* Screen 1 — Patient home */
 function MHome() {
+  var p = useClientPatient();
+  var patientName = p ? p.name : "Patient";
+  var caseId = p ? p.id : "";
+  var coordName = p ? (p.coordinator || "Your coordinator") : "Your coordinator";
+  var coordInitials = coordName.split(" ").map(function(w){ return w[0] || ""; }).slice(0,2).join("").toUpperCase() || "CO";
+  var progress = p ? (p.progress || 0) : 30;
+  var stage = p ? (window.CB_DATA.STAGES[p.stage] || "In progress") : "Medical Review";
   return (
     <div style={{ minHeight: "100%", background: "var(--bg-page)", paddingBottom: 96, fontFamily: "var(--font-body)" }}>
-      <MHeader name title="Hodan Ali" sub="Your care journey · Case CB-2039" />
+      <MHeader name title={patientName} sub={"Your care journey" + (caseId ? " · Case " + caseId : "")} />
       <div style={{ padding: "18px 18px 0" }}>
         <div style={{ background: "#fff", borderRadius: 18, padding: 18, boxShadow: "var(--shadow-sm)", border: "1px solid var(--border-subtle)", marginTop: -42, position: "relative" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-strong)", fontFamily: "var(--font-display)" }}>Treatment progress</span>
-            <span style={{ fontSize: 13, fontWeight: 800, color: "var(--teal-600)", fontFamily: "var(--font-display)" }}>30%</span>
+            <span style={{ fontSize: 13, fontWeight: 800, color: "var(--teal-600)", fontFamily: "var(--font-display)" }}>{progress}%</span>
           </div>
-          <div className="cb-prog"><div className="cb-prog__fill" style={{ width: "30%" }} /></div>
-          <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 10 }}>Current stage: <b style={{ color: "var(--navy-700)" }}>Medical Review</b> at Yamuna Super-Speciality Institute, Delhi</div>
+          <div className="cb-prog"><div className="cb-prog__fill" style={{ width: progress + "%" }} /></div>
+          <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 10 }}>Current stage: <b style={{ color: "var(--navy-700)" }}>{stage}</b></div>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 14 }}>
-          {[["calendar-check", "Next step", "Biopsy review"], ["stamp", "Visa", "In process"], ["plane", "Flight", "Awaiting visa"], ["wallet", "Balance", "$8,200"]].map((c, i) => (
+          {[["calendar-check", "Next step", stage], ["stamp", "Visa", p ? (p.visa || "—") : "—"], ["plane", "Flight", p ? (p.flight || "—") : "—"], ["wallet", "Balance", p ? ("$" + ((p.pkgPaid || 0)).toLocaleString()) : "—"]].map((c, i) => (
             <div key={i} style={{ background: "#fff", borderRadius: 14, padding: 14, border: "1px solid var(--border-subtle)" }}>
               <div style={{ width: 32, height: 32, borderRadius: 9, background: "var(--teal-50)", color: "var(--teal-600)", display: "grid", placeItems: "center", marginBottom: 9 }}><i data-lucide={c[0]} style={{ width: 17, height: 17 }} /></div>
               <div style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 600 }}>{c[1]}</div>
@@ -64,10 +80,10 @@ function MHome() {
           ))}
         </div>
         <div style={{ background: "var(--navy-700)", borderRadius: 16, padding: 16, marginTop: 14, color: "#fff", display: "flex", alignItems: "center", gap: 13 }}>
-          <div style={{ width: 42, height: 42, borderRadius: "50%", background: "rgba(255,255,255,0.16)", display: "grid", placeItems: "center", fontWeight: 700, fontFamily: "var(--font-display)", flex: "none" }}>FN</div>
+          <div style={{ width: 42, height: 42, borderRadius: "50%", background: "rgba(255,255,255,0.16)", display: "grid", placeItems: "center", fontWeight: 700, fontFamily: "var(--font-display)", flex: "none" }}>{coordInitials}</div>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 11, opacity: 0.7 }}>Your coordinator</div>
-            <div style={{ fontSize: 14, fontWeight: 700, fontFamily: "var(--font-display)" }}>Fatima Noor</div>
+            <div style={{ fontSize: 14, fontWeight: 700, fontFamily: "var(--font-display)" }}>{coordName}</div>
           </div>
           <div style={{ width: 38, height: 38, borderRadius: 11, background: "var(--teal-500)", display: "grid", placeItems: "center", flex: "none" }}><i data-lucide="message-circle" style={{ width: 18, height: 18, color: "#fff" }} /></div>
         </div>
@@ -121,7 +137,10 @@ function MJourney() {
 
 /* Screen 3 — Messages */
 function MMessages() {
-  const PID = "CB-2039";
+  var cp = useClientPatient();
+  var PID = cp ? cp.id : "CB-2039";
+  var coordName = cp ? (cp.coordinator || "Your coordinator") : "Your coordinator";
+  var coordInitials = coordName.split(" ").map(function(w){ return w[0] || ""; }).slice(0,2).join("").toUpperCase() || "CO";
   const msgs = useMessages(PID);
   const [text, setText] = React.useState("");
   const scrollRef = React.useRef(null);
@@ -130,9 +149,9 @@ function MMessages() {
   return (
     <div style={{ minHeight: "100%", background: "var(--bg-page)", paddingBottom: 96, fontFamily: "var(--font-body)", display: "flex", flexDirection: "column" }}>
       <div style={{ background: "#fff", padding: "52px 18px 14px", borderBottom: "1px solid var(--border-subtle)", display: "flex", alignItems: "center", gap: 12 }}>
-        <div style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--navy-600)", color: "#fff", display: "grid", placeItems: "center", fontWeight: 700, fontFamily: "var(--font-display)" }}>FN</div>
+        <div style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--navy-600)", color: "#fff", display: "grid", placeItems: "center", fontWeight: 700, fontFamily: "var(--font-display)" }}>{coordInitials}</div>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-strong)", fontFamily: "var(--font-display)" }}>Fatima Noor</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-strong)", fontFamily: "var(--font-display)" }}>{coordName}</div>
           <div style={{ fontSize: 11.5, color: "var(--teal-600)", display: "flex", alignItems: "center", gap: 5 }}><span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--teal-500)" }} />Carebridge coordinator</div>
         </div>
         <i data-lucide="phone-call" style={{ width: 20, height: 20, color: "var(--navy-600)" }} />
@@ -144,7 +163,7 @@ function MMessages() {
           return (
             <div key={i} style={{ alignSelf: me ? "flex-end" : "flex-start", maxWidth: "82%" }}>
               <div style={{ padding: "11px 14px", borderRadius: me ? "16px 16px 4px 16px" : "16px 16px 16px 4px", background: me ? "var(--navy-600)" : "#fff", color: me ? "#fff" : "var(--text-body)", fontSize: 13.5, lineHeight: 1.5, border: me ? "none" : "1px solid var(--border-subtle)", boxShadow: "var(--shadow-xs)" }}>{m.text}</div>
-              <div style={{ fontSize: 10, color: "var(--text-faint)", marginTop: 3, textAlign: me ? "right" : "left" }}>{me ? "You" : "Fatima Noor"} · {m.time}</div>
+              <div style={{ fontSize: 10, color: "var(--text-faint)", marginTop: 3, textAlign: me ? "right" : "left" }}>{me ? "You" : coordName} · {m.time}</div>
             </div>
           );
         })}

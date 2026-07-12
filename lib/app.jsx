@@ -231,6 +231,15 @@ function SearchModal({ onClose, go }) {
 function App() {
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
   const role = getRole();
+  // When patient opens via ?role=client&patient=CB-XXXX, persist their ID
+  useEffectA(function() {
+    if (role === "client") {
+      try {
+        var pid = new URLSearchParams(window.location.search).get("patient");
+        if (pid) localStorage.setItem("cb_patient_id", pid);
+      } catch(e) {}
+    }
+  }, []);
   const [view, setView] = useStateA(role === "client" ? { name: "mobile", id: null } : { name: "dashboard", id: null });
   const [navOpen, setNavOpen] = useStateA(false);
   const [locked, setLocked] = useStateA(false);
@@ -241,8 +250,14 @@ function App() {
   const rootRef = useRefA(null);
   const mainRef = useRefA(null);
   const lockTimer = useRefA(null);
+  const clientPatient = role === "client" ? (function() {
+    try {
+      var pid = localStorage.getItem("cb_patient_id");
+      return (pid && window.CBStore) ? window.CBStore.patientById(pid) : null;
+    } catch(e) { return null; }
+  })() : null;
   const user = role === "client"
-    ? { name: "Hodan Ali" }
+    ? { name: clientPatient ? clientPatient.name : "Patient" }
     : { name: localStorage.getItem("cb_user_name") || "Administrator" };
   useLucideObserver(rootRef);
 
