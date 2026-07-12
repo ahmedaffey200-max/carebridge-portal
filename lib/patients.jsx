@@ -900,9 +900,17 @@ function AddPatientModal({ onClose, go, patient }) {
     { code: "IN", label: "India" }, { code: "TR", label: "Turkey" }, { code: "MY", label: "Malaysia" },
     { code: "DE", label: "Germany" }, { code: "TH", label: "Thailand" }, { code: "OT", label: "Other" },
   ];
+  const [portalCoords, setPortalCoords] = useState([]);
+  React.useEffect(function() {
+    var sb = window.CB_SB;
+    if (!sb) return;
+    sb.from("portal_users").select("id, name, role").eq("active", true).then(function(res) {
+      if (res.data) setPortalCoords(res.data.filter(function(u) { return u.role === "coordinator" || u.role === "admin"; }));
+    });
+  }, []);
   const [f, setF] = useState(editing
     ? { name: patient.name, age: String(patient.age), gender: patient.gender, condition: patient.condition, specialty: (settings.specialties.indexOf(patient.specialty) >= 0 ? patient.specialty : (patient.specialty ? "Other" : "")), specialtyOther: settings.specialties.indexOf(patient.specialty) >= 0 ? "" : (patient.specialty || ""), dest: patient.dest, destOther: patient.destOther || "", destCity: patient.destCity || "", homeCountry: patient.homeCountry || "", passportType: patient.passportType || "", passportTypeOther: patient.passportTypeOther || "", passportCountry: patient.passportCountry || "", priority: patient.priority, coordinator: patient.coordinator, phone: patient.phone || "", email: patient.email || "", emergencyName: patient.emergencyName || "", emergencyPhone: patient.emergencyPhone || "", emergencyCountry: patient.emergencyCountry || "", emergencyRelation: patient.emergencyRelation || "", pkg: patient.pkg || "", pkgTotal: patient.pkgTotal ? String(patient.pkgTotal) : "", pkgPaid: patient.pkgPaid ? String(patient.pkgPaid) : "" }
-    : { name: "", age: "", gender: settings.genders[0] || "Male", condition: "", specialty: "", specialtyOther: "", dest: "IN", destOther: "", destCity: "", homeCountry: "", passportType: "", passportTypeOther: "", passportCountry: "", priority: "Normal", coordinator: "c1", phone: "", email: "", emergencyName: "", emergencyPhone: "", emergencyCountry: "", emergencyRelation: "", pkg: "", pkgTotal: "", pkgPaid: "" });
+    : { name: "", age: "", gender: settings.genders[0] || "Male", condition: "", specialty: "", specialtyOther: "", dest: "IN", destOther: "", destCity: "", homeCountry: "", passportType: "", passportTypeOther: "", passportCountry: "", priority: "Normal", coordinator: "", phone: "", email: "", emergencyName: "", emergencyPhone: "", emergencyCountry: "", emergencyRelation: "", pkg: "", pkgTotal: "", pkgPaid: "" });
   const [touched, setTouched] = useState(false);
   const set = (k, v) => setF((s) => ({ ...s, [k]: v }));
 
@@ -1073,7 +1081,8 @@ function AddPatientModal({ onClose, go, patient }) {
             </div>
             <div><Label k="coordinator">Coordinator</Label>
               <select style={fieldStyle("coordinator")} value={f.coordinator} onChange={(e) => set("coordinator", e.target.value)}>
-                {PD.coordinatorsSorted().map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                <option value="">— Select coordinator —</option>
+                {portalCoords.map(function(c) { return <option key={c.id} value={c.name}>{c.name}</option>; })}
               </select>
             </div>
           </div>
