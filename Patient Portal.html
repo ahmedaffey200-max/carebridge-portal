@@ -984,23 +984,41 @@ function App() {
     }
   }, [screen]);
 
+  /* Enrich invitation with coordinator name if missing or placeholder */
+  const enrichInvitation = useCallback(async (data) => {
+    const bad = !data.coordinator_name || data.coordinator_name === "—" || data.coordinator_name === "-";
+    if (!bad) return data;
+    // Try to find coordinator name from portal_users by coordinator_id or coordinator_name
+    const cid = data.coordinator_id || data.coordinator_name || "";
+    if (cid && cid !== "—" && cid !== "-") {
+      const { data: users } = await sb.from("portal_users")
+        .select("name").or(`name.eq.${cid},id.eq.${cid}`).limit(1);
+      if (users && users[0]) return { ...data, coordinator_name: users[0].name };
+    }
+    // Fall back to any active coordinator
+    const { data: coords } = await sb.from("portal_users")
+      .select("name").eq("active", true).in("role", ["coordinator", "admin"]).limit(1);
+    if (coords && coords[0]) return { ...data, coordinator_name: coords[0].name };
+    return { ...data, coordinator_name: "Carebridge Coordinator" };
+  }, []);
+
   /* Load the dashboard for an authenticated user */
   const loadDashboard = useCallback(async (user) => {
     // Priority 1: token stored in user metadata
     const metaToken = user?.user_metadata?.token;
     if (metaToken) {
       const { data } = await sb.from("patient_invitations").select("*").eq("token", metaToken).single();
-      if (data) { setInvitation(data); setScreen("dashboard"); return; }
+      if (data) { setInvitation(await enrichInvitation(data)); setScreen("dashboard"); return; }
     }
     // Priority 2: auth_user_id match
     if (user?.id) {
       const { data } = await sb.from("patient_invitations").select("*").eq("auth_user_id", user.id).single();
-      if (data) { setInvitation(data); setScreen("dashboard"); return; }
+      if (data) { setInvitation(await enrichInvitation(data)); setScreen("dashboard"); return; }
     }
     // Can't find invitation — sign out gracefully
     await sb.auth.signOut();
     setScreen("login");
-  }, []);
+  }, [enrichInvitation]);
 
   /* Validate a URL invitation token */
   const validateToken = useCallback(async (token) => {

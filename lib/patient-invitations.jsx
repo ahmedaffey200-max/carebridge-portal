@@ -48,8 +48,9 @@ function SendInvitationModal({ onClose, onSent }) {
   const [copied,      setCopied]      = useSt(false);
 
   const selPatient = patients.find(p => p.id === selId) || null;
+  const rawCoordName = selPatient && window.CB_DATA ? window.CB_DATA.coordById(selPatient.coordinator)?.name : null;
   const coordName  = selPatient
-    ? (window.CB_DATA ? window.CB_DATA.coordById(selPatient.coordinator)?.name : null) || "Carebridge Coordinator"
+    ? (rawCoordName && rawCoordName !== "—" ? rawCoordName : "Carebridge Coordinator")
     : "";
   const coordId    = selPatient ? selPatient.coordinator || "" : "";
 
