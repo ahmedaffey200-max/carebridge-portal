@@ -228,6 +228,34 @@ function SearchModal({ onClose, go }) {
   );
 }
 
+class PageErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { err: null }; }
+  static getDerivedStateFromError(err) { return { err }; }
+  componentDidCatch(err, info) { console.error("[CareBridge] Page render error:", err, info); }
+  render() {
+    if (this.state.err) {
+      return (
+        <div style={{ padding: "48px 32px", maxWidth: 560 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 20 }}>
+            <div style={{ width: 44, height: 44, borderRadius: 12, background: "var(--danger-soft)", display: "flex", alignItems: "center", justifyContent: "center", flex: "none" }}>
+              <i data-lucide="alert-triangle" style={{ width: 22, height: 22, color: "var(--danger)" }} />
+            </div>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 17, color: "var(--text-strong)" }}>Something went wrong</div>
+              <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 2 }}>This section failed to render. Navigate away and try again.</div>
+            </div>
+          </div>
+          <pre style={{ fontSize: 12, color: "var(--text-muted)", background: "var(--sky-100)", padding: 14, borderRadius: 8, overflowX: "auto", whiteSpace: "pre-wrap", wordBreak: "break-all" }}>
+            {String(this.state.err)}
+          </pre>
+          <button className="cb-btn-primary" data-real style={{ marginTop: 16 }} onClick={() => this.setState({ err: null })}>Try again</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 function App() {
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
   const role = getRole();
@@ -398,7 +426,7 @@ function App() {
       <Sidebar active={view.name} go={(n) => go(n)} role={role} />
       <main className="cb-main" ref={mainRef}>
         <Topbar view={view.name} onMenu={() => setNavOpen(true)} privacy={privacy} onPrivacy={() => setPrivacy((p) => !p)} onLock={() => setLocked(true)} onAdd={() => setAddOpen(true)} onSearch={() => setSearchOpen(true)} theme={t.theme} onTheme={() => setTweak("theme", t.theme === "dark" ? "light" : "dark")} />
-        <div className="cb-page">{content}</div>
+        <div className="cb-page"><PageErrorBoundary>{content}</PageErrorBoundary></div>
       </main>
       {locked ? <LockScreen user={user} onUnlock={() => setLocked(false)} /> : null}
       {addOpen ? <AddPatientModal onClose={() => setAddOpen(false)} go={go} /> : null}

@@ -1,99 +1,205 @@
 /* ============================================================
-   Carebridge Portal — Communication · Financial · Analytics · Hospitals
+   Carebridge Portal — Communication Hub · Analytics
    ============================================================ */
 const { useState } = React;
 const CD = window.CB_DATA;
 
-/* ---------------- Communication Hub ---------------- */
+/* ---------------- Communication Hub (real Supabase messages) ---------------- */
 function CommsView() {
-  const [sel, setSel] = useState(CD.THREADS[0].id);
-  const [extra, setExtra] = useState({});
-  const [text, setText] = useState("");
-  const convoRef = React.useRef(null);
-  const t = CD.THREADS.find((x) => x.id === sel);
-  const channelIcon = { WhatsApp: "message-circle", "Secure chat": "lock", Email: "mail" };
-  const convo = [
-    { me: false, text: "Assalamu alaikum. We received your message about the appointment.", time: "09:02" },
-    { me: true, text: "Wa alaikum salam. Your video consultation with the specialist is confirmed for Thursday at 14:00 (Mogadishu time).", time: "09:06" },
-    { me: false, text: t.last, time: t.time },
-  ].concat(extra[sel] || []);
-  const send = (e) => {
+  var [threads, setThreads] = React.useState([]);
+  var [sel, setSel] = React.useState(null);
+  var [text, setText] = React.useState("");
+  var [loading, setLoading] = React.useState(true);
+  var [sending, setSending] = React.useState(false);
+  var endRef = React.useRef(null);
+  var pollRef = React.useRef(null);
+
+  function buildThreads(rows) {
+    var byPid = {};
+    // rows are newest-first from the query
+    rows.slice().reverse().forEach(function(m) {
+      var pid = m.patient_id || "unknown";
+      if (!byPid[pid]) byPid[pid] = { patient_id: pid, patient_name: "Patient", msgs: [], unread: 0 };
+      byPid[pid].msgs.push(m);
+      // Prefer patient-side sender_name as the patient name
+      if (m.sender_role === "patient" && m.sender_name) byPid[pid].patient_name = m.sender_name;
+      if (!m.read_at && m.sender_role === "patient") byPid[pid].unread++;
+    });
+    // Enrich with CBStore patient name if available
+    Object.values(byPid).forEach(function(th) {
+      if (window.CBStore) {
+        var p = window.CBStore.patientById(th.patient_id);
+        if (p && p.name) th.patient_name = p.name;
+      }
+      th.initials = th.patient_name.split(" ").map(function(w){ return w[0] || ""; }).slice(0,2).join("").toUpperCase() || "P";
+      th.latest = th.msgs[th.msgs.length - 1];
+    });
+    return Object.values(byPid).sort(function(a, b) {
+      var at = a.latest ? new Date(a.latest.created_at) : 0;
+      var bt = b.latest ? new Date(b.latest.created_at) : 0;
+      return bt - at;
+    });
+  }
+
+  function load() {
+    var sb = window.CB_SB;
+    if (!sb) return;
+    sb.from("patient_messages").select("*").order("created_at", { ascending: false }).limit(300).then(function(res) {
+      if (res.error) { setLoading(false); return; }
+      var list = buildThreads(res.data || []);
+      setThreads(list);
+      setLoading(false);
+      setSel(function(prev) { return prev || (list.length ? list[0].patient_id : null); });
+    });
+  }
+
+  React.useEffect(function() {
+    var attempts = 0;
+    function tryLoad() {
+      if (window.CB_SB) { load(); } else if (++attempts < 20) { setTimeout(tryLoad, 300); return; } else { setLoading(false); return; }
+      pollRef.current = setInterval(load, 12000);
+    }
+    tryLoad();
+    return function() { if (pollRef.current) clearInterval(pollRef.current); };
+  }, []);
+
+  // Scroll to bottom when thread changes or messages arrive
+  React.useEffect(function() {
+    if (endRef.current) endRef.current.scrollTop = endRef.current.scrollHeight;
+  }, [sel, threads.length]);
+
+  var thread = threads.find(function(th) { return th.patient_id === sel; });
+  var msgs = thread ? thread.msgs : [];
+
+  function fmtTime(ts) {
+    if (!ts) return "";
+    try {
+      var d = new Date(ts), now = new Date();
+      if (d.toDateString() === now.toDateString()) return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" }) + " " + d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    } catch(e) { return ""; }
+  }
+
+  function send(e) {
     e && e.preventDefault();
-    const v = text.trim();
-    if (!v) return;
-    const now = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
-    setExtra((x) => ({ ...x, [sel]: (x[sel] || []).concat({ me: true, text: v, time: now }) }));
+    var content = text.trim();
+    if (!content || sending || !sel) return;
+    setSending(true);
     setText("");
-  };
-  React.useEffect(() => { if (convoRef.current) convoRef.current.scrollTop = convoRef.current.scrollHeight; }, [extra, sel]);
+    var sb = window.CB_SB;
+    if (!sb) { setSending(false); return; }
+    var coord = (localStorage.getItem("cb_user_name") || "Coordinator");
+    sb.from("patient_messages").insert({ patient_id: sel, sender_role: "coordinator", sender_name: coord, content: content }).then(function(res) {
+      setSending(false);
+      if (!res.error) { load(); window.cbToast("Message sent", { icon: "send" }); }
+      else { window.cbToast("Failed to send", { icon: "alert-triangle" }); setText(content); }
+    });
+  }
+
+  var unreadTotal = threads.reduce(function(s, th) { return s + th.unread; }, 0);
+
+  if (loading) {
+    return (
+      <div className="cb-grid" style={{ gap: "var(--gap-grid)" }}>
+        <Card><div className="cb-muted" style={{ fontSize: 13, padding: "12px 2px" }}>Loading messages…</div></Card>
+      </div>
+    );
+  }
+
+  if (!threads.length) {
+    return (
+      <div className="cb-grid" style={{ gap: "var(--gap-grid)" }}>
+        <div className="cb-grid" style={{ gridTemplateColumns: "repeat(4,1fr)" }}>
+          <StatCard icon="messages-square" chip="navy" value="0" label="Active conversations" />
+          <StatCard icon="send" chip="" value="0" label="Messages sent" />
+          <StatCard icon="inbox" chip="sky" value="0" label="Unread messages" />
+          <StatCard icon="users" chip="warm" value={String(threads.length)} label="Patients messaging" />
+        </div>
+        <Card>
+          <div className="cb-empty">No messages yet. Messages from patients will appear here once they send a message through their patient portal.</div>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="cb-grid" style={{ gap: "var(--gap-grid)" }}>
       <div className="cb-grid" style={{ gridTemplateColumns: "repeat(4,1fr)" }}>
-        <StatCard icon="messages-square" chip="navy" value="7" label="Unread conversations" delta="+4" />
-        <StatCard icon="video" chip="" value="3" label="Video consults today" />
-        <StatCard icon="mail" chip="sky" value="12" label="Emails awaiting reply" />
-        <StatCard icon="clock" chip="warm" value="18m" label="Avg. response time" deltaDir="down" delta="-5m" />
+        <StatCard icon="messages-square" chip="navy" value={String(threads.length)} label="Active conversations" />
+        <StatCard icon="inbox" chip={unreadTotal ? "warn" : ""} value={String(unreadTotal)} label="Unread messages" />
+        <StatCard icon="users" chip="sky" value={String(threads.length)} label="Patients messaging" />
+        <StatCard icon="send" chip="" value={String(threads.reduce(function(s,th){ return s + th.msgs.filter(function(m){ return m.sender_role !== "patient"; }).length; }, 0))} label="Replies sent" />
       </div>
-      <div className="cb-grid" style={{ gridTemplateColumns: "320px 1fr 300px", alignItems: "start" }}>
-        {/* Threads */}
+      <div className="cb-grid" style={{ gridTemplateColumns: "300px 1fr", alignItems: "start" }}>
+        {/* Thread list */}
         <Card pad0>
           <div style={{ padding: "var(--space-5)", borderBottom: "1px solid var(--border-subtle)" }}>
-            <div className="cb-search"><Icon name="search" size={16} /><input placeholder="Search messages…" /></div>
+            <h3 style={{ fontSize: 14, fontWeight: 700 }}>Patient messages</h3>
           </div>
-          {CD.THREADS.map((th) => (
-            <div key={th.id} onClick={() => setSel(th.id)} className="cb-row" style={{ gap: 11, padding: "13px var(--space-5)", borderBottom: "1px solid var(--border-subtle)", cursor: "pointer", background: sel === th.id ? "var(--sky-100)" : "transparent", borderLeft: "3px solid " + (sel === th.id ? "var(--teal-500)" : "transparent") }}>
-              <Avatar initials={th.initials} color="var(--navy-500)" size="sm" />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div className="cb-between"><span style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text-strong)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{th.name}</span><span style={{ fontSize: 11, color: "var(--text-faint)" }}>{th.time}</span></div>
-                <div className="cb-row" style={{ gap: 6, marginTop: 3 }}>
-                  <Icon name={channelIcon[th.channel]} size={12} style={{ color: "var(--teal-600)" }} />
-                  <span style={{ fontSize: 12, color: "var(--text-muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flex: 1 }}>{th.last}</span>
-                  {th.unread ? <span style={{ background: "var(--teal-500)", color: "#fff", fontSize: 10.5, fontWeight: 700, minWidth: 18, height: 18, borderRadius: 999, display: "grid", placeItems: "center", padding: "0 5px" }}>{th.unread}</span> : null}
+          {threads.map(function(th) {
+            var active = sel === th.patient_id;
+            var last = th.latest;
+            return (
+              <div key={th.patient_id} onClick={function() { setSel(th.patient_id); }} className="cb-row"
+                style={{ gap: 11, padding: "13px var(--space-5)", borderBottom: "1px solid var(--border-subtle)", cursor: "pointer",
+                  background: active ? "var(--sky-100)" : "transparent",
+                  borderLeft: "3px solid " + (active ? "var(--teal-500)" : "transparent") }}>
+                <Avatar initials={th.initials} color="var(--navy-500)" size="sm" />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="cb-between">
+                    <span style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text-strong)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{th.patient_name}</span>
+                    {last ? <span style={{ fontSize: 11, color: "var(--text-faint)", flex: "none" }}>{fmtTime(last.created_at)}</span> : null}
+                  </div>
+                  <div className="cb-row" style={{ gap: 6, marginTop: 3 }}>
+                    <span style={{ fontSize: 12, color: "var(--text-muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flex: 1 }}>
+                      {last ? (last.sender_role === "patient" ? "" : "You: ") + last.content : ""}
+                    </span>
+                    {th.unread > 0 ? <span style={{ background: "var(--teal-500)", color: "#fff", fontSize: 10.5, fontWeight: 700, minWidth: 18, height: 18, borderRadius: 999, display: "grid", placeItems: "center", padding: "0 5px", flex: "none" }}>{th.unread}</span> : null}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </Card>
+
+        {/* Conversation */}
+        {thread ? (
+          <Card pad0 style={{ display: "flex", flexDirection: "column", height: 520 }}>
+            <div className="cb-between" style={{ padding: "14px var(--space-5)", borderBottom: "1px solid var(--border-subtle)", flex: "none" }}>
+              <div className="cb-row" style={{ gap: 11 }}>
+                <Avatar initials={thread.initials} color="var(--navy-600)" size="sm" />
+                <div>
+                  <div style={{ fontSize: 14.5, fontWeight: 700, color: "var(--text-strong)" }}>{thread.patient_name}</div>
+                  <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{thread.patient_id} · {msgs.length} message{msgs.length !== 1 ? "s" : ""}</div>
                 </div>
               </div>
             </div>
-          ))}
-        </Card>
-        {/* Conversation */}
-        <Card pad0 style={{ display: "flex", flexDirection: "column", height: 540 }}>
-          <div className="cb-between" style={{ padding: "14px var(--space-5)", borderBottom: "1px solid var(--border-subtle)" }}>
-            <div className="cb-row" style={{ gap: 11 }}>
-              <Avatar initials={t.initials} color="var(--navy-600)" size="sm" />
-              <div><div style={{ fontSize: 14.5, fontWeight: 700, color: "var(--text-strong)" }}>{t.name}</div><div className="cb-row" style={{ gap: 5 }}><Icon name={channelIcon[t.channel]} size={12} style={{ color: "var(--teal-600)" }} /><span style={{ fontSize: 12, color: "var(--text-muted)" }}>{t.channel}</span></div></div>
+            <div ref={endRef} style={{ flex: 1, overflowY: "auto", padding: "var(--space-5)", display: "flex", flexDirection: "column", gap: 12, background: "var(--bg-page)" }}>
+              {msgs.map(function(m, i) {
+                var isMe = m.sender_role !== "patient";
+                return (
+                  <div key={m.id || i} style={{ alignSelf: isMe ? "flex-end" : "flex-start", maxWidth: "76%" }}>
+                    {!isMe ? <div style={{ fontSize: 11, color: "var(--text-faint)", marginBottom: 3 }}>{m.sender_name || "Patient"}</div> : null}
+                    <div style={{ padding: "11px 15px", borderRadius: isMe ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
+                      background: isMe ? "var(--navy-600)" : "#fff", color: isMe ? "#fff" : "var(--text-body)",
+                      fontSize: 14, lineHeight: 1.5, border: isMe ? "none" : "1px solid var(--border-subtle)", boxShadow: "var(--shadow-xs)" }}>
+                      {m.content}
+                    </div>
+                    <div style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 4, textAlign: isMe ? "right" : "left" }}>{fmtTime(m.created_at)}</div>
+                  </div>
+                );
+              })}
             </div>
-            <div className="cb-row" style={{ gap: 6 }}>
-              <button className="cb-icon-pill" style={{ width: 36, height: 36 }}><Icon name="phone-call" size={16} /></button>
-              <button className="cb-icon-pill" style={{ width: 36, height: 36 }}><Icon name="video" size={16} /></button>
-            </div>
-          </div>
-          <div ref={convoRef} style={{ flex: 1, overflowY: "auto", padding: "var(--space-5)", display: "flex", flexDirection: "column", gap: 12, background: "var(--bg-page)" }}>
-            {convo.map((m, i) => (
-              <div key={i} style={{ alignSelf: m.me ? "flex-end" : "flex-start", maxWidth: "76%" }}>
-                <div style={{ padding: "11px 15px", borderRadius: m.me ? "16px 16px 4px 16px" : "16px 16px 16px 4px", background: m.me ? "var(--navy-600)" : "#fff", color: m.me ? "#fff" : "var(--text-body)", fontSize: 14, lineHeight: 1.5, border: m.me ? "none" : "1px solid var(--border-subtle)", boxShadow: "var(--shadow-xs)" }}>{m.text}</div>
-                <div style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 4, textAlign: m.me ? "right" : "left" }}>{m.time}</div>
+            <form className="cb-row" onSubmit={send} style={{ gap: 10, padding: "14px var(--space-5)", borderTop: "1px solid var(--border-subtle)", flex: "none" }}>
+              <div className="cb-search" style={{ flex: 1, minWidth: 0 }}>
+                <input value={text} onChange={function(e){ setText(e.target.value); }} placeholder={"Reply to " + thread.patient_name + "…"} />
               </div>
-            ))}
-          </div>
-          <form className="cb-row" onSubmit={send} style={{ gap: 10, padding: "14px var(--space-5)", borderTop: "1px solid var(--border-subtle)" }}>
-            <button type="button" className="cb-icon-pill" aria-label="Attach a file" style={{ width: 40, height: 40 }}><Icon name="paperclip" size={17} /></button>
-            <div className="cb-search" style={{ flex: 1, minWidth: 0 }}><input value={text} onChange={(e) => setText(e.target.value)} placeholder="Type a message…" /></div>
-            <button type="submit" className="cb-icon-pill" data-real aria-label="Send message" style={{ background: "var(--teal-500)", color: "#fff", border: "none" }}><Icon name="send" size={18} /></button>
-          </form>
-        </Card>
-        {/* Schedule */}
-        <Card>
-          <CardHead title="Upcoming consults" />
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {[["Hodan Ali", "Oncology · second opinion", "Today 14:00", "video"], ["Mohamed Farah", "Nephrology intake", "Tomorrow 10:30", "video"], ["Asha Diriye", "Endocrine review", "Jun 14 · 16:00", "video"]].map((c, i) => (
-              <div key={i} className="cb-soft-panel" style={{ padding: 13 }}>
-                <div className="cb-row" style={{ gap: 9, marginBottom: 6 }}><div className="cb-chip" style={{ width: 32, height: 32, borderRadius: 9 }}><Icon name={c[3]} size={16} /></div><div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text-strong)" }}>{c[0]}</div></div>
-                <div style={{ fontSize: 12.5, color: "var(--text-muted)" }}>{c[1]}</div>
-                <div className="cb-row" style={{ gap: 5, marginTop: 7 }}><Icon name="clock" size={13} style={{ color: "var(--teal-600)" }} /><span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--navy-700)" }}>{c[2]}</span></div>
-              </div>
-            ))}
-          </div>
-          <button className="cb-link" style={{ marginTop: 14, color: "var(--teal-600)" }}><Icon name="calendar-plus" size={15} />Schedule consultation</button>
-        </Card>
+              <button type="submit" className="cb-icon-pill" data-real aria-label="Send message" disabled={sending || !text.trim()} style={{ background: "var(--teal-500)", color: "#fff", border: "none" }}>
+                <Icon name="send" size={18} />
+              </button>
+            </form>
+          </Card>
+        ) : null}
       </div>
     </div>
   );
@@ -101,64 +207,115 @@ function CommsView() {
 
 /* FinancialView & CurrencyCard moved to lib/financial.jsx */
 
-/* ---------------- Analytics & Reporting ---------------- */
+/* ---------------- Analytics & Reporting (computed from real data) ---------------- */
 function AnalyticsView() {
-  const destColors = ["#1B3A6B", "#1CA89C", "#2C5089", "#19938A", "#7C99B8", "#74D2C8"];
-  const specialties = [
-    { label: "Oncology", value: 28 }, { label: "Cardiac", value: 24 }, { label: "Orthopedics", value: 16 },
-    { label: "Transplant", value: 12 }, { label: "Fertility", value: 11 }, { label: "Other", value: 9 },
-  ];
+  var all = usePatients();
+  var destColors = ["#1B3A6B", "#1CA89C", "#2C5089", "#19938A", "#7C99B8", "#74D2C8"];
+
+  var completedIdx = CD.STAGES ? CD.STAGES.length - 1 : 10;
+  var completed = all.filter(function(p){ return p.stage === completedIdx; }).length;
+  var successRate = all.length > 0 ? Math.round((completed / all.length) * 100) : null;
+
+  // Cases by specialty
+  var specMap = {};
+  all.forEach(function(p) { if (p.specialty) specMap[p.specialty] = (specMap[p.specialty] || 0) + 1; });
+  var specList = Object.entries(specMap).sort(function(a,b){ return b[1]-a[1]; }).slice(0,6);
+  var specTotal = specList.reduce(function(s,x){ return s+x[1]; }, 0);
+
+  // Destination breakdown
+  var destMap = {};
+  all.forEach(function(p) { if (p.dest) destMap[p.dest] = (destMap[p.dest] || 0) + 1; });
+  var destSegs = CD.DESTINATIONS
+    .map(function(d, i) { return { label: d.country, value: destMap[d.code] || 0, color: destColors[i % destColors.length] }; })
+    .filter(function(s) { return s.value > 0; });
+  var destTotal = destSegs.reduce(function(s,d){ return s+d.value; }, 0);
+
+  // Patient satisfaction from ratings
+  var [avgRating, setAvgRating] = React.useState(null);
+  var [ratingCount, setRatingCount] = React.useState(0);
+  React.useEffect(function() {
+    var attempts = 0;
+    function tryLoad() {
+      var sb = window.CB_SB;
+      if (!sb) { if (++attempts < 20) setTimeout(tryLoad, 300); return; }
+      sb.from("patient_ratings").select("stars").then(function(res) {
+        if (!res.error && res.data && res.data.length) {
+          var sum = res.data.reduce(function(s,r){ return s+(r.stars||0); }, 0);
+          setAvgRating((sum/res.data.length).toFixed(1));
+          setRatingCount(res.data.length);
+        }
+      });
+    }
+    tryLoad();
+  }, []);
+
   return (
     <div className="cb-grid" style={{ gap: "var(--gap-grid)" }}>
       <div className="cb-grid" style={{ gridTemplateColumns: "repeat(4,1fr)" }}>
-        <StatCard icon="hand-heart" chip="" value="94%" label="Treatment success rate" delta="+1.2%" />
-        <StatCard icon="smile" chip="navy" value="4.8" label="Patient satisfaction (of 5)" delta="+0.1" />
-        <StatCard icon="repeat" chip="sky" value="31%" label="Referral / repeat families" delta="+4%" />
-        <StatCard icon="timer" chip="warm" value="2.1d" label="Avg. report turnaround" deltaDir="down" delta="-0.4d" />
+        <StatCard icon="hand-heart" chip="" value={successRate !== null ? successRate + "%" : "—"} label="Treatment success rate" deltaDir="flat" delta={successRate !== null ? "based on " + all.length + " cases" : "no cases yet"} />
+        <StatCard icon="smile" chip="navy" value={avgRating !== null ? avgRating : "—"} label={"Patient satisfaction" + (ratingCount ? " · " + ratingCount + " reviews" : "")} />
+        <StatCard icon="users" chip="sky" value={String(all.length)} label="Total patients" />
+        <StatCard icon="map-pin" chip="warm" value={String(destSegs.length)} label="Destinations served" />
       </div>
+
       <div className="cb-grid" style={{ gridTemplateColumns: "1.5fr 1fr" }}>
         <Card>
-          <CardHead title="Patients & revenue trend" sub="Monthly — last 8 months" />
-          <BarsChart data={CD.TREND.map((d) => ({ label: d.m, active: d.active, inquiries: d.inquiries }))} keys={["active", "inquiries"]} colors={["var(--navy-500)", "var(--teal-500)"]} />
-          <div className="cb-row" style={{ gap: 18, marginTop: 14, justifyContent: "center" }}>
-            <span className="cb-row" style={{ gap: 7, fontSize: 12.5, color: "var(--text-muted)" }}><span style={{ width: 11, height: 11, borderRadius: 3, background: "var(--navy-500)" }} />Active patients</span>
-            <span className="cb-row" style={{ gap: 7, fontSize: 12.5, color: "var(--text-muted)" }}><span style={{ width: 11, height: 11, borderRadius: 3, background: "var(--teal-500)" }} />New inquiries</span>
-          </div>
+          <CardHead title="Patients by specialty" sub="Cases by treatment pathway" />
+          {specList.length === 0
+            ? <div className="cb-empty">No specialty data yet — add patients to see breakdown.</div>
+            : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 13, marginTop: 4 }}>
+                {specList.map(function(s, i) {
+                  var pct = specTotal > 0 ? Math.round((s[1] / specTotal) * 100) : 0;
+                  return (
+                    <div key={s[0]}>
+                      <div className="cb-between" style={{ fontSize: 13, marginBottom: 6 }}>
+                        <span style={{ fontWeight: 600, color: "var(--text-strong)" }}>{s[0]}</span>
+                        <span className="cb-muted" style={{ fontWeight: 700 }}>{s[1]} patient{s[1] !== 1 ? "s" : ""} · {pct}%</span>
+                      </div>
+                      <div className="cb-prog"><div className="cb-prog__fill" style={{ width: pct + "%", background: destColors[i % destColors.length] }} /></div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
         </Card>
         <Card>
-          <CardHead title="Destination analytics" sub="Share of active patients" />
-          <Donut segments={CD.DESTINATIONS.map((d, i) => ({ label: d.country, value: d.patients, color: destColors[i] }))} centerTop="123" centerBottom="patients" size={150} />
+          <CardHead title="Destinations" sub="Active patients by country" />
+          {destTotal === 0
+            ? <div className="cb-empty" style={{ padding: "24px 0" }}>No patients added yet.</div>
+            : <Donut segments={destSegs} centerTop={String(destTotal)} centerBottom="patients" size={150} />}
         </Card>
       </div>
-      <div className="cb-grid" style={{ gridTemplateColumns: "1fr 1.4fr" }}>
+
+      <div className="cb-grid" style={{ gridTemplateColumns: "1.5fr 1fr" }}>
         <Card>
-          <CardHead title="Cases by specialty" sub="Share of pathways" />
-          <div style={{ display: "flex", flexDirection: "column", gap: 13, marginTop: 4 }}>
-            {specialties.map((s, i) => (
-              <div key={s.label}>
-                <div className="cb-between" style={{ fontSize: 13, marginBottom: 6 }}><span style={{ fontWeight: 600, color: "var(--text-strong)" }}>{s.label}</span><span className="cb-muted" style={{ fontWeight: 700 }}>{s.value}%</span></div>
-                <div className="cb-prog"><div className="cb-prog__fill" style={{ width: s.value + "%", background: destColors[i] }} /></div>
-              </div>
-            ))}
-          </div>
+          <CardHead title="Revenue trend" sub="Monthly — from recorded payments" />
+          {CD.TREND && CD.TREND.length > 0
+            ? <BarsChart data={CD.TREND.map(function(d){ return { label: d.m, active: d.active, inquiries: d.inquiries }; })} keys={["active", "inquiries"]} colors={["var(--navy-500)", "var(--teal-500)"]} />
+            : <div className="cb-empty">Trend data will appear here as patients and payments are recorded over time.</div>}
         </Card>
         <Card>
           <div className="cb-row" style={{ gap: 9, marginBottom: 16 }}>
-            <div className="cb-chip" style={{ width: 38, height: 38, borderRadius: 11 }}><Icon name="lightbulb" size={19} /></div>
-            <div><h3 style={{ fontSize: 16, fontWeight: 700 }}>Executive insights</h3><div style={{ fontSize: 12.5, color: "var(--text-muted)" }}>Generated from this quarter's data — sample</div></div>
+            <div className="cb-chip" style={{ width: 38, height: 38, borderRadius: 11 }}><Icon name="bar-chart-3" size={19} /></div>
+            <div><h3 style={{ fontSize: 16, fontWeight: 700 }}>Summary</h3><div style={{ fontSize: 12.5, color: "var(--text-muted)" }}>Computed from your real data</div></div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {[
-              ["trending-up", "Türkiye remains the leading destination at 31% of active cases, driven by cardiac and fertility pathways."],
-              ["clock", "Report turnaround improved to 2.1 days — 0.4 days faster than last quarter."],
-              ["hand-heart", "94% treatment success and 4.8/5 satisfaction reflect strong end-to-end coordination."],
-              ["alert-triangle", "Outstanding balances concentrated in 3 active cases — recommend earlier payment milestones."],
-            ].map((it, i) => (
-              <div key={i} className="cb-row" style={{ gap: 12, padding: 13, borderRadius: "var(--radius-md)", background: "var(--sky-100)", alignItems: "flex-start" }}>
-                <Icon name={it[0]} size={18} style={{ color: "var(--teal-600)", marginTop: 2, flex: "none" }} />
-                <span style={{ fontSize: 13.5, color: "var(--text-body)", lineHeight: 1.5 }}>{it[1]}</span>
-              </div>
-            ))}
+            {all.length === 0 ? (
+              <div className="cb-muted" style={{ fontSize: 13 }}>Add patients to see insights here.</div>
+            ) : [
+              completed > 0 && ["check-circle-2", completed + " patient" + (completed !== 1 ? "s" : "") + " have completed their treatment journey."],
+              specList.length > 0 && ["stethoscope", "Top pathway: " + specList[0][0] + " (" + specList[0][1] + " case" + (specList[0][1] !== 1 ? "s" : "") + ")."],
+              destSegs.length > 0 && ["map-pin", "Most patients travel to " + destSegs[0].label + " (" + destSegs[0].value + " patient" + (destSegs[0].value !== 1 ? "s" : "") + ")."],
+              avgRating !== null && ["star", "Average patient rating: " + avgRating + " / 5 from " + ratingCount + " review" + (ratingCount !== 1 ? "s" : "") + "."],
+            ].filter(Boolean).map(function(it, i) {
+              return (
+                <div key={i} className="cb-row" style={{ gap: 12, padding: 13, borderRadius: "var(--radius-md)", background: "var(--sky-100)", alignItems: "flex-start" }}>
+                  <Icon name={it[0]} size={18} style={{ color: "var(--teal-600)", marginTop: 2, flex: "none" }} />
+                  <span style={{ fontSize: 13.5, color: "var(--text-body)", lineHeight: 1.5 }}>{it[1]}</span>
+                </div>
+              );
+            })}
           </div>
         </Card>
       </div>

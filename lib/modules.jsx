@@ -6,8 +6,16 @@ const MD = window.CB_DATA;
 
 /* ---------------- Medical Report Review Center ---------------- */
 function ReportsView() {
-  const [sel, setSel] = useState(MD.REPORTS[0].id);
+  const [sel, setSel] = useState(MD.REPORTS.length ? MD.REPORTS[0].id : null);
   const r = MD.REPORTS.find((x) => x.id === sel);
+  if (!MD.REPORTS.length) {
+    return (
+      <div className="cb-grid" style={{ gap: "var(--gap-grid)" }}>
+        <Card><div className="cb-empty">No medical reports in the queue yet. Reports will appear here once they are uploaded.</div></Card>
+      </div>
+    );
+  }
+  if (!r) return null;
   return (
     <div className="cb-grid" style={{ gap: "var(--gap-grid)" }}>
       <div className="cb-grid" style={{ gridTemplateColumns: "repeat(4,1fr)" }}>

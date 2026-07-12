@@ -53,7 +53,7 @@ function ActivePatientsTable({ go, limit }) {
                 <td>
                   <div className="cb-cellname">
                     <Avatar initials={p.initials} color={D.coordById(p.coordinator).color} size="sm" />
-                    <div><b>{p.name}</b><small>{p.id} · {p.age}{p.gender[0]}</small></div>
+                    <div><b>{p.name}</b><small>{p.id} · {p.age}{p.gender ? p.gender[0] : ""}</small></div>
                   </div>
                 </td>
                 <td><span style={{ fontWeight: 600, color: "var(--text-strong)" }} className="phi">{p.specialty}</span></td>
