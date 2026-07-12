@@ -27,7 +27,7 @@ function MHeader({ title, sub, name }) {
 }
 
 function MTabBar({ active }) {
-  const tabs = [["home", "Home"], ["route", "Journey"], ["message-circle", "Messages"], ["folder", "Documents"]];
+  const tabs = [["home", "Home"], ["route", "Journey"], ["message-circle", "Messages"], ["folder", "Documents"], ["star", "Rate us"]];
   return (
     <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 80, background: "#fff", borderTop: "1px solid var(--border-subtle)", display: "flex", paddingBottom: 18, zIndex: 5 }}>
       {tabs.map((t, i) => (
@@ -191,12 +191,82 @@ function MDocuments() {
   );
 }
 
+/* Screen 5 — Rate service */
+function MRating() {
+  const [stars, setStars] = React.useState(0);
+  const [hover, setHover] = React.useState(0);
+  const [comment, setComment] = React.useState("");
+  const [submitted, setSubmitted] = React.useState(false);
+
+  const labels = ["", "Poor", "Fair", "Good", "Very good", "Excellent"];
+
+  const submit = () => {
+    if (stars === 0) return;
+    window.CBStore.addRating({ patient: "Hodan Ali", patientId: "CB-2039", stars: stars, comment: comment });
+    setSubmitted(true);
+  };
+
+  if (submitted) {
+    return (
+      <div style={{ minHeight: "100%", background: "var(--bg-page)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 24px", fontFamily: "var(--font-body)", gap: 14 }}>
+        <div style={{ width: 72, height: 72, borderRadius: "50%", background: "var(--teal-500)", display: "grid", placeItems: "center" }}>
+          <i data-lucide="check" style={{ width: 36, height: 36, color: "#fff" }} />
+        </div>
+        <div style={{ fontSize: 20, fontWeight: 800, color: "var(--text-strong)", fontFamily: "var(--font-display)", textAlign: "center" }}>Thank you!</div>
+        <div style={{ fontSize: 13, color: "var(--text-muted)", textAlign: "center", lineHeight: 1.55, maxWidth: "26ch" }}>Your feedback has been received. We'll use it to keep improving your care.</div>
+        <div style={{ display: "flex", gap: 2, marginTop: 4 }}>
+          {[1,2,3,4,5].map(function(s) {
+            return <i key={s} data-lucide="star" style={{ width: 22, height: 22, color: "#F59E0B", fill: "#F59E0B" }} />;
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ minHeight: "100%", background: "var(--bg-page)", paddingBottom: 96, fontFamily: "var(--font-body)" }}>
+      <MHeader title="Rate our service" sub="Your feedback helps us improve" />
+      <div style={{ padding: "22px 18px 0" }}>
+        <div style={{ background: "#fff", borderRadius: 18, padding: 20, border: "1px solid var(--border-subtle)", boxShadow: "var(--shadow-sm)" }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-strong)", fontFamily: "var(--font-display)", textAlign: "center", marginBottom: 18 }}>How was your Carebridge experience?</div>
+          <div style={{ display: "flex", justifyContent: "center", gap: 6, marginBottom: 6 }}>
+            {[1,2,3,4,5].map(function(s) {
+              const active = s <= (hover || stars);
+              return (
+                <button key={s} data-real
+                  onClick={function() { setStars(s); }}
+                  onMouseEnter={function() { setHover(s); }}
+                  onMouseLeave={function() { setHover(0); }}
+                  style={{ background: "none", border: "none", cursor: "pointer", padding: 3 }}>
+                  <i data-lucide="star" style={{ width: 38, height: 38, color: active ? "#F59E0B" : "var(--sky-300)", fill: active ? "#F59E0B" : "none", transition: "color 0.1s, fill 0.1s" }} />
+                </button>
+              );
+            })}
+          </div>
+          <div style={{ textAlign: "center", fontSize: 13, fontWeight: 600, color: stars > 0 ? "var(--teal-600)" : "var(--text-muted)", marginBottom: 16, minHeight: 20 }}>
+            {stars > 0 ? labels[stars] + " · " + stars + " / 5" : "Tap a star to rate"}
+          </div>
+          <textarea value={comment} onChange={function(e) { setComment(e.target.value); }}
+            placeholder="Share your experience (optional)…"
+            style={{ width: "100%", minHeight: 80, borderRadius: 12, border: "1px solid var(--border-subtle)", padding: "11px 13px", fontSize: 13, fontFamily: "var(--font-body)", color: "var(--text-body)", resize: "none", outline: "none", background: "var(--bg-page)", boxSizing: "border-box" }} />
+          <button data-real onClick={submit} disabled={stars === 0}
+            style={{ width: "100%", marginTop: 12, padding: "13px 0", borderRadius: 12, background: stars > 0 ? "var(--teal-500)" : "var(--sky-200)", color: stars > 0 ? "#fff" : "var(--text-faint)", fontWeight: 700, fontSize: 14, border: "none", cursor: stars > 0 ? "pointer" : "not-allowed", fontFamily: "var(--font-display)", transition: "background 0.15s" }}>
+            Submit rating
+          </button>
+        </div>
+      </div>
+      <MTabBar active={4} />
+    </div>
+  );
+}
+
 function MobileView() {
   const screens = [
     [<MHome key="h" />, "Patient home", "Journey overview & coordinator"],
     [<MJourney key="j" />, "Treatment journey", "Nine stages of care"],
     [<MMessages key="m" />, "Secure messages", "Chat with your coordinator"],
     [<MDocuments key="d" />, "Documents", "Upload & track securely"],
+    [<MRating key="r" />, "Rate our service", "Patient can give 0–5 stars + comment"],
   ];
   return (
     <div className="cb-grid" style={{ gap: "var(--gap-grid)" }}>

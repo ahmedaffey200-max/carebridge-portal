@@ -38,6 +38,78 @@ function OptionEditor({ title, sub, listKey, icon, locked }) {
   );
 }
 
+function StarDisplay({ stars, size }) {
+  size = size || 16;
+  return (
+    <span style={{ display: "inline-flex", gap: 2 }}>
+      {[1,2,3,4,5].map(function(s) {
+        return <i key={s} data-lucide="star" style={{ width: size, height: size, color: s <= stars ? "#F59E0B" : "var(--sky-200)", fill: s <= stars ? "#F59E0B" : "none" }} />;
+      })}
+    </span>
+  );
+}
+
+function PatientReviewsCard() {
+  const [ratings, setRatings] = React.useState(function() { return window.CBStore.getRatings(); });
+  const labels = ["", "Poor", "Fair", "Good", "Very good", "Excellent"];
+  const avg = ratings.length ? (ratings.reduce(function(s, r) { return s + r.stars; }, 0) / ratings.length).toFixed(1) : null;
+
+  React.useEffect(function() {
+    return window.CBStore.subscribe(function() { setRatings(window.CBStore.getRatings().slice()); });
+  }, []);
+
+  const remove = function(id) {
+    window.CBStore.deleteRating(id);
+    window.cbToast("Review removed", { icon: "trash-2" });
+  };
+
+  return (
+    <Card pad0>
+      <div style={{ padding: "var(--space-5) var(--pad-card)" }}>
+        <div className="cb-between" style={{ flexWrap: "wrap", gap: 10 }}>
+          <CardHead title="Patient reviews" sub="Ratings and comments submitted by patients" />
+          {avg ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <StarDisplay stars={Math.round(avg)} size={18} />
+              <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 22, color: "var(--text-strong)" }}>{avg}</span>
+              <span style={{ fontSize: 13, color: "var(--text-muted)" }}>/ 5 · {ratings.length} review{ratings.length !== 1 ? "s" : ""}</span>
+            </div>
+          ) : null}
+        </div>
+      </div>
+      {ratings.length === 0 ? (
+        <div style={{ padding: "32px var(--pad-card)" }}><div className="cb-empty">No patient reviews yet.</div></div>
+      ) : (
+        <div>
+          {ratings.map(function(r) {
+            return (
+              <div key={r.id} style={{ padding: "16px var(--pad-card)", borderTop: "1px solid var(--border-subtle)" }}>
+                <div className="cb-between" style={{ flexWrap: "wrap", gap: 8 }}>
+                  <div className="cb-row" style={{ gap: 10 }}>
+                    <div className="cb-av cb-av--sm" style={{ background: "var(--navy-600)" }}>{(r.patient || "P").split(" ").map(function(w) { return w[0]; }).slice(0,2).join("").toUpperCase()}</div>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: "var(--text-strong)" }}>{r.patient}</div>
+                      <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{r.patientId}{r.patientId && r.date ? " · " : ""}{r.date}</div>
+                    </div>
+                  </div>
+                  <div className="cb-row" style={{ gap: 10 }}>
+                    <StarDisplay stars={r.stars} />
+                    <Pill tone={r.stars >= 4 ? "teal" : r.stars >= 3 ? "sky" : "warn"}>{labels[r.stars] || r.stars + "★"}</Pill>
+                    <button className="cb-icon-btn" data-real title="Remove review" onClick={function() { remove(r.id); }} style={{ color: "var(--text-faint)" }}>
+                      <Icon name="trash-2" size={15} />
+                    </button>
+                  </div>
+                </div>
+                {r.comment ? <div style={{ marginTop: 10, fontSize: 13.5, color: "var(--text-body)", lineHeight: 1.55, background: "var(--sky-50)", borderRadius: 10, padding: "10px 14px", borderLeft: "3px solid var(--teal-400)" }}>{r.comment}</div> : null}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </Card>
+  );
+}
+
 function SettingsView() {
   const role = useRole();
   const audit = useAudit();
@@ -76,6 +148,9 @@ function SettingsView() {
         <OptionEditor title="Priority levels" sub="Used across cases, referrals & tasks" listKey="priorities" />
       </div>
       <OptionEditor title="Specialties" sub="Available for patient pathways & hospital tagging" listKey="specialties" />
+
+      {/* Patient reviews — admin only */}
+      {isAdmin ? <PatientReviewsCard /> : null}
 
       {/* Audit log */}
       <Card pad0>
