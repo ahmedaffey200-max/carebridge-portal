@@ -50,24 +50,53 @@ function StarDisplay({ stars, size }) {
 }
 
 function PatientReviewsCard() {
-  const [ratings, setRatings] = React.useState(function() { return window.CBStore.getRatings(); });
-  const labels = ["", "Poor", "Fair", "Good", "Very good", "Excellent"];
-  const avg = ratings.length ? (ratings.reduce(function(s, r) { return s + r.stars; }, 0) / ratings.length).toFixed(1) : null;
+  var [ratings, setRatings] = React.useState([]);
+  var [loading, setLoading] = React.useState(true);
+  var labels = ["", "Poor", "Fair", "Good", "Very good", "Excellent"];
+
+  function loadRatings() {
+    var sb = window.CB_SB;
+    if (!sb) { setLoading(false); return; }
+    sb.from("patient_ratings").select("*").order("created_at", { ascending: false }).then(function(res) {
+      setRatings(res.data || []);
+      setLoading(false);
+    });
+  }
 
   React.useEffect(function() {
-    return window.CBStore.subscribe(function() { setRatings(window.CBStore.getRatings().slice()); });
+    loadRatings();
+    // Real-time subscription for new ratings
+    var sb = window.CB_SB;
+    if (!sb) return;
+    var channel = sb.channel("patient-ratings-admin")
+      .on("postgres_changes", { event: "*", schema: "public", table: "patient_ratings" }, function() {
+        loadRatings();
+      })
+      .subscribe();
+    return function() { sb.removeChannel(channel); };
   }, []);
 
-  const remove = function(id) {
-    window.CBStore.deleteRating(id);
-    window.cbToast("Review removed", { icon: "trash-2" });
+  var avg = ratings.length ? (ratings.reduce(function(s, r) { return s + (r.stars || 0); }, 0) / ratings.length).toFixed(1) : null;
+
+  var remove = function(id) {
+    var sb = window.CB_SB;
+    if (!sb) return;
+    sb.from("patient_ratings").delete().eq("id", id).then(function() {
+      setRatings(function(prev) { return prev.filter(function(r) { return r.id !== id; }); });
+      window.cbToast("Review removed", { icon: "trash-2" });
+    });
+  };
+
+  var fmtDate = function(ts) {
+    if (!ts) return "";
+    try { return new Date(ts).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }); } catch(e) { return ""; }
   };
 
   return (
     <Card pad0>
       <div style={{ padding: "var(--space-5) var(--pad-card)" }}>
         <div className="cb-between" style={{ flexWrap: "wrap", gap: 10 }}>
-          <CardHead title="Patient reviews" sub="Ratings and comments submitted by patients" />
+          <CardHead title="Patient reviews" sub="Ratings submitted by patients via the patient portal" />
           {avg ? (
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <StarDisplay stars={Math.round(avg)} size={18} />
@@ -77,19 +106,23 @@ function PatientReviewsCard() {
           ) : null}
         </div>
       </div>
-      {ratings.length === 0 ? (
-        <div style={{ padding: "32px var(--pad-card)" }}><div className="cb-empty">No patient reviews yet.</div></div>
+      {loading ? (
+        <div style={{ padding: "24px var(--pad-card)", color: "var(--text-muted)", fontSize: 13 }}>Loading reviews…</div>
+      ) : ratings.length === 0 ? (
+        <div style={{ padding: "32px var(--pad-card)" }}><div className="cb-empty">No patient reviews yet. Reviews appear here once patients submit them from their portal.</div></div>
       ) : (
         <div>
           {ratings.map(function(r) {
+            var name = r.patient_name || "Patient";
+            var initials = name.split(" ").map(function(w) { return w[0] || ""; }).slice(0,2).join("").toUpperCase() || "P";
             return (
               <div key={r.id} style={{ padding: "16px var(--pad-card)", borderTop: "1px solid var(--border-subtle)" }}>
                 <div className="cb-between" style={{ flexWrap: "wrap", gap: 8 }}>
                   <div className="cb-row" style={{ gap: 10 }}>
-                    <div className="cb-av cb-av--sm" style={{ background: "var(--navy-600)" }}>{(r.patient || "P").split(" ").map(function(w) { return w[0]; }).slice(0,2).join("").toUpperCase()}</div>
+                    <div className="cb-av cb-av--sm" style={{ background: "var(--navy-600)" }}>{initials}</div>
                     <div>
-                      <div style={{ fontWeight: 700, fontSize: 14, color: "var(--text-strong)" }}>{r.patient}</div>
-                      <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{r.patientId}{r.patientId && r.date ? " · " : ""}{r.date}</div>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: "var(--text-strong)" }}>{name}</div>
+                      <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{r.patient_id}{r.patient_id && r.created_at ? " · " : ""}{fmtDate(r.created_at)}</div>
                     </div>
                   </div>
                   <div className="cb-row" style={{ gap: 10 }}>
