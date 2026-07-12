@@ -1,7 +1,7 @@
 {
   "rewrites": [
-    { "source": "/patient-portal", "destination": "/Patient Portal.html" },
-    { "source": "/portal",         "destination": "/Carebridge Portal.html" }
+    { "source": "/patient-portal", "destination": "/Patient%20Portal.html" },
+    { "source": "/portal",         "destination": "/Carebridge%20Portal.html" }
   ],
   "headers": [
     {
