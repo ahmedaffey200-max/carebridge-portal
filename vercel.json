@@ -1,8 +1,6 @@
 {
-  "rewrites": [
-    { "source": "/patient-portal", "destination": "/patient-portal.html" },
-    { "source": "/portal",         "destination": "/Carebridge%20Portal.html" }
-  ],
+  "cleanUrls": true,
+  "trailingSlash": false,
   "headers": [
     {
       "source": "/(.*)",
