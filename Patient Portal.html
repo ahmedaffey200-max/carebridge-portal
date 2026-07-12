@@ -984,6 +984,24 @@ function App() {
     }
   }, [screen]);
 
+  /* Real-time: auto-update coordinator when admin changes it */
+  useEffect(() => {
+    if (screen !== "dashboard" || !invitation?.id) return;
+    const channel = sb.channel("inv-coord-" + invitation.id)
+      .on("postgres_changes", {
+        event: "UPDATE",
+        schema: "public",
+        table: "patient_invitations",
+        filter: "id=eq." + invitation.id,
+      }, (payload) => {
+        if (payload.new?.coordinator_name) {
+          setInvitation(prev => ({ ...prev, coordinator_name: payload.new.coordinator_name }));
+        }
+      })
+      .subscribe();
+    return () => sb.removeChannel(channel);
+  }, [screen, invitation?.id]);
+
   /* Enrich invitation with coordinator name if missing or placeholder */
   const enrichInvitation = useCallback(async (data) => {
     const bad = !data.coordinator_name || data.coordinator_name === "—" || data.coordinator_name === "-";

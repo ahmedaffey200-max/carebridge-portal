@@ -947,6 +947,14 @@ function AddPatientModal({ onClose, go, patient }) {
     if (editing) {
       const prev = window.CBStore.getPatients().find(function(x){ return x.id === patient.id; }) || {};
       window.CBStore.updatePatient(patient.id, payload);
+      // Sync coordinator change to patient_invitations so patient portal updates in real-time
+      if (payload.coordinator && payload.coordinator !== (prev.coordinator || "") && window.CB_SB) {
+        var newCoordName = payload.coordinator !== "—" ? payload.coordinator : "Carebridge Coordinator";
+        window.CB_SB.from("patient_invitations")
+          .update({ coordinator_name: newCoordName })
+          .eq("patient_id", patient.id)
+          .then(function() {});
+      }
       if (window.cbTrackActivity) {
         if (prev.specialty !== payload.specialty && payload.specialty)
           window.cbTrackActivity(patient.id, "specialty_change", "Specialty updated: " + payload.specialty, null, prev.specialty, payload.specialty);
