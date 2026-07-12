@@ -4,9 +4,30 @@
    ============================================================ */
 const D = window.CB_DATA;
 
-function destSegments() {
+// Compute destination segments from real patients
+function destSegments(patients) {
   const colors = ["#1B3A6B", "#1CA89C", "#2C5089", "#19938A", "#7C99B8", "#74D2C8"];
-  return D.DESTINATIONS.map((d, i) => ({ label: d.country, value: d.patients, color: colors[i % colors.length] }));
+  const counts = {};
+  (patients || []).forEach(function(p) { if (p.dest) counts[p.dest] = (counts[p.dest] || 0) + 1; });
+  return D.DESTINATIONS
+    .map((d, i) => ({ label: d.country, value: counts[d.code] || 0, color: colors[i % colors.length] }))
+    .filter(s => s.value > 0);
+}
+
+// Format a money amount without hardcoded numbers
+function fmtMoney(n) {
+  if (!n) return "$0";
+  if (n >= 1000000) return "$" + (n / 1000000).toFixed(1).replace(/\.0$/, "") + "M";
+  if (n >= 1000) return "$" + Math.round(n / 1000) + "K";
+  return "$" + n;
+}
+
+// Get the current month label (e.g. "July 2026")
+function currentMonthLabel() {
+  try { return new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" }); } catch(e) { return ""; }
+}
+function currentMonthYear() {
+  try { return new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" }); } catch(e) { return ""; }
 }
 
 function ActivePatientsTable({ go, limit }) {
@@ -57,53 +78,87 @@ function ActivePatientsTable({ go, limit }) {
 }
 
 function NotificationsCard() {
-  const items = [
-    { icon: "file-check-2", tone: "teal", text: "Recommendation ready for Abdullahi Mohamed", time: "12m ago" },
-    { icon: "plane", tone: "navy", text: "Flight TK604 confirmed — Sahra Ibrahim", time: "1h ago" },
-    { icon: "badge-alert", tone: "warn", text: "Visa pending action — Hodan Ali", time: "3h ago" },
-    { icon: "message-circle", tone: "sky", text: "2 new patient messages on WhatsApp", time: "5h ago" },
-  ];
+  const [logs, setLogs] = React.useState(() => (window.CBStore ? window.CBStore.getAudit().slice(0, 6) : []));
+  React.useEffect(function() {
+    if (!window.CBStore) return;
+    return window.CBStore.subscribe(function() { setLogs(window.CBStore.getAudit().slice(0, 6)); });
+  }, []);
+  const iconFor = (action) => {
+    if (!action) return "bell";
+    const a = action.toLowerCase();
+    if (a.includes("patient")) return "user";
+    if (a.includes("stage") || a.includes("workflow")) return "route";
+    if (a.includes("document")) return "file-text";
+    if (a.includes("payment") || a.includes("invoice") || a.includes("charge")) return "wallet";
+    if (a.includes("message")) return "message-circle";
+    if (a.includes("visa")) return "stamp";
+    if (a.includes("flight") || a.includes("travel")) return "plane";
+    if (a.includes("hospital")) return "hospital";
+    return "bell";
+  };
   return (
     <Card>
-      <CardHead title="Real-time notifications" />
-      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-        {items.map((it, i) => (
-          <div key={i} className="cb-row" style={{ padding: "11px 0", borderBottom: i < items.length - 1 ? "1px solid var(--border-subtle)" : "none", alignItems: "flex-start" }}>
-            <div className={"cb-chip cb-chip--" + (it.tone === "teal" ? "" : it.tone)} style={{ width: 36, height: 36, borderRadius: 10 }}><Icon name={it.icon} size={18} /></div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13.5, color: "var(--text-strong)", fontWeight: 500, lineHeight: 1.4 }}>{it.text}</div>
-              <div style={{ fontSize: 12, color: "var(--text-faint)", marginTop: 2 }}>{it.time}</div>
+      <CardHead title="Recent activity" />
+      {logs.length === 0 ? (
+        <div className="cb-muted" style={{ fontSize: 13, padding: "12px 2px" }}>No activity recorded yet.</div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          {logs.map((it, i) => (
+            <div key={it.id || i} className="cb-row" style={{ padding: "10px 0", borderBottom: i < logs.length - 1 ? "1px solid var(--border-subtle)" : "none", alignItems: "flex-start" }}>
+              <div className="cb-chip" style={{ width: 34, height: 34, borderRadius: 10, flex: "none" }}><Icon name={iconFor(it.action)} size={16} /></div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, color: "var(--text-strong)", fontWeight: 500, lineHeight: 1.4 }}>{it.action}{it.detail ? " — " + it.detail : ""}</div>
+                <div style={{ fontSize: 11.5, color: "var(--text-faint)", marginTop: 2 }}>{it.time}</div>
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </Card>
   );
 }
 
 function DestinationsCard() {
+  const patients = usePatients();
+  const segs = destSegments(patients);
+  const total = segs.reduce((s, d) => s + d.value, 0);
   return (
     <Card>
       <CardHead title="Destination statistics" sub="Active patients by country" />
-      <Donut segments={destSegments()} centerTop="123" centerBottom="patients" />
+      {total === 0
+        ? <div className="cb-muted" style={{ fontSize: 13, padding: "12px 2px" }}>No patients added yet.</div>
+        : <Donut segments={segs} centerTop={String(total)} centerBottom="patients" />}
     </Card>
   );
 }
 
 function RevenueCard({ compact }) {
+  const [totalIncome, setTotalIncome] = React.useState(function() {
+    if (!window.CBStore) return 0;
+    var all = window.CBStore.getAutoIncome().concat(window.CBStore.getIncome());
+    return all.reduce(function(s, r) { return s + (r.amount || 0); }, 0);
+  });
+  React.useEffect(function() {
+    if (!window.CBStore) return;
+    return window.CBStore.subscribe(function() {
+      var all = window.CBStore.getAutoIncome().concat(window.CBStore.getIncome());
+      setTotalIncome(all.reduce(function(s, r) { return s + (r.amount || 0); }, 0));
+    });
+  }, []);
   return (
     <Card>
       <div className="cb-between" style={{ marginBottom: 18, alignItems: "flex-start" }}>
         <div>
           <h3 style={{ fontSize: 17, fontWeight: 700 }}>Revenue analytics</h3>
-          <div className="cb-sub" style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 2 }}>Coordinated treatment value · last 8 months</div>
+          <div className="cb-sub" style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 2 }}>Total coordinated value · all time</div>
         </div>
         <div style={{ textAlign: "right" }}>
-          <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 24, color: "var(--text-strong)", letterSpacing: "-0.02em" }}>$263K</div>
-          <span className="cb-delta cb-delta--up"><Icon name="trending-up" size={13} />+6.5%</span>
+          <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 24, color: "var(--text-strong)", letterSpacing: "-0.02em" }}>{fmtMoney(totalIncome)}</div>
         </div>
       </div>
-      <AreaChart data={D.TREND} height={compact ? 170 : 210} />
+      {D.TREND && D.TREND.length > 0
+        ? <AreaChart data={D.TREND} height={compact ? 170 : 210} />
+        : <div className="cb-muted" style={{ fontSize: 13, padding: "8px 2px" }}>Revenue data will appear here as payments are recorded.</div>}
     </Card>
   );
 }
@@ -135,13 +190,20 @@ function WorkflowCard({ go }) {
 }
 
 function DashboardOverview({ go }) {
+  const all = usePatients();
+  const completedIdx = D.STAGES ? D.STAGES.length - 1 : 10;
+  const active = all.filter(p => p.stage < completedIdx);
+  const newInquiries = all.filter(p => p.stage === 0);
+  const inTreatment = all.filter(p => p.stage === 7 || p.stage === 8); // Arrival + Treatment & Recovery
+  const completed = all.filter(p => p.stage === completedIdx);
+  const successRate = all.length > 0 ? Math.round((completed.length / all.length) * 100) : null;
   return (
     <div className="cb-grid" style={{ gap: "var(--gap-grid)" }}>
       <div className="cb-grid" style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
-        <StatCard icon="users" chip="navy" value="84" label="Total active patients" delta="+7.7%" />
-        <StatCard icon="user-plus" chip="" value="33" label="New inquiries this month" delta="+5" />
-        <StatCard icon="route" chip="sky" value="46" label="Cases in active treatment" delta="+6.5%" />
-        <StatCard icon="hand-heart" chip="warm" value="94%" label="Patient success rate" deltaDir="flat" delta="stable" />
+        <StatCard icon="users" chip="navy" value={String(active.length)} label="Total active patients" />
+        <StatCard icon="user-plus" chip="" value={String(newInquiries.length)} label="New inquiries" />
+        <StatCard icon="route" chip="sky" value={String(inTreatment.length)} label="Cases in active treatment" />
+        <StatCard icon="hand-heart" chip="warm" value={successRate !== null ? successRate + "%" : "—"} label="Patient success rate" deltaDir="flat" delta={successRate !== null ? "based on " + all.length + " cases" : "no cases yet"} />
       </div>
       <WorkflowCard go={go} />
       <div className="cb-grid" style={{ gridTemplateColumns: "1.5fr 1fr" }}>
@@ -156,52 +218,61 @@ function DashboardOverview({ go }) {
 
 /* ---------------- Direction 2: Operations ---------------- */
 function TaskList() {
-  const tasks = [
-    { done: false, text: "Confirm hotel booking — Hodan Ali (Delhi)", due: "Today", tone: "warn", who: "KO" },
-    { done: false, text: "Send angiogram review to patient family", due: "Today", tone: "warn", who: "FN" },
-    { done: false, text: "Arrange airport pickup — Sahra Ibrahim", due: "Tomorrow", tone: "navy", who: "KO" },
-    { done: true, text: "Issue invoice INV-3088 — Abdullahi M.", due: "Done", tone: "teal", who: "AY" },
-    { done: false, text: "Follow up on visa documents — Mohamed Farah", due: "Jun 13", tone: "navy", who: "HA" },
-  ];
+  const [logs, setLogs] = React.useState(() => (window.CBStore ? window.CBStore.getAudit().slice(0, 5) : []));
+  React.useEffect(function() {
+    if (!window.CBStore) return;
+    return window.CBStore.subscribe(function() { setLogs(window.CBStore.getAudit().slice(0, 5)); });
+  }, []);
   return (
     <Card>
-      <CardHead title="Today's coordination tasks" sub="Assigned across the team" action="Open board" onAction={() => {}} />
-      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-        {tasks.map((t, i) => (
-          <div key={i} className="cb-row" style={{ padding: "11px 0", borderBottom: i < tasks.length - 1 ? "1px solid var(--border-subtle)" : "none" }}>
-            <div style={{ width: 22, height: 22, borderRadius: 7, border: "2px solid " + (t.done ? "var(--teal-500)" : "var(--sky-300)"), background: t.done ? "var(--teal-500)" : "transparent", display: "grid", placeItems: "center", flex: "none" }}>
-              {t.done ? <Icon name="check" size={13} style={{ color: "#fff" }} /> : null}
-            </div>
-            <div style={{ flex: 1, fontSize: 14, color: t.done ? "var(--text-faint)" : "var(--text-strong)", textDecoration: t.done ? "line-through" : "none", fontWeight: 500 }}>{t.text}</div>
-            <Pill tone={t.tone}>{t.due}</Pill>
-            <Avatar initials={t.who} color="var(--navy-500)" size="sm" />
+      <CardHead title="Recent activity" sub="Latest actions across the team" />
+      {logs.length === 0
+        ? <div className="cb-muted" style={{ fontSize: 13, padding: "12px 2px" }}>No activity yet — actions will appear here as you use the portal.</div>
+        : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            {logs.map((t, i) => (
+              <div key={t.id || i} className="cb-row" style={{ padding: "10px 0", borderBottom: i < logs.length - 1 ? "1px solid var(--border-subtle)" : "none" }}>
+                <div className="cb-chip" style={{ width: 30, height: 30, borderRadius: 8, flex: "none" }}><Icon name="activity" size={14} /></div>
+                <div style={{ flex: 1, fontSize: 13.5, color: "var(--text-strong)", fontWeight: 500 }}>{t.action}{t.detail ? " — " + t.detail : ""}</div>
+                <span style={{ fontSize: 12, color: "var(--text-faint)", whiteSpace: "nowrap" }}>{t.time}</span>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        )}
     </Card>
   );
 }
 
 function TravelPipelineCard({ go }) {
+  const all = usePatients();
+  // Show patients in visa processing, departure, or arrival stages
+  const pipeline = all.filter(p => p.stage >= 4 && p.stage <= 8).slice(0, 8);
   return (
     <Card pad0>
       <div style={{ padding: "var(--pad-card) var(--pad-card) 0" }}>
         <CardHead title="Travel & visa pipeline" sub="Patients moving toward departure" action="Coordination" onAction={() => go("travel")} />
       </div>
-      <table className="cb-table">
-        <thead><tr><th>Patient</th><th>Destination</th><th>Visa</th><th>Flight</th><th>Phase</th></tr></thead>
-        <tbody>
-          {D.TRAVEL.map((t) => (
-            <tr key={t.id} onClick={() => go("patient", t.id)}>
-              <td><b style={{ fontWeight: 600, color: "var(--text-strong)" }}>{t.name}</b></td>
-              <td className="cb-muted">{t.dest}</td>
-              <td><Pill tone={statusTone(t.visa)} dot>{t.visa}</Pill></td>
-              <td style={{ fontSize: 13 }} className="cb-muted">{t.flight}</td>
-              <td><Pill tone={statusTone(t.phase)}>{t.phase}</Pill></td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {pipeline.length === 0
+        ? <div className="cb-muted" style={{ fontSize: 13, padding: "16px var(--pad-card)" }}>No patients are currently in the travel pipeline.</div>
+        : (
+          <table className="cb-table">
+            <thead><tr><th>Patient</th><th>Destination</th><th>Visa</th><th>Flight</th><th>Stage</th></tr></thead>
+            <tbody>
+              {pipeline.map((p) => {
+                const dest = D.destShort(p);
+                return (
+                  <tr key={p.id} onClick={() => go("patient", p.id)}>
+                    <td><b style={{ fontWeight: 600, color: "var(--text-strong)" }}>{p.name}</b></td>
+                    <td className="cb-muted">{dest}</td>
+                    <td><Pill tone={statusTone(p.visa)} dot>{p.visa || "—"}</Pill></td>
+                    <td style={{ fontSize: 13 }} className="cb-muted">{p.flight || "—"}</td>
+                    <td><Pill tone="navy">{D.STAGES[p.stage]}</Pill></td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
     </Card>
   );
 }
@@ -229,13 +300,17 @@ function AttentionCard({ go }) {
 }
 
 function DashboardOperations({ go }) {
+  const all = usePatients();
+  const departures = all.filter(p => p.stage === 6); // Departure stage
+  const visaPending = all.filter(p => p.stage === 4); // Visa Processing stage
+  const attention = all.filter(p => p.priority === "Attention");
   return (
     <div className="cb-grid" style={{ gap: "var(--gap-grid)" }}>
       <div className="cb-grid" style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
-        <StatCard icon="list-checks" chip="" value="12" label="Open tasks today" deltaDir="down" delta="-3" />
-        <StatCard icon="plane-takeoff" chip="navy" value="5" label="Departures this week" delta="+2" />
-        <StatCard icon="badge-alert" chip="warm" value="3" label="Visa actions pending" deltaDir="flat" delta="watch" />
-        <StatCard icon="message-circle" chip="sky" value="7" label="Unread patient messages" delta="+4" />
+        <StatCard icon="plane-takeoff" chip="navy" value={String(departures.length)} label="Departures in progress" />
+        <StatCard icon="badge-alert" chip="warm" value={String(visaPending.length)} label="Visa processing" />
+        <StatCard icon="alert-triangle" chip="warn" value={String(attention.length)} label="Cases needing attention" />
+        <StatCard icon="users" chip="sky" value={String(all.length)} label="Total patients" />
       </div>
       <div className="cb-grid" style={{ gridTemplateColumns: "1.4fr 1fr" }}>
         <TaskList />
@@ -248,17 +323,44 @@ function DashboardOperations({ go }) {
 
 /* ---------------- Direction 3: Executive ---------------- */
 function ExecHero() {
+  const all = usePatients();
+  const completedIdx = D.STAGES ? D.STAGES.length - 1 : 10;
+  const completed = all.filter(p => p.stage === completedIdx).length;
+  const successRate = all.length > 0 ? Math.round((completed / all.length) * 100) : null;
+  const [totalIncome, setTotalIncome] = React.useState(function() {
+    if (!window.CBStore) return 0;
+    var ai = window.CBStore.getAutoIncome().concat(window.CBStore.getIncome());
+    return ai.reduce(function(s, r) { return s + (r.amount || 0); }, 0);
+  });
+  React.useEffect(function() {
+    if (!window.CBStore) return;
+    return window.CBStore.subscribe(function() {
+      var ai = window.CBStore.getAutoIncome().concat(window.CBStore.getIncome());
+      setTotalIncome(ai.reduce(function(s, r) { return s + (r.amount || 0); }, 0));
+    });
+  }, []);
+  const hospitals = window.CBStore ? window.CBStore.getHospitals().filter(h => h.active).length : 0;
+  const destCount = destSegments(all).length;
   return (
     <div style={{ borderRadius: "var(--radius-xl)", padding: "32px 36px", background: "var(--grad-bridge)", color: "#fff", position: "relative", overflow: "hidden", boxShadow: "var(--shadow-lg)" }}>
       <div className="cb-globe-texture" style={{ position: "absolute", inset: 0, opacity: 0.6 }} />
       <div style={{ position: "relative", display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 28 }}>
         <div style={{ maxWidth: 360 }}>
-          <div className="cb-eyebrow" style={{ color: "var(--teal-300)" }}>Executive summary · June 2026</div>
-          <h2 style={{ color: "#fff", fontSize: 30, marginTop: 12, lineHeight: 1.12 }}>Connecting Somali patients to world-class care</h2>
-          <p style={{ color: "rgba(255,255,255,0.82)", marginTop: 12, fontSize: 15 }}>123 families supported across 6 destination countries and 8 accredited partner hospitals this quarter.</p>
+          <div className="cb-eyebrow" style={{ color: "var(--teal-300)" }}>Executive summary · {currentMonthYear()}</div>
+          <h2 style={{ color: "#fff", fontSize: 30, marginTop: 12, lineHeight: 1.12 }}>Connecting patients to world-class care</h2>
+          <p style={{ color: "rgba(255,255,255,0.82)", marginTop: 12, fontSize: 15 }}>
+            {all.length > 0
+              ? all.length + " patient" + (all.length !== 1 ? "s" : "") + " supported" + (destCount > 0 ? " across " + destCount + " destination " + (destCount !== 1 ? "countries" : "country") : "") + (hospitals > 0 ? " and " + hospitals + " partner hospital" + (hospitals !== 1 ? "s" : "") : "") + "."
+              : "Add your first patient to get started."}
+          </p>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 22, alignContent: "center" }}>
-          {[["123", "Patients served (YTD)"], ["94%", "Treatment success"], ["$263K", "Coordinated value (Jun)"], ["8", "Partner hospitals"]].map((k, i) => (
+          {[
+            [String(all.length), "Total patients"],
+            [successRate !== null ? successRate + "%" : "—", "Treatment success"],
+            [fmtMoney(totalIncome), "Coordinated value"],
+            [String(hospitals), "Partner hospitals"],
+          ].map((k, i) => (
             <div key={i}>
               <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 32, letterSpacing: "-0.02em" }}>{k[0]}</div>
               <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.72)", fontWeight: 600, marginTop: 2 }}>{k[1]}</div>
@@ -271,25 +373,30 @@ function ExecHero() {
 }
 
 function PartnerHospitalsCard({ go }) {
+  const hospitals = window.CBStore ? window.CBStore.getHospitals().filter(h => h.active).slice(0, 5) : [];
   return (
     <Card pad0>
       <div style={{ padding: "var(--pad-card) var(--pad-card) 0" }}>
         <CardHead title="Partner hospital network" sub="Performance across accredited partners" action="Manage network" onAction={() => go("hospitals")} />
       </div>
-      <table className="cb-table">
-        <thead><tr><th>Hospital</th><th>Location</th><th>Accreditation</th><th>Cases</th><th>Rating</th></tr></thead>
-        <tbody>
-          {D.HOSPITALS.slice(0, 5).map((h) => (
-            <tr key={h.id}>
-              <td><b style={{ fontWeight: 600, color: "var(--text-strong)" }}>{h.name}</b></td>
-              <td className="cb-muted">{h.city}, {h.country}</td>
-              <td><Pill tone="teal" icon="badge-check">{h.accreditation}</Pill></td>
-              <td style={{ fontWeight: 700, color: "var(--text-strong)" }}>{h.cases}</td>
-              <td><span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontWeight: 700, color: "var(--text-strong)" }}><Icon name="star" size={14} style={{ color: "var(--warning)" }} />{h.rating}</span></td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {hospitals.length === 0
+        ? <div className="cb-muted" style={{ fontSize: 13, padding: "16px var(--pad-card)" }}>No hospitals added yet. Add partner hospitals in the Hospitals section.</div>
+        : (
+          <table className="cb-table">
+            <thead><tr><th>Hospital</th><th>Location</th><th>Accreditation</th><th>Cases</th><th>Rating</th></tr></thead>
+            <tbody>
+              {hospitals.map((h) => (
+                <tr key={h.id}>
+                  <td><b style={{ fontWeight: 600, color: "var(--text-strong)" }}>{h.name}</b></td>
+                  <td className="cb-muted">{h.city}, {h.country}</td>
+                  <td><Pill tone="teal" icon="badge-check">{h.accreditation || "—"}</Pill></td>
+                  <td style={{ fontWeight: 700, color: "var(--text-strong)" }}>{h.cases || 0}</td>
+                  <td><span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontWeight: 700, color: "var(--text-strong)" }}><Icon name="star" size={14} style={{ color: "var(--warning)" }} />{h.rating || "—"}</span></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
     </Card>
   );
 }
