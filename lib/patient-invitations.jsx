@@ -21,7 +21,7 @@ function getSB() {
 const SUPABASE_URL  = "https://htvjjwfenvittdritjni.supabase.co";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh0dmpqd2ZlbnZpdHRkcml0am5pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2NTQ3OTAsImV4cCI6MjA5OTIzMDc5MH0.AMKUctPj49ahqXAFZbzJ341ZFH5XTckBUQaDmF5ZLj8";
 const EDGE_URL      = SUPABASE_URL + "/functions/v1/hyper-service";
-const PORTAL_BASE   = "https://ahmedaffey200-max.github.io/carebridge-portal/Patient%20Portal.html";
+const PORTAL_BASE   = "https://carebridge-portal-ahmed-afey-s-projects.vercel.app/patient-portal";
 
 function fmtDate(ts) {
   if (!ts) return "—";

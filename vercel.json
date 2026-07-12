@@ -1,14 +1,15 @@
 {
-  "buildCommand": "npm install",
-  "outputDirectory": ".",
-  "env": [
-    "DATABASE_URL",
-    "JWT_SECRET"
+  "rewrites": [
+    { "source": "/patient-portal", "destination": "/Patient Portal.html" },
+    { "source": "/portal",         "destination": "/Carebridge Portal.html" }
   ],
-  "functions": {
-    "server.js": {
-      "memory": 1024,
-      "maxDuration": 60
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options",        "value": "SAMEORIGIN" }
+      ]
     }
-  }
+  ]
 }
