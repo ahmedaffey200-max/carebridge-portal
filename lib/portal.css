@@ -1371,6 +1371,8 @@
 .cb-ai-setup__hint { font-size: 12px; color: var(--text-faint); }
 .cb-ai-setup__hint strong { color: var(--text-body); }
 
+@keyframes spin { to { transform: rotate(360deg); } }
+
 /* ============================================================
    MOBILE & TABLET OPTIMIZATIONS
    ============================================================ */

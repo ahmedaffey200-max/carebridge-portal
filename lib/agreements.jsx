@@ -125,19 +125,21 @@
     const [viewAgr, setViewAgr] = useState(null);
     const [filter, setFilter] = useState("all");
     const [copied, setCopied] = useState(null);
+    const [syncing, setSyncing] = useState(false);
 
-    useEffect(() => {
-      const load = () => setAgreements(window.CBStore.getAgreements ? window.CBStore.getAgreements() : []);
-      load();
-
-      // Sync agreements from Supabase — Supabase is authoritative for status
-      fetch(SB_URL + "/rest/v1/portal_state?id=eq.main&select=state", {
+    const syncFromSupabase = (silent) => {
+      if (!silent) setSyncing(true);
+      return fetch(SB_URL + "/rest/v1/portal_state?id=eq.main&select=state", {
         headers: { apikey: SB_ANON, Authorization: "Bearer " + SB_ANON }
       })
       .then(r => r.json())
       .then(rows => {
         if (!rows || !rows[0] || !rows[0].state) return;
         const sbAgrs = rows[0].state.agreements || [];
+        // Cache signed IDs globally so CB_SyncToSupabase won't overwrite them
+        if (window._CB_SignedIds) {
+          sbAgrs.forEach(a => { if (a.status === "signed") window._CB_SignedIds[a.id] = a.dateSigned || true; });
+        }
         if (!sbAgrs.length) return;
         const local = window.CBStore.getAgreements ? window.CBStore.getAgreements() : [];
         const localMap = {};
@@ -145,7 +147,6 @@
         let changed = false;
         sbAgrs.forEach(sbA => {
           if (localMap[sbA.id]) {
-            // Supabase wins on status — update if different
             if (localMap[sbA.id].status !== sbA.status && window.CBStore.updateAgreement) {
               window.CBStore.updateAgreement(sbA.id, { status: sbA.status, dateSigned: sbA.dateSigned || localMap[sbA.id].dateSigned });
               changed = true;
@@ -155,10 +156,16 @@
             changed = true;
           }
         });
-        if (changed) load();
+        if (changed) setAgreements(window.CBStore.getAgreements ? window.CBStore.getAgreements() : []);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => { if (!silent) setSyncing(false); });
+    };
 
+    useEffect(() => {
+      const load = () => setAgreements(window.CBStore.getAgreements ? window.CBStore.getAgreements() : []);
+      load();
+      syncFromSupabase(true);
       return window.CBStore.subscribe(load);
     }, []);
 
@@ -179,6 +186,14 @@
             <h2 style={{ fontSize: 20, fontWeight: 800, color: "var(--navy-700, #1B3A6B)", margin: 0 }}>Patient Agreements</h2>
             <p style={{ fontSize: 13, color: "var(--text-faint)", margin: "4px 0 0" }}>Send, track and manage signed patient service agreements</p>
           </div>
+          <button className="cb-icon-pill" title="Refresh status from cloud" onClick={() => syncFromSupabase(false)} disabled={syncing}
+            style={{ width: 36, height: 36, opacity: syncing ? 0.5 : 1, transition: "opacity 0.2s" }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"
+              style={{ animation: syncing ? "spin 0.8s linear infinite" : "none" }}>
+              <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+            </svg>
+          </button>
           <button className="cb-btn cb-btn--primary" onClick={() => setShowNew(true)} style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <Icon.Plus /> New Agreement
           </button>
