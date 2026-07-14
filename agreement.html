@@ -297,7 +297,7 @@ var _signedPayload = null;
 
 // 14 pages: page 1 = cover, page 2 = TOC, pages 3-14 = body sections
 var PAGES = [
-  { label: "Cover Page",                          scroll: function(fr) { fr.contentWindow.scrollTo({top:0,behavior:"smooth"}); } },
+  { label: "Cover Page",                          scroll: function(fr) { try { fr.contentDocument.documentElement.style.overflow=''; fr.contentDocument.body.style.overflow=''; fr.contentWindow.scrollTo(0,0); setTimeout(function(){lockIframeScroll(fr);},50); } catch(e){} } },
   { label: "Table of Contents",                   scroll: function(fr) { scrollToEl(fr, ".toc"); } },
   { label: "Sections 1–4: Definitions & Scope",   scroll: function(fr) { scrollToEl(fr, ".body"); } },
   { label: "Sections 5–8: Services",              scroll: function(fr) { scrollToSec(fr, 5); } },
@@ -313,30 +313,61 @@ var PAGES = [
   { label: "Section 42: Signatures & Witnesses",  scroll: function(fr) { scrollToSec(fr, 42); } },
 ];
 
+function lockIframeScroll(fr) {
+  try {
+    var ifrDoc = fr.contentDocument || fr.contentWindow.document;
+    ifrDoc.documentElement.style.overflow = 'hidden';
+    ifrDoc.body.style.overflow = 'hidden';
+  } catch(e) {}
+}
+
 function scrollToEl(fr, selector) {
   try {
-    var el = fr.contentWindow.document.querySelector(selector);
-    if (el) el.scrollIntoView({ behavior: "smooth" });
+    var ifrDoc = fr.contentDocument || fr.contentWindow.document;
+    // Temporarily allow scroll so scrollTo works
+    ifrDoc.documentElement.style.overflow = '';
+    ifrDoc.body.style.overflow = '';
+    var el = ifrDoc.querySelector(selector);
+    if (el) {
+      var top = 0, node = el;
+      while (node) { top += node.offsetTop || 0; node = node.offsetParent; }
+      fr.contentWindow.scrollTo(0, top);
+    }
+    setTimeout(function() { lockIframeScroll(fr); }, 50);
   } catch(e) {}
 }
 
 function scrollToSec(fr, num) {
   try {
-    var spans = fr.contentWindow.document.querySelectorAll(".sec .n, h2 .n, .toc-item .n");
+    var ifrDoc = fr.contentDocument || fr.contentWindow.document;
+    ifrDoc.documentElement.style.overflow = '';
+    ifrDoc.body.style.overflow = '';
+    var spans = ifrDoc.querySelectorAll(".n");
     for (var i = 0; i < spans.length; i++) {
-      var t = spans[i].textContent.trim();
-      if (t === String(num) || t === num + ".0" || t === num + ".") {
+      var t = spans[i].textContent.trim().replace(".0","").replace(".","");
+      if (parseInt(t) === num) {
         var clause = spans[i].closest(".clause") || spans[i].parentElement;
-        if (clause) { clause.scrollIntoView({ behavior: "smooth" }); return; }
+        if (clause) {
+          var top = 0, node = clause;
+          while (node) { top += node.offsetTop || 0; node = node.offsetParent; }
+          fr.contentWindow.scrollTo(0, Math.max(0, top - 16));
+          setTimeout(function() { lockIframeScroll(fr); }, 50);
+          return;
+        }
       }
     }
-    // Fallback: search by text content
-    var allH2 = fr.contentWindow.document.querySelectorAll("h2");
+    // Fallback
+    var allH2 = ifrDoc.querySelectorAll("h2");
     for (var j = 0; j < allH2.length; j++) {
       if (allH2[j].textContent.trim().startsWith(num + ".")) {
-        allH2[j].scrollIntoView({ behavior: "smooth" }); return;
+        var top2 = 0, node2 = allH2[j];
+        while (node2) { top2 += node2.offsetTop || 0; node2 = node2.offsetParent; }
+        fr.contentWindow.scrollTo(0, Math.max(0, top2 - 16));
+        setTimeout(function() { lockIframeScroll(fr); }, 50);
+        return;
       }
     }
+    setTimeout(function() { lockIframeScroll(fr); }, 50);
   } catch(e) {}
 }
 
@@ -440,7 +471,15 @@ function updatePageUI() {
 
 document.getElementById("doc-frame").addEventListener("load", function() {
   frameReady = true;
-  PAGES[docPageIdx].scroll(this);
+  var fr = this;
+  // Block user scroll: wheel, touch, keyboard
+  try {
+    var ifrDoc = fr.contentDocument || fr.contentWindow.document;
+    ifrDoc.addEventListener("wheel",    function(e){ e.preventDefault(); }, { passive: false });
+    ifrDoc.addEventListener("touchmove",function(e){ e.preventDefault(); }, { passive: false });
+    ifrDoc.addEventListener("keydown",  function(e){ if([32,33,34,35,36,37,38,39,40].indexOf(e.keyCode)>=0) e.preventDefault(); });
+  } catch(e) {}
+  PAGES[docPageIdx].scroll(fr);
 });
 
 function nextDocPage() {
@@ -528,7 +567,7 @@ function submitAgreement() {
   saveToSupabase(payload, function () {
     sendEmailNotification(payload, function () {
       _signedPayload = payload;
-      try { var doc = generateSignedPDF(payload); if (doc) doc.save("Carebridge-Agreement-" + payload.id + ".pdf"); } catch(e) {}
+      try { var pdfDoc = generateSignedPDF(payload); if (pdfDoc) pdfDoc.save("Carebridge-Agreement-" + payload.id + ".pdf"); } catch(e) { console.error("PDF error:", e); }
       showPhase("ph-done");
     });
   });
@@ -575,99 +614,198 @@ function showError(msg) {
   el.textContent = msg; el.style.display = msg ? "block" : "none";
 }
 
-// ---- PDF Generation ----
+// ---- PDF Generation (16 pages) ----
+// Extract section headings/text from iframe DOM for a given page index
+function extractPageContent(pageIdx) {
+  var fr = document.getElementById("doc-frame");
+  var result = { title: PAGES[pageIdx].label, headings: [], snippet: "" };
+  try {
+    var ifrDoc = fr.contentDocument || fr.contentWindow.document;
+    if (pageIdx === 0) {
+      var cover = ifrDoc.querySelector(".cover, section:first-of-type");
+      if (cover) result.snippet = cover.innerText.replace(/\s+/g," ").trim().substring(0, 500);
+    } else if (pageIdx === 1) {
+      var toc = ifrDoc.querySelector(".toc");
+      if (toc) result.snippet = toc.innerText.replace(/\s+/g," ").trim().substring(0, 800);
+    } else {
+      var ranges = [[1,4],[5,8],[9,12],[13,16],[17,20],[21,24],[25,28],[29,32],[33,36],[37,40],[41,41],[42,42]];
+      var range = ranges[pageIdx - 2];
+      if (range) {
+        var allSpans = ifrDoc.querySelectorAll(".n");
+        for (var s = 0; s < allSpans.length; s++) {
+          var raw = allSpans[s].textContent.trim().replace(/\.0$/,"").replace(/\.$/,"");
+          var num = parseInt(raw);
+          if (!isNaN(num) && num >= range[0] && num <= range[1]) {
+            var h = allSpans[s].parentElement;
+            if (h) result.headings.push(h.textContent.trim().substring(0, 90));
+            if (num === range[0] && !result.snippet) {
+              var clause = allSpans[s].closest ? allSpans[s].closest(".clause") : null;
+              if (clause) result.snippet = clause.innerText.replace(/\s+/g," ").trim().substring(0, 600);
+            }
+          }
+        }
+      }
+    }
+  } catch(e) {}
+  return result;
+}
+
 function generateSignedPDF(payload) {
   var jsPDF = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
   if (!jsPDF) return null;
-  var W = 210, H = 297;
-  var navy=[27,58,107], teal=[28,168,156], white=[255,255,255], light=[240,244,248], grey=[90,106,126];
+  var W=210, H=297;
+  var navy=[27,58,107], teal=[28,168,156], light=[240,244,248], grey=[90,106,126];
+  var TOTAL=16;
   var doc = new jsPDF({ orientation:"portrait", unit:"mm", format:"a4" });
 
-  function header(pg) {
-    doc.setFillColor(navy[0],navy[1],navy[2]); doc.rect(0,0,W,22,"F");
-    doc.setFillColor(teal[0],teal[1],teal[2]); doc.rect(0,20,W,2,"F");
-    doc.setFont("helvetica","bold"); doc.setFontSize(13); doc.setTextColor(255,255,255);
-    doc.text("CAREBRIDGE INTERNATIONAL INC.",14,14);
-    doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.setTextColor(200,215,235);
-    doc.text("Patient Medical Travel Service Agreement — Executed Copy",W-14,14,{align:"right"});
-    doc.setFontSize(8); doc.setTextColor(grey[0],grey[1],grey[2]);
-    doc.text("Page "+pg,W-14,H-8,{align:"right"});
-    doc.setDrawColor(220,228,238); doc.line(14,H-12,W-14,H-12);
+  function hdr(pg) {
+    doc.setFillColor(navy[0],navy[1],navy[2]); doc.rect(0,0,W,20,"F");
+    doc.setFillColor(teal[0],teal[1],teal[2]); doc.rect(0,18,W,2,"F");
+    doc.setFont("helvetica","bold"); doc.setFontSize(11); doc.setTextColor(255,255,255);
+    doc.text("CAREBRIDGE INTERNATIONAL INC.",14,12);
+    doc.setFont("helvetica","normal"); doc.setFontSize(7); doc.setTextColor(200,215,235);
+    doc.text("Patient Medical Travel Service Agreement — Executed Copy",W-14,12,{align:"right"});
+    doc.setFontSize(7); doc.setTextColor(grey[0],grey[1],grey[2]);
+    doc.text("Page "+pg+" of "+TOTAL,W-14,H-6,{align:"right"});
+    doc.setDrawColor(220,228,238); doc.line(14,H-10,W-14,H-10);
   }
 
-  function secTitle(y,title) {
+  function secBar(y,title) {
     doc.setFillColor(teal[0],teal[1],teal[2]); doc.rect(14,y,3,7,"F");
     doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.setTextColor(navy[0],navy[1],navy[2]);
     doc.text(title,20,y+5.5); return y+13;
   }
 
-  // PAGE 1
-  header(1);
-  doc.setFillColor(light[0],light[1],light[2]); doc.roundedRect(14,28,W-28,18,3,3,"F");
-  doc.setFont("helvetica","bold"); doc.setFontSize(14); doc.setTextColor(teal[0],teal[1],teal[2]);
-  doc.text("EXECUTED AGREEMENT CERTIFICATE",W/2,39,{align:"center"});
+  // ── PAGES 1-14: Agreement pages ──
+  for (var pgIdx = 0; pgIdx < 14; pgIdx++) {
+    if (pgIdx > 0) doc.addPage();
+    hdr(pgIdx + 1);
+    var content = extractPageContent(pgIdx);
+    var inits = (payload.initials||{})["page"+(pgIdx+1)] || "—";
+    var y = 28;
 
-  var y=56; y=secTitle(y,"Agreement Details");
+    // Page badge + title
+    doc.setFillColor(teal[0],teal[1],teal[2]); doc.roundedRect(14,y,28,9,2,2,"F");
+    doc.setFont("helvetica","bold"); doc.setFontSize(8); doc.setTextColor(255,255,255);
+    doc.text("PAGE "+(pgIdx+1)+" / 14", 28, y+5.8, {align:"center"});
+    doc.setFont("helvetica","bold"); doc.setFontSize(11); doc.setTextColor(navy[0],navy[1],navy[2]);
+    var titleLines = doc.splitTextToSize(content.title, W-60);
+    doc.text(titleLines, 46, y+6);
+    y += Math.max(14, titleLines.length*6 + 6);
+
+    // Section headings
+    if (content.headings && content.headings.length > 0) {
+      var boxH = 8 + content.headings.length * 6;
+      doc.setFillColor(light[0],light[1],light[2]); doc.roundedRect(14,y,W-28,boxH,2,2,"F");
+      doc.setFont("helvetica","bold"); doc.setFontSize(7); doc.setTextColor(grey[0],grey[1],grey[2]);
+      doc.text("SECTIONS COVERED ON THIS PAGE:", 18, y+5.5);
+      y += 9;
+      content.headings.forEach(function(h) {
+        doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.setTextColor(navy[0],navy[1],navy[2]);
+        var hl = doc.splitTextToSize("• " + h, W-36);
+        doc.text(hl[0], 18, y); y += 6;
+      });
+      y += 5;
+    }
+
+    // Content snippet
+    if (content.snippet) {
+      var maxH = H - y - 70;
+      var lines = doc.splitTextToSize(content.snippet, W-28);
+      var lineH = 4.2;
+      var maxL = Math.floor(maxH / lineH);
+      if (lines.length > maxL) lines = lines.slice(0, maxL).concat(["..."]);
+      doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.setTextColor(50,65,80);
+      doc.text(lines, 14, y);
+    }
+
+    // Confirmation banner
+    doc.setFillColor(navy[0],navy[1],navy[2]); doc.roundedRect(14,H-58,W-28,18,3,3,"F");
+    doc.setFont("helvetica","italic"); doc.setFontSize(9); doc.setTextColor(210,225,240);
+    doc.text('"I, '+payload.patientName+', confirm I have read and agree to the content of this page."', W/2, H-51, {align:"center"});
+    doc.setFont("helvetica","bold"); doc.setFontSize(7); doc.setTextColor(teal[0],teal[1],teal[2]);
+    doc.text(payload.id+"  ·  "+payload.dateSigned, W/2, H-45, {align:"center"});
+
+    // Initials box
+    doc.setFillColor(255,255,255); doc.roundedRect(W-46,H-42,32,20,3,3,"F");
+    doc.setDrawColor(teal[0],teal[1],teal[2]); doc.setLineWidth(1.5); doc.roundedRect(W-46,H-42,32,20,3,3,"S");
+    doc.setFont("helvetica","bold"); doc.setFontSize(18); doc.setTextColor(navy[0],navy[1],navy[2]);
+    doc.text(inits, W-30, H-28, {align:"center"});
+    doc.setFont("helvetica","normal"); doc.setFontSize(6.5); doc.setTextColor(grey[0],grey[1],grey[2]);
+    doc.text("INITIALS", W-30, H-23.5, {align:"center"});
+  }
+
+  // ── PAGE 15: Certificate ──
+  doc.addPage(); hdr(15);
+  doc.setFillColor(light[0],light[1],light[2]); doc.roundedRect(14,26,W-28,16,3,3,"F");
+  doc.setFont("helvetica","bold"); doc.setFontSize(13); doc.setTextColor(teal[0],teal[1],teal[2]);
+  doc.text("EXECUTED AGREEMENT CERTIFICATE",W/2,36,{align:"center"});
+
+  var y2=50; y2=secBar(y2,"Agreement Details");
   var cols=[["Agreement Number",payload.id],["Version",payload.version||"1.0"],["Patient Name",payload.patientName],["Date Signed",payload.dateSigned],["Prepared By",payload.preparedBy||"Sidii Hamza"],["Company","Carebridge International Inc."]];
   var colW=(W-28)/2;
   for(var ci=0;ci<cols.length;ci+=2){
-    var x1=14,x2=14+colW+4;
+    var x1=14, x2=14+colW+4;
     doc.setFont("helvetica","bold");doc.setFontSize(8);doc.setTextColor(grey[0],grey[1],grey[2]);
-    doc.text(cols[ci][0].toUpperCase(),x1,y);
-    if(cols[ci+1])doc.text(cols[ci+1][0].toUpperCase(),x2,y);
+    doc.text(cols[ci][0].toUpperCase(),x1,y2);
+    if(cols[ci+1])doc.text(cols[ci+1][0].toUpperCase(),x2,y2);
     doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(navy[0],navy[1],navy[2]);
-    doc.text(String(cols[ci][1]||"—"),x1,y+5);
-    if(cols[ci+1])doc.text(String(cols[ci+1][1]||"—"),x2,y+5);
-    y+=14;
+    doc.text(String(cols[ci][1]||"—"),x1,y2+5);
+    if(cols[ci+1])doc.text(String(cols[ci+1][1]||"—"),x2,y2+5);
+    y2+=13;
   }
-  if(payload.repName){y=secTitle(y+4,"Authorized Representative");doc.setFont("helvetica","bold");doc.setFontSize(8);doc.setTextColor(grey[0],grey[1],grey[2]);doc.text("NAME",14,y);doc.text("RELATIONSHIP",14+colW+4,y);doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(navy[0],navy[1],navy[2]);doc.text(payload.repName||"—",14,y+5);doc.text(payload.repRelationship||"—",14+colW+4,y+5);y+=14;}
-  if(payload.witnesName){y=secTitle(y+4,"Witness 2");doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(navy[0],navy[1],navy[2]);doc.text(payload.witnesName,14,y);y+=14;}
+  if(payload.repName){y2=secBar(y2+3,"Authorized Representative");doc.setFont("helvetica","bold");doc.setFontSize(8);doc.setTextColor(grey[0],grey[1],grey[2]);doc.text("NAME",14,y2);doc.text("RELATIONSHIP",14+colW+4,y2);doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(navy[0],navy[1],navy[2]);doc.text(payload.repName,14,y2+5);doc.text(payload.repRelationship||"—",14+colW+4,y2+5);y2+=13;}
+  if(payload.witnesName){y2=secBar(y2+3,"Witness 2");doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(navy[0],navy[1],navy[2]);doc.text(payload.witnesName,14,y2);y2+=13;}
 
-  y=secTitle(y+4,"Page Initials — All 14 Pages");
-  var cellW=(W-28)/7,cellH=14;
+  y2=secBar(y2+3,"Page Initials — All 14 Pages");
+  var cellW=(W-28)/7, cellH=13;
   for(var pi=0;pi<14;pi++){
-    var col=pi%7,row=Math.floor(pi/7),cx=14+col*cellW,cy=y+row*cellH;
-    doc.setFillColor(col%2===0?247:243,col%2===0?249:245,col%2===0?252:249);
+    var col2=pi%7, row2=Math.floor(pi/7), cx=14+col2*cellW, cy=y2+row2*cellH;
+    doc.setFillColor(col2%2===0?247:243,col2%2===0?249:245,col2%2===0?252:249);
     doc.roundedRect(cx,cy,cellW-1,cellH-1,2,2,"F");
-    doc.setFont("helvetica","normal");doc.setFontSize(7);doc.setTextColor(grey[0],grey[1],grey[2]);
+    doc.setFont("helvetica","normal");doc.setFontSize(6.5);doc.setTextColor(grey[0],grey[1],grey[2]);
     doc.text("Pg"+(pi+1),cx+(cellW-1)/2,cy+4,{align:"center"});
     doc.setFont("helvetica","bold");doc.setFontSize(11);doc.setTextColor(navy[0],navy[1],navy[2]);
     doc.text((payload.initials||{})["page"+(pi+1)]||"—",cx+(cellW-1)/2,cy+10,{align:"center"});
   }
-  y+=2*cellH+8;
-  doc.setFillColor(navy[0],navy[1],navy[2]);doc.roundedRect(14,y,W-28,14,3,3,"F");
+  y2+=2*cellH+7;
+  doc.setFillColor(navy[0],navy[1],navy[2]);doc.roundedRect(14,y2,W-28,13,3,3,"F");
   doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(200,215,235);
-  doc.text("Digitally submitted: "+(payload.timestamp||""),W/2,y+5.5,{align:"center"});
+  doc.text("Digitally submitted: "+(payload.timestamp||""),W/2,y2+5,{align:"center"});
   doc.setFont("helvetica","bold");doc.setFontSize(8);doc.setTextColor(teal[0],teal[1],teal[2]);
-  doc.text("All signatures captured electronically via Carebridge Portal",W/2,y+10.5,{align:"center"});
+  doc.text("All signatures captured electronically via Carebridge Portal",W/2,y2+10,{align:"center"});
 
-  // PAGE 2 — Signatures
-  doc.addPage(); header(2);
-  var sy=32; sy=secTitle(sy,"Signatures");
-  var sigs=[{label:"Patient Acknowledgment & Consent",name:payload.patientName,sub:null,img:payload.sig1},{label:"Patient / Authorized Representative",name:payload.repName,sub:payload.repRelationship,img:payload.sig2}];
-  if(payload.sig3)sigs.push({label:"Witness 2",name:payload.witnesName,sub:null,img:payload.sig3});
+  // ── PAGE 16: Signatures ──
+  doc.addPage(); hdr(16);
+  var sy=30; sy=secBar(sy,"Signatures");
+  var sigs=[{label:"Patient Acknowledgment & Consent",name:payload.patientName,sub:null,img:payload.sig1},{label:"Patient / Authorized Representative",name:payload.repName||"—",sub:payload.repRelationship,img:payload.sig2}];
+  if(payload.sig3) sigs.push({label:"Witness 2",name:payload.witnesName,sub:null,img:payload.sig3});
   sigs.forEach(function(s){
-    doc.setFillColor(light[0],light[1],light[2]);doc.roundedRect(14,sy,W-28,52,3,3,"F");
+    if(sy > H-70) return;
+    doc.setFillColor(light[0],light[1],light[2]);doc.roundedRect(14,sy,W-28,50,3,3,"F");
     doc.setFillColor(teal[0],teal[1],teal[2]);doc.rect(14,sy,W-28,8,"F");
-    doc.setFont("helvetica","bold");doc.setFontSize(9);doc.setTextColor(255,255,255);doc.text(s.label.toUpperCase(),18,sy+5.5);
-    doc.setFont("helvetica","bold");doc.setFontSize(9);doc.setTextColor(navy[0],navy[1],navy[2]);doc.text(s.name||"—",18,sy+16);
+    doc.setFont("helvetica","bold");doc.setFontSize(9);doc.setTextColor(255,255,255);
+    doc.text(s.label.toUpperCase(),18,sy+5.5);
+    doc.setFont("helvetica","bold");doc.setFontSize(9);doc.setTextColor(navy[0],navy[1],navy[2]);
+    doc.text(s.name||"—",18,sy+16);
     if(s.sub){doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(grey[0],grey[1],grey[2]);doc.text(s.sub,18,sy+22);}
-    if(s.img){try{doc.addImage(s.img,"PNG",W-90,sy+10,72,34);}catch(e){}}
-    doc.setDrawColor(teal[0],teal[1],teal[2]);doc.setLineWidth(0.5);doc.line(18,sy+46,W-18,sy+46);
+    if(s.img){try{doc.addImage(s.img,"PNG",W-88,sy+9,70,32);}catch(e){}}
+    doc.setDrawColor(teal[0],teal[1],teal[2]);doc.setLineWidth(0.5);doc.line(18,sy+44,W-18,sy+44);
     doc.setFont("helvetica","normal");doc.setFontSize(7);doc.setTextColor(grey[0],grey[1],grey[2]);
-    doc.text("Signature",18,sy+50);doc.text(payload.dateSigned||"",W-18,sy+50,{align:"right"});
-    sy+=58;
+    doc.text("Signature",18,sy+48);doc.text(payload.dateSigned||"",W-18,sy+48,{align:"right"});
+    sy+=55;
   });
   doc.setFont("helvetica","italic");doc.setFontSize(8);doc.setTextColor(grey[0],grey[1],grey[2]);
-  doc.text("This document was executed electronically. Electronic signatures are legally binding under applicable law.",W/2,H-18,{align:"center"});
-  doc.text("support@carebridgeinternational.ca  |  +1 (825) 785-3396  |  www.carebridgeinternational.ca",W/2,H-13,{align:"center"});
+  doc.text("This document was executed electronically. Electronic signatures are legally binding under applicable law.",W/2,H-16,{align:"center"});
+  doc.text("support@carebridgeinternational.ca  |  +1 (825) 785-3396  |  www.carebridgeinternational.ca",W/2,H-11,{align:"center"});
+
   return doc;
 }
 
 function downloadSignedPDF() {
   if (!_signedPayload) return;
-  var doc = generateSignedPDF(_signedPayload);
-  if (doc) doc.save("Carebridge-Agreement-" + _signedPayload.id + ".pdf");
+  var pdfDoc = generateSignedPDF(_signedPayload);
+  if (pdfDoc) pdfDoc.save("Carebridge-Agreement-" + _signedPayload.id + ".pdf");
 }
 </script>
 </body>
