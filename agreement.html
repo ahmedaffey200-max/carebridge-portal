@@ -633,21 +633,15 @@ function submitAgreement() {
 }
 
 function saveToSupabase(payload, callback) {
-  fetch(SB_URL + "/rest/v1/portal_state?id=eq.main&select=state", {
-    headers: { "apikey": SB_ANON, "Authorization": "Bearer " + SB_ANON }
+  // Write goes through the sign-agreement edge function (service role key, server-side).
+  // The anon key cannot write to portal_state once RLS is set to `TO authenticated`.
+  fetch(SB_URL + "/functions/v1/sign-agreement", {
+    method: "POST",
+    headers: { "apikey": SB_ANON, "Authorization": "Bearer " + SB_ANON, "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
   })
-  .then(function(r) { return r.json(); })
-  .then(function(data) {
-    var state = (data && data[0] && data[0].state) || {};
-    if (!Array.isArray(state.agreements)) state.agreements = [];
-    var idx = state.agreements.findIndex(function(a) { return a.id === payload.id; });
-    if (idx >= 0) { state.agreements[idx] = Object.assign({}, state.agreements[idx], payload); }
-    else { state.agreements.push(payload); }
-    return fetch(SB_URL + "/rest/v1/portal_state?id=eq.main", {
-      method: "PATCH",
-      headers: { "apikey": SB_ANON, "Authorization": "Bearer " + SB_ANON, "Content-Type": "application/json", "Prefer": "return=minimal" },
-      body: JSON.stringify({ state: state, updated_at: new Date().toISOString() })
-    });
+  .then(function(r) {
+    if (!r.ok) return r.json().then(function(e) { console.warn("[CB] sign-agreement error:", e); });
   })
   .then(function() { callback(); })
   .catch(function() { callback(); });

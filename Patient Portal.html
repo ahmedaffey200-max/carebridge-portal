@@ -664,9 +664,71 @@ function InvalidScreen({ message }) {
 }
 
 /* ================================================================
+   Translations — English (en) and Somali (so)
+   ================================================================ */
+const TRANSLATIONS = {
+  en: {
+    myInfo:"My Info", messages:"Messages", journey:"Journey", rateUs:"Rate Us", signOut:"Sign out",
+    myInformation:"My Information", fullName:"Full name", patientId:"Patient ID",
+    specialty:"Specialty", condition:"Condition", hospital:"Hospital", destination:"Destination",
+    priority:"Priority", portalExpires:"Portal expires", active:"Active", pending:"Pending",
+    yourCoordinator:"Your Coordinator", message:"Message", email:"Email",
+    openingConversation:"Opening conversation with your coordinator…",
+    contactEmail:"Contact your coordinator via your invitation email.",
+    messagesWith:(n) => "Messages with " + n,
+    loadingMessages:"Loading messages…",
+    noMessages:"No messages yet. Send a message to your coordinator below.",
+    read:"Read", typeMessage:"Type a message to your coordinator…",
+    myTreatmentJourney:"My Treatment Journey", loadingJourney:"Loading your journey…",
+    noJourney:"Your treatment journey updates will appear here as your coordinator makes progress on your case.",
+    refresh:"Refresh", refreshing:"Refreshing…",
+    rateYourExperience:"Rate your experience", thankYouFeedback:"Thank you for your feedback!",
+    youRated:(s) => "You rated your experience " + s + " out of 5 stars",
+    howWasExperience:"How was your experience with Carebridge International?",
+    tapToRate:"Tap a star to rate (0 = not rated, 5 = excellent)",
+    commentOptional:"Comment (optional)", shareFeedback:"Share your experience with us…",
+    submitting:"Submitting…", submitRating:"Submit Rating", loading:"Loading…",
+    poor:"Poor", fair:"Fair", good:"Good", veryGood:"Very good", excellent:"Excellent",
+    aiHelp:"AI Help", aiGreeting:"Hi! I'm your Carebridge AI assistant. I can answer questions about your treatment, what to expect, what to bring, and more.",
+    aiPlaceholder:"Ask me anything about your treatment…",
+    aiSend:"Send", aiThinking:"Thinking…",
+    aiSuggestions:["What happens next in my treatment?","What should I bring to the hospital?","How long is recovery?","What documents do I need?","I'm feeling nervous — what can I expect?"],
+  },
+  so: {
+    myInfo:"Xogtayda", messages:"Farriimaha", journey:"Safarka", rateUs:"Noogu qiimee", signOut:"Ka bax",
+    myInformation:"Macluumaadkayga", fullName:"Magaca oo buuxa", patientId:"Lambarka bukaanka",
+    specialty:"Takhasuska", condition:"Xaaladda", hospital:"Isbitaalka", destination:"Meeshaan la socdo",
+    priority:"Mudnaanta", portalExpires:"Mudada portal-ka", active:"Firfircoon", pending:"Sugaya",
+    yourCoordinator:"Xiriiriyahaaga", message:"Fariin", email:"Iimayl",
+    openingConversation:"Xiriirka xiriiriyahaaga la furayaa…",
+    contactEmail:"Xiriiriyahaaga kala xiriir iimayl-kii casuumadda.",
+    messagesWith:(n) => "Farriimaha la " + n,
+    loadingMessages:"Farriimaha la rarayo…",
+    noMessages:"Wali fariin ma jirto. Farriin u dir xiriiriyahaaga.",
+    read:"La akhriyay", typeMessage:"Xiriiriyahaaga farriin u qor…",
+    myTreatmentJourney:"Safarkayga daaweynta", loadingJourney:"Safarka la rarayo…",
+    noJourney:"Cusboonaysiimaha safarka daaweyntaada ayaa halkan ka muuqan doona markuu xiriiriyahaagu horumar ka sameeyo xaaladaada.",
+    refresh:"Cusbooneysii", refreshing:"Waxaa la cusbooneysiiyaa…",
+    rateYourExperience:"Khibradaada qiimee", thankYouFeedback:"Mahadsanid jawaab-celintaada!",
+    youRated:(s) => "Waxaad qiimeysay khibradaada " + s + " xiddig oo 5 ka mid ah",
+    howWasExperience:"Sideed u aragtay adeegga Carebridge International?",
+    tapToRate:"Xiddig taabo si aad u qiimeysid (0 = la ma qiimeynin, 5 = aad u fiican)",
+    commentOptional:"Faallo (ikhtiyaari)", shareFeedback:"Khibradaada noogu wadaag…",
+    submitting:"La dirayo…", submitRating:"Qiimeynta dir", loading:"La rarayo…",
+    poor:"Xun", fair:"Caadi", good:"Wanaagsan", veryGood:"Aad u wanaagsan", excellent:"Aad u fiican",
+    aiHelp:"Caawimaad AI", aiGreeting:"Salaan! Waxaan ahay caawiyahaaga AI ee Carebridge. Waxaan kaa caawin karaa su'aalaha ku saabsan daaweyntaada, waxa la filayo, waxa aad keeni doonto, iyo wax badan.",
+    aiPlaceholder:"Wax kasta oo ku saabsan daaweyntaada weydii…",
+    aiSend:"Dir", aiThinking:"Waxaa la fikirayaa…",
+    aiSuggestions:["Maxaa xiga daaweyntayda?","Maxaan isbitaalka u qaadi karaa?","Muddo intee le'eg ayay bogsashadu qaadanaysaa?","Warqadaha kee ayaan u baahnahay?","Waxaan cabsanayaa — maxaan filayaa?"],
+  },
+};
+const LangContext = React.createContext({ lang:"en", T: TRANSLATIONS.en, setLang: () => {} });
+
+/* ================================================================
    Dashboard components (Info, Messages, Journey tabs)
    ================================================================ */
 function InfoTab({ invitation }) {
+  const { T } = React.useContext(LangContext);
   const priority  = invitation.priority || "Standard";
   const pillClass = priority === "Attention" ? "pp-pill--danger" : priority === "High" ? "pp-pill--warn" : "pp-pill--teal";
   const statusPill = invitation.status === "active" ? "pp-pill--ok" : "pp-pill--navy";
@@ -674,20 +736,20 @@ function InfoTab({ invitation }) {
     <div className="pp-content">
       <div className="pp-card">
         <div className="pp-card-header">
-          <div className="pp-card-title"><Icon name="user" /> My Information</div>
-          <span className={"pp-pill " + statusPill}><span className="pp-pill-dot" />{invitation.status === "active" ? "Active" : "Pending"}</span>
+          <div className="pp-card-title"><Icon name="user" /> {T.myInformation}</div>
+          <span className={"pp-pill " + statusPill}><span className="pp-pill-dot" />{invitation.status === "active" ? T.active : T.pending}</span>
         </div>
         <div className="pp-card-body">
           <div className="pp-info-grid">
-            <div className="pp-info-item"><label>Full name</label><div className="pp-info-val">{invitation.patient_name}</div></div>
-            <div className="pp-info-item"><label>Patient ID</label><div className="pp-info-val" style={{ fontFamily: "monospace", fontSize: 13 }}>{invitation.patient_id}</div></div>
-            {invitation.specialty  && <div className="pp-info-item"><label>Specialty</label><div className="pp-info-val">{invitation.specialty}</div></div>}
-            {invitation.condition  && <div className="pp-info-item"><label>Condition</label><div className="pp-info-val">{invitation.condition}</div></div>}
-            {invitation.hospital   && <div className="pp-info-item"><label>Hospital</label><div className="pp-info-val">{invitation.hospital}</div></div>}
-            {invitation.country    && <div className="pp-info-item"><label>Destination</label><div className="pp-info-val">{invitation.country}</div></div>}
-            <div className="pp-info-item"><label>Priority</label><div className="pp-info-val"><span className={"pp-pill " + pillClass}>{priority}</span></div></div>
+            <div className="pp-info-item"><label>{T.fullName}</label><div className="pp-info-val">{invitation.patient_name}</div></div>
+            <div className="pp-info-item"><label>{T.patientId}</label><div className="pp-info-val" style={{ fontFamily: "monospace", fontSize: 13 }}>{invitation.patient_id}</div></div>
+            {invitation.specialty  && <div className="pp-info-item"><label>{T.specialty}</label><div className="pp-info-val">{invitation.specialty}</div></div>}
+            {invitation.condition  && <div className="pp-info-item"><label>{T.condition}</label><div className="pp-info-val">{invitation.condition}</div></div>}
+            {invitation.hospital   && <div className="pp-info-item"><label>{T.hospital}</label><div className="pp-info-val">{invitation.hospital}</div></div>}
+            {invitation.country    && <div className="pp-info-item"><label>{T.destination}</label><div className="pp-info-val">{invitation.country}</div></div>}
+            <div className="pp-info-item"><label>{T.priority}</label><div className="pp-info-val"><span className={"pp-pill " + pillClass}>{priority}</span></div></div>
             <div className="pp-info-item">
-              <label>Portal expires</label>
+              <label>{T.portalExpires}</label>
               <div className="pp-info-val" style={{ fontSize: 13 }}>
                 {new Date(invitation.expires_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
               </div>
@@ -697,14 +759,14 @@ function InfoTab({ invitation }) {
       </div>
       {invitation.coordinator_name && (
         <div className="pp-card">
-          <div className="pp-card-header"><div className="pp-card-title"><Icon name="user" /> Your Coordinator</div></div>
+          <div className="pp-card-header"><div className="pp-card-title"><Icon name="user" /> {T.yourCoordinator}</div></div>
           <div className="pp-coord-row">
             <div className="pp-coord-av">{(invitation.coordinator_name || "?").split(" ").map(w => w[0]).join("").slice(0,2).toUpperCase()}</div>
             <div><div className="pp-coord-name">{invitation.coordinator_name}</div><div className="pp-coord-sub">Carebridge International</div></div>
           </div>
           <div className="pp-coord-actions">
-            <button className="pp-coord-btn" onClick={() => showToast("Opening conversation with your coordinator…")}><Icon name="message-square" size={16} /> Message</button>
-            <button className="pp-coord-btn" onClick={() => showToast("Contact your coordinator via your invitation email.")}><Icon name="mail" size={16} /> Email</button>
+            <button className="pp-coord-btn" onClick={() => showToast(T.openingConversation)}><Icon name="message-square" size={16} /> {T.message}</button>
+            <button className="pp-coord-btn" onClick={() => showToast(T.contactEmail)}><Icon name="mail" size={16} /> {T.email}</button>
           </div>
         </div>
       )}
@@ -713,6 +775,7 @@ function InfoTab({ invitation }) {
 }
 
 function MessagesTab({ invitation }) {
+  const { T } = React.useContext(LangContext);
   const [messages, setMessages] = useState([]);
   const [loading, setLoading]   = useState(true);
   const [text, setText]         = useState("");
@@ -754,23 +817,23 @@ function MessagesTab({ invitation }) {
     <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
       <div className="pp-content" style={{ paddingBottom: 0, gap: 0 }}>
         <div className="pp-card">
-          <div className="pp-card-header"><div className="pp-card-title"><Icon name="message-square" /> Messages with {invitation.coordinator_name || "your coordinator"}</div></div>
-          {loading ? <div className="pp-loading"><div className="pp-spin" /> Loading messages…</div> : (
+          <div className="pp-card-header"><div className="pp-card-title"><Icon name="message-square" /> {T.messagesWith(invitation.coordinator_name || "your coordinator")}</div></div>
+          {loading ? <div className="pp-loading"><div className="pp-spin" /> {T.loadingMessages}</div> : (
             <div className="pp-messages-list">
               {messages.length === 0 ? (
-                <div className="pp-no-messages"><Icon name="message-square" size={32} /><p style={{ marginTop: 12 }}>No messages yet. Send a message to your coordinator below.</p></div>
+                <div className="pp-no-messages"><Icon name="message-square" size={32} /><p style={{ marginTop: 12 }}>{T.noMessages}</p></div>
               ) : messages.map(m => (
                 <div key={m.id} className={"pp-msg pp-msg--" + m.sender_role}>
                   {m.sender_role === "coordinator" && <div className="pp-msg-sender">{m.sender_name}</div>}
                   <div className="pp-msg-bubble">{m.content}</div>
-                  <div className="pp-msg-meta">{fmtTime(m.created_at)}{m.sender_role === "patient" && m.read_at ? " · Read" : ""}</div>
+                  <div className="pp-msg-meta">{fmtTime(m.created_at)}{m.sender_role === "patient" && m.read_at ? " · " + T.read : ""}</div>
                 </div>
               ))}
               <div ref={endRef} />
             </div>
           )}
           <div className="pp-msg-input-row">
-            <textarea className="pp-msg-input" rows={1} value={text} onChange={e => setText(e.target.value)} placeholder="Type a message to your coordinator…" onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }} />
+            <textarea className="pp-msg-input" rows={1} value={text} onChange={e => setText(e.target.value)} placeholder={T.typeMessage} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }} />
             <button className="pp-send-btn" onClick={send} disabled={!text.trim() || sending} aria-label="Send message"><Icon name="send" size={17} /></button>
           </div>
         </div>
@@ -780,6 +843,7 @@ function MessagesTab({ invitation }) {
 }
 
 function JourneyTab({ invitation }) {
+  const { T } = React.useContext(LangContext);
   const [activities, setActivities] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -831,22 +895,22 @@ function JourneyTab({ invitation }) {
     <div className="pp-content">
       <div className="pp-card">
         <div className="pp-card-header" style={{ justifyContent: "space-between" }}>
-          <div className="pp-card-title"><Icon name="route" /> My Treatment Journey</div>
+          <div className="pp-card-title"><Icon name="route" /> {T.myTreatmentJourney}</div>
           <button onClick={refresh} disabled={refreshing}
             style={{ background: "var(--teal-pale)", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: "var(--teal)", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
             <Icon name="refresh-cw" size={13} style={refreshing ? { animation: "ppspin 0.8s linear infinite" } : {}} />
-            {refreshing ? "Refreshing…" : "Refresh"}
+            {refreshing ? T.refreshing : T.refresh}
           </button>
         </div>
 
         {activities === null ? (
-          <div className="pp-loading"><div className="pp-spin" /> Loading your journey…</div>
+          <div className="pp-loading"><div className="pp-spin" /> {T.loadingJourney}</div>
         ) : activities.length === 0 ? (
           <div className="pp-card-body">
             <div style={{ textAlign: "center", padding: "32px 0", color: "var(--text-faint)" }}>
               <Icon name="route" size={40} />
               <p style={{ marginTop: 14, fontSize: 14, lineHeight: 1.6 }}>
-                Your treatment journey updates will appear here as your coordinator makes progress on your case.
+                {T.noJourney}
               </p>
             </div>
           </div>
@@ -905,9 +969,9 @@ function JourneyTab({ invitation }) {
 /* ================================================================
    Rate Us tab
    ================================================================ */
-const STAR_LABELS = ["", "Poor", "Fair", "Good", "Very good", "Excellent"];
-
 function StarPicker({ value, onChange, disabled }) {
+  const { T } = React.useContext(LangContext);
+  const STAR_LABELS_T = ["", T.poor, T.fair, T.good, T.veryGood, T.excellent];
   const [hover, setHover] = useState(0);
   const display = hover || value;
   return (
@@ -925,13 +989,14 @@ function StarPicker({ value, onChange, disabled }) {
         ))}
       </div>
       <div className="pp-rate-label" style={{ opacity: display ? 1 : 0 }}>
-        {STAR_LABELS[display] || ""}
+        {STAR_LABELS_T[display] || ""}
       </div>
     </div>
   );
 }
 
 function RateTab({ invitation }) {
+  const { T } = React.useContext(LangContext);
   const [stars,   setStars]   = useState(0);
   const [comment, setComment] = useState("");
   const [busy,    setBusy]    = useState(false);
@@ -970,21 +1035,21 @@ function RateTab({ invitation }) {
   };
 
   if (done === null) {
-    return <div className="pp-content"><div className="pp-loading"><div className="pp-spin" /> Loading…</div></div>;
+    return <div className="pp-content"><div className="pp-loading"><div className="pp-spin" /> {T.loading}</div></div>;
   }
 
   return (
     <div className="pp-content">
       <div className="pp-card">
         <div className="pp-card-header">
-          <div className="pp-card-title"><Icon name="star" size={17} /> Rate your experience</div>
+          <div className="pp-card-title"><Icon name="star" size={17} /> {T.rateYourExperience}</div>
         </div>
         {done ? (
           <div className="pp-rate-success">
             <div className="pp-rate-success-icon">⭐</div>
-            <div className="pp-rate-success-title">Thank you for your feedback!</div>
+            <div className="pp-rate-success-title">{T.thankYouFeedback}</div>
             <div className="pp-rate-success-sub">
-              You rated your experience <strong>{done.stars} out of 5 stars</strong>
+              {T.youRated(done.stars)}
               {done.comment ? <><br /><em style={{ marginTop: 8, display: "block", color: "var(--text-faint)" }}>"{done.comment}"</em></> : null}
             </div>
             <div style={{ marginTop: 20, display: "flex", justifyContent: "center", gap: 6 }}>
@@ -996,20 +1061,20 @@ function RateTab({ invitation }) {
         ) : (
           <div className="pp-card-body" style={{ paddingTop: 24, paddingBottom: 24 }}>
             <p style={{ textAlign: "center", fontSize: 14, color: "var(--text-sub)", lineHeight: 1.6, marginBottom: 4 }}>
-              How was your experience with Carebridge International?<br />
-              <span style={{ fontSize: 13, color: "var(--text-faint)" }}>Tap a star to rate (0 = not rated, 5 = excellent)</span>
+              {T.howWasExperience}<br />
+              <span style={{ fontSize: 13, color: "var(--text-faint)" }}>{T.tapToRate}</span>
             </p>
             <StarPicker value={stars} onChange={setStars} disabled={busy} />
             <div style={{ marginTop: 20 }}>
               <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-faint)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>
-                Comment (optional)
+                {T.commentOptional}
               </label>
               <textarea
                 className="pp-input"
                 rows={4}
                 value={comment}
                 onChange={e => setComment(e.target.value)}
-                placeholder="Share your experience with us…"
+                placeholder={T.shareFeedback}
                 disabled={busy}
                 style={{ resize: "vertical", minHeight: 100 }}
               />
@@ -1020,11 +1085,122 @@ function RateTab({ invitation }) {
               onClick={submit}
               disabled={!stars || busy}>
               {busy
-                ? <><div className="pp-spin" style={{ width: 18, height: 18, borderWidth: 2 }} /> Submitting…</>
-                : <><Icon name="star" size={16} /> Submit Rating</>}
+                ? <><div className="pp-spin" style={{ width: 18, height: 18, borderWidth: 2 }} /> {T.submitting}</>
+                : <><Icon name="star" size={16} /> {T.submitRating}</>}
             </button>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+/* ================================================================
+   AI Chat tab — patient talks to Claude about their treatment
+   ================================================================ */
+const PATIENT_AI_URL = "https://htvjjwfenvittdritjni.supabase.co/functions/v1/patient-ai";
+const PATIENT_SB_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh0dmpqd2ZlbnZpdHRkcml0am5pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2NTQ3OTAsImV4cCI6MjA5OTIzMDc5MH0.AMKUctPj49ahqXAFZbzJ341ZFH5XTckBUQaDmF5ZLj8";
+
+function AiTab({ invitation }) {
+  const { lang, T } = React.useContext(LangContext);
+  const [messages, setMessages] = useState([]);
+  const [input,    setInput]    = useState("");
+  const [thinking, setThinking] = useState(false);
+  const endRef = useRef(null);
+
+  useEffect(() => { if (endRef.current) endRef.current.scrollIntoView({ behavior:"smooth" }); }, [messages]);
+
+  const patientContext = {
+    name:            invitation.patient_name    || "",
+    patientId:       invitation.patient_id      || "",
+    specialty:       invitation.specialty       || "",
+    condition:       invitation.condition       || "",
+    hospital:        invitation.hospital        || "",
+    country:         invitation.country         || "",
+    coordinatorName: invitation.coordinator_name|| "",
+    priority:        invitation.priority        || "Standard",
+  };
+
+  const send = async (text) => {
+    const q = (text || input).trim();
+    if (!q || thinking) return;
+    setInput("");
+    const userMsg = { role:"user", content: q };
+    const updated = [...messages, userMsg];
+    setMessages(updated);
+    setThinking(true);
+    try {
+      const res = await fetch(PATIENT_AI_URL, {
+        method: "POST",
+        headers: { "Content-Type":"application/json", "apikey": PATIENT_SB_ANON, "Authorization":"Bearer " + PATIENT_SB_ANON },
+        body: JSON.stringify({ messages: updated, lang, patientContext }),
+      });
+      const data = await res.json();
+      setMessages(prev => [...prev, { role:"assistant", content: data.text || "Sorry, I could not get a response." }]);
+    } catch {
+      setMessages(prev => [...prev, { role:"assistant", content: "Connection error. Please try again." }]);
+    }
+    setThinking(false);
+  };
+
+  return (
+    <div style={{ display:"flex", flexDirection:"column", flex:1, minHeight:0 }}>
+      <div style={{ flex:1, overflowY:"auto", padding:"16px 16px 0" }}>
+        {/* Greeting card */}
+        <div style={{ background:"linear-gradient(135deg,var(--navy) 0%,var(--teal) 100%)", borderRadius:14, padding:"18px 20px", marginBottom:16, color:"#fff" }}>
+          <div style={{ fontSize:22, marginBottom:6 }}>🤖</div>
+          <div style={{ fontSize:14, fontWeight:700, marginBottom:4 }}>Carebridge AI</div>
+          <div style={{ fontSize:13, opacity:.88, lineHeight:1.55 }}>{T.aiGreeting}</div>
+        </div>
+        {/* Suggested questions — only before first message */}
+        {messages.length === 0 && (
+          <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:16 }}>
+            {T.aiSuggestions.map((q, i) => (
+              <button key={i} onClick={() => send(q)}
+                style={{ background:"var(--surface)", border:"1.5px solid var(--border)", borderRadius:10, padding:"10px 14px", textAlign:"left", fontSize:13, color:"var(--text)", cursor:"pointer", fontFamily:"inherit", lineHeight:1.4 }}>
+                {q}
+              </button>
+            ))}
+          </div>
+        )}
+        {/* Chat messages */}
+        {messages.map((m, i) => (
+          <div key={i} style={{ display:"flex", justifyContent: m.role==="user" ? "flex-end" : "flex-start", marginBottom:10 }}>
+            {m.role === "assistant" && (
+              <div style={{ width:28, height:28, borderRadius:"50%", background:"var(--teal)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, flexShrink:0, marginRight:8, marginTop:2 }}>🤖</div>
+            )}
+            <div style={{ maxWidth:"78%", padding:"10px 14px",
+              borderRadius: m.role==="user" ? "14px 14px 4px 14px" : "14px 14px 14px 4px",
+              background: m.role==="user" ? "var(--teal)" : "var(--surface)",
+              color: m.role==="user" ? "#fff" : "var(--text)",
+              fontSize:14, lineHeight:1.55,
+              border: m.role==="assistant" ? "1px solid var(--border)" : "none",
+              whiteSpace:"pre-wrap" }}>
+              {m.content}
+            </div>
+          </div>
+        ))}
+        {/* Thinking indicator */}
+        {thinking && (
+          <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10 }}>
+            <div style={{ width:28, height:28, borderRadius:"50%", background:"var(--teal)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, flexShrink:0 }}>🤖</div>
+            <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"14px 14px 14px 4px", padding:"10px 16px", fontSize:13, color:"var(--text-sub)" }}>
+              {T.aiThinking}
+            </div>
+          </div>
+        )}
+        <div ref={endRef} />
+      </div>
+      {/* Input */}
+      <div className="pp-msg-input-row" style={{ padding:"12px 16px", borderTop:"1px solid var(--border)" }}>
+        <textarea className="pp-msg-input" rows={1} value={input}
+          onChange={e => setInput(e.target.value)}
+          placeholder={T.aiPlaceholder}
+          onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
+          disabled={thinking} />
+        <button className="pp-send-btn" onClick={() => send()} disabled={!input.trim() || thinking} aria-label={T.aiSend}>
+          <Icon name="send" size={17} />
+        </button>
       </div>
     </div>
   );
@@ -1067,6 +1243,7 @@ function useLocation(invitation) {
    Dashboard shell
    ================================================================ */
 function Dashboard({ invitation, locationLabel, tab, setTab, onLogout }) {
+  const { lang, T, setLang } = React.useContext(LangContext);
   return (
     <div className="pp-app">
       <div className="pp-header">
@@ -1075,7 +1252,13 @@ function Dashboard({ invitation, locationLabel, tab, setTab, onLogout }) {
             <img src="assets/carebridge-logo.png" alt="Carebridge" />
             <div className="pp-header-brand-text">Carebridge<span>International</span></div>
           </div>
-          <button className="pp-logout-btn" onClick={onLogout}><Icon name="log-out" size={14} /> Sign out</button>
+          <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+            <button onClick={() => setLang(lang === "en" ? "so" : "en")}
+              style={{ background:"rgba(255,255,255,0.15)", border:"1px solid rgba(255,255,255,0.3)", borderRadius:20, padding:"5px 11px", color:"#fff", fontSize:12, fontWeight:700, cursor:"pointer", lineHeight:1 }}>
+              {lang === "en" ? "🇸🇴 Somali" : "🇬🇧 English"}
+            </button>
+            <button className="pp-logout-btn" onClick={onLogout}><Icon name="log-out" size={14} /> {T.signOut}</button>
+          </div>
         </div>
         <div className="pp-header-patient">
           <div className="pp-header-patient-name">{invitation.patient_name}</div>
@@ -1089,10 +1272,11 @@ function Dashboard({ invitation, locationLabel, tab, setTab, onLogout }) {
 
       <div className="pp-tabs">
         {[
-          { id: "info",     label: "My Info",  icon: "user"           },
-          { id: "messages", label: "Messages",  icon: "message-square" },
-          { id: "journey",  label: "Journey",   icon: "route"          },
-          { id: "rate",     label: "Rate Us",   icon: "star"           },
+          { id: "info",     label: T.myInfo,    icon: "user"           },
+          { id: "messages", label: T.messages,  icon: "message-square" },
+          { id: "journey",  label: T.journey,   icon: "route"          },
+          { id: "ai",       label: T.aiHelp,    icon: "bot"            },
+          { id: "rate",     label: T.rateUs,    icon: "star"           },
         ].map(t => (
           <button key={t.id} className={"pp-tab" + (tab === t.id ? " active" : "")} onClick={() => setTab(t.id)}>
             <Icon name={t.icon} size={18} />{t.label}
@@ -1103,6 +1287,7 @@ function Dashboard({ invitation, locationLabel, tab, setTab, onLogout }) {
       {tab === "info"     && <InfoTab     invitation={invitation} />}
       {tab === "messages" && <MessagesTab invitation={invitation} />}
       {tab === "journey"  && <JourneyTab  invitation={invitation} />}
+      {tab === "ai"       && <AiTab       invitation={invitation} />}
       {tab === "rate"     && <RateTab     invitation={invitation} />}
     </div>
   );
@@ -1112,6 +1297,10 @@ function Dashboard({ invitation, locationLabel, tab, setTab, onLogout }) {
    Main App — auth state machine
    ================================================================ */
 function App() {
+  const [lang, setLangState] = useState(() => localStorage.getItem("cb_lang") || "en");
+  const setLang = (l) => { setLangState(l); localStorage.setItem("cb_lang", l); };
+  const T = TRANSLATIONS[lang] || TRANSLATIONS.en;
+
   // screen: "loading" | "create-account" | "login" | "reset-password" | "invalid" | "dashboard"
   const [screen,     setScreen]     = useState("loading");
   const [invitation, setInvitation] = useState(null);   // for dashboard
@@ -1293,13 +1482,18 @@ function App() {
   };
 
   /* ---- Render ---- */
-  if (screen === "loading")        return null;
-  if (screen === "invalid")        return <InvalidScreen message={invalidMsg} />;
-  if (screen === "create-account") return <CreateAccountScreen invitation={tokenInv} onSubmit={handleSignup} />;
-  if (screen === "login")          return <LoginScreen onLogin={handleLogin} />;
-  if (screen === "reset-password") return <ResetPasswordScreen onSubmit={handlePasswordReset} />;
-  if (screen === "dashboard")      return <Dashboard invitation={invitation} locationLabel={locationLabel} tab={tab} setTab={setTab} onLogout={handleLogout} />;
-  return null;
+  let content = null;
+  if (screen === "invalid")        content = <InvalidScreen message={invalidMsg} />;
+  else if (screen === "create-account") content = <CreateAccountScreen invitation={tokenInv} onSubmit={handleSignup} />;
+  else if (screen === "login")     content = <LoginScreen onLogin={handleLogin} />;
+  else if (screen === "reset-password") content = <ResetPasswordScreen onSubmit={handlePasswordReset} />;
+  else if (screen === "dashboard") content = <Dashboard invitation={invitation} locationLabel={locationLabel} tab={tab} setTab={setTab} onLogout={handleLogout} />;
+  if (screen === "loading") return null;
+  return (
+    <LangContext.Provider value={{ lang, T, setLang }}>
+      {content}
+    </LangContext.Provider>
+  );
 }
 
 ReactDOM.createRoot(document.getElementById("root")).render(<App />);
