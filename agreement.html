@@ -297,7 +297,7 @@ var _signedPayload = null;
 
 // 14 pages: page 1 = cover, page 2 = TOC, pages 3-14 = body sections
 var PAGES = [
-  { label: "Cover Page",                          scroll: function(fr) { try { fr.contentDocument.documentElement.style.overflow=''; fr.contentDocument.body.style.overflow=''; fr.contentWindow.scrollTo(0,0); setTimeout(function(){lockIframeScroll(fr);},50); } catch(e){} } },
+  { label: "Cover Page",                          scroll: function(fr) { try { fr.contentWindow.scrollTo(0,0); } catch(e){} } },
   { label: "Table of Contents",                   scroll: function(fr) { scrollToEl(fr, ".toc"); } },
   { label: "Sections 1–4: Definitions & Scope",   scroll: function(fr) { scrollToEl(fr, ".body"); } },
   { label: "Sections 5–8: Services",              scroll: function(fr) { scrollToSec(fr, 5); } },
@@ -313,61 +313,44 @@ var PAGES = [
   { label: "Section 42: Signatures & Witnesses",  scroll: function(fr) { scrollToSec(fr, 42); } },
 ];
 
-function lockIframeScroll(fr) {
-  try {
-    var ifrDoc = fr.contentDocument || fr.contentWindow.document;
-    ifrDoc.documentElement.style.overflow = 'hidden';
-    ifrDoc.body.style.overflow = 'hidden';
-  } catch(e) {}
-}
-
 function scrollToEl(fr, selector) {
   try {
     var ifrDoc = fr.contentDocument || fr.contentWindow.document;
-    // Temporarily allow scroll so scrollTo works
-    ifrDoc.documentElement.style.overflow = '';
-    ifrDoc.body.style.overflow = '';
     var el = ifrDoc.querySelector(selector);
     if (el) {
       var top = 0, node = el;
       while (node) { top += node.offsetTop || 0; node = node.offsetParent; }
       fr.contentWindow.scrollTo(0, top);
     }
-    setTimeout(function() { lockIframeScroll(fr); }, 50);
   } catch(e) {}
 }
 
 function scrollToSec(fr, num) {
   try {
     var ifrDoc = fr.contentDocument || fr.contentWindow.document;
-    ifrDoc.documentElement.style.overflow = '';
-    ifrDoc.body.style.overflow = '';
     var spans = ifrDoc.querySelectorAll(".n");
     for (var i = 0; i < spans.length; i++) {
       var t = spans[i].textContent.trim().replace(".0","").replace(".","");
       if (parseInt(t) === num) {
-        var clause = spans[i].closest(".clause") || spans[i].parentElement;
+        var clause = spans[i].closest ? spans[i].closest(".clause") : spans[i].parentElement;
         if (clause) {
           var top = 0, node = clause;
           while (node) { top += node.offsetTop || 0; node = node.offsetParent; }
-          fr.contentWindow.scrollTo(0, Math.max(0, top - 16));
-          setTimeout(function() { lockIframeScroll(fr); }, 50);
+          fr.contentWindow.scrollTo(0, Math.max(0, top - 12));
           return;
         }
       }
     }
-    // Fallback
+    // Fallback: heading text
     var allH2 = ifrDoc.querySelectorAll("h2");
     for (var j = 0; j < allH2.length; j++) {
       if (allH2[j].textContent.trim().startsWith(num + ".")) {
         var top2 = 0, node2 = allH2[j];
         while (node2) { top2 += node2.offsetTop || 0; node2 = node2.offsetParent; }
-        fr.contentWindow.scrollTo(0, Math.max(0, top2 - 16));
-        setTimeout(function() { lockIframeScroll(fr); }, 50);
+        fr.contentWindow.scrollTo(0, Math.max(0, top2 - 12));
         return;
       }
     }
-    setTimeout(function() { lockIframeScroll(fr); }, 50);
   } catch(e) {}
 }
 
@@ -471,15 +454,7 @@ function updatePageUI() {
 
 document.getElementById("doc-frame").addEventListener("load", function() {
   frameReady = true;
-  var fr = this;
-  // Block user scroll: wheel, touch, keyboard
-  try {
-    var ifrDoc = fr.contentDocument || fr.contentWindow.document;
-    ifrDoc.addEventListener("wheel",    function(e){ e.preventDefault(); }, { passive: false });
-    ifrDoc.addEventListener("touchmove",function(e){ e.preventDefault(); }, { passive: false });
-    ifrDoc.addEventListener("keydown",  function(e){ if([32,33,34,35,36,37,38,39,40].indexOf(e.keyCode)>=0) e.preventDefault(); });
-  } catch(e) {}
-  PAGES[docPageIdx].scroll(fr);
+  PAGES[docPageIdx].scroll(this);
 });
 
 function nextDocPage() {
