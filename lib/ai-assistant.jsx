@@ -426,7 +426,7 @@ function AIAssistantView() {
           <div className="cb-ai-header__icon"><i data-lucide="brain-circuit" /></div>
           <div>
             <div className="cb-ai-header__title">Carebridge Intelligence</div>
-            <div className="cb-ai-header__sub">Powered by Claude Opus 4.8 via Supabase · Full portal access</div>
+            <div className="cb-ai-header__sub">Powered by Claude Opus 4.8 via Supabase · Full portal access · v9</div>
           </div>
         </div>
         <div className="cb-ai-header__actions">
