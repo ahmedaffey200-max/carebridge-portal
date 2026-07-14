@@ -60,7 +60,8 @@ html, body { height: 100%; overflow: hidden; font-family: 'Segoe UI', Arial, san
 .sign-panel { background: var(--card); border-top: 3px solid var(--teal); padding: 14px 20px 20px; flex-shrink: 0; box-shadow: 0 -4px 20px rgba(27,58,107,0.10); }
 .sign-panel__row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .init-label { font-size: 12px; font-weight: 700; color: var(--sub); text-transform: uppercase; letter-spacing: 0.6px; white-space: nowrap; }
-.init-input { border: 2px solid var(--border); border-radius: 8px; padding: 10px 14px; font-size: 16px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; width: 100px; text-align: center; outline: none; font-family: inherit; transition: border-color 0.15s; }
+.init-badge { background: var(--teal); color: #fff; border-radius: 8px; padding: 8px 18px; font-size: 18px; font-weight: 900; letter-spacing: 3px; }
+.init-input { border: 2px solid var(--border); border-radius: 8px; padding: 10px 14px; font-size: 16px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; width: 110px; text-align: center; outline: none; font-family: inherit; transition: border-color 0.15s; }
 .init-input:focus { border-color: var(--teal); }
 .init-error { font-size: 12px; color: var(--red); display: none; margin-top: 6px; }
 .btn-prev { padding: 10px 18px; border: 1.5px solid var(--border); border-radius: 8px; background: transparent; font-size: 14px; font-weight: 600; color: var(--sub); cursor: pointer; display: flex; align-items: center; gap: 6px; }
@@ -136,6 +137,11 @@ html, body { height: 100%; overflow: hidden; font-family: 'Segoe UI', Arial, san
           <input class="field-input" type="text" id="patient-name-input" placeholder="Enter your full legal name" autocomplete="name" />
         </div>
 
+        <div class="sig-field" style="margin-top:16px;margin-bottom:0">
+          <label class="field-label">Your Initials * <span style="font-size:11px;text-transform:none;letter-spacing:0;font-weight:400;color:var(--sub)">(applied to all 14 pages automatically)</span></label>
+          <input class="init-input" type="text" id="patient-initials-input" maxlength="5" placeholder="e.g. J.S." autocapitalize="characters" autocomplete="off" oninput="this.value=this.value.toUpperCase()" />
+        </div>
+
         <div class="notice" style="margin-top:16px">
           <strong>What happens next:</strong> You'll review each of the 14 pages of the agreement and provide your initials. Then you'll sign in the designated signature areas. The whole process takes about 5 minutes.
         </div>
@@ -166,8 +172,8 @@ html, body { height: 100%; overflow: hidden; font-family: 'Segoe UI', Arial, san
 
   <div class="sign-panel">
     <div class="sign-panel__row">
-      <span class="init-label">Initials — Page <span id="sign-panel-pg">1</span>:</span>
-      <input class="init-input" type="text" id="cur-init" maxlength="5" placeholder="A.H." autocapitalize="characters" autocomplete="off" oninput="this.value=this.value.toUpperCase()" />
+      <span class="init-label">Page <span id="sign-panel-pg">1</span> / 14 &nbsp;·&nbsp; Initials:</span>
+      <span class="init-badge" id="init-badge">—</span>
       <button class="btn-prev" id="btn-pg-prev" onclick="prevDocPage()" style="display:none">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
         Back
@@ -177,7 +183,6 @@ html, body { height: 100%; overflow: hidden; font-family: 'Segoe UI', Arial, san
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
       </button>
     </div>
-    <div class="init-error" id="init-error">Please enter your initials before continuing.</div>
   </div>
 </div>
 
@@ -208,7 +213,7 @@ html, body { height: 100%; overflow: hidden; font-family: 'Segoe UI', Arial, san
 
       <!-- Sig 2: Rep -->
       <div class="sig-card">
-        <div class="sig-card__head"><span class="badge">2</span>Patient / Authorized Representative</div>
+        <div class="sig-card__head"><span class="badge">2</span>Patient / Authorized Representative <span class="optional-badge">Optional</span></div>
         <div class="sig-card__body">
           <div class="sig-field">
             <label>Representative Full Name</label>
@@ -284,9 +289,9 @@ var SB_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJl
 var WEB3FORMS_KEY = "ced130e3-f4d4-424b-96fe-bd50558254f2";
 var ADMIN_EMAIL   = "ahmedaffey200@gmail.com";
 
-var agrId = "", patientNameVal = "";
+var agrId = "", patientNameVal = "", globalInitials = "";
 var docPageIdx = 0;  // 0-based index into PAGES array
-var initials = {};   // { page1: "AH", page2: "AH", ... }
+var initials = {};   // { page1: "AH", page2: "AH", ... } — all same value
 var frameReady = false;
 var _signedPayload = null;
 
@@ -382,12 +387,23 @@ function showPhase(id) {
 // ---- Phase 1 → 2 ----
 function beginSigning() {
   var name = document.getElementById("patient-name-input").value.trim();
+  var inits = document.getElementById("patient-initials-input").value.trim().toUpperCase();
   if (!name) {
     document.getElementById("patient-name-input").style.borderColor = "var(--red)";
     document.getElementById("patient-name-input").focus();
     return;
   }
+  if (!inits) {
+    document.getElementById("patient-initials-input").style.borderColor = "var(--red)";
+    document.getElementById("patient-initials-input").focus();
+    return;
+  }
   patientNameVal = name;
+  globalInitials = inits;
+  // Pre-fill all 14 pages with the same initials
+  for (var i = 1; i <= 14; i++) initials["page" + i] = inits;
+  // Update badge
+  document.getElementById("init-badge").textContent = inits;
 
   // Pre-fill sig1 name
   document.getElementById("sig1-name").value = name;
@@ -405,15 +421,10 @@ function updatePageUI() {
   document.getElementById("prog-fill").style.width = (pg / 14 * 100) + "%";
   document.getElementById("btn-pg-prev").style.display = docPageIdx > 0 ? "flex" : "none";
 
-  // Restore saved initial if any
-  var key = "page" + pg;
-  document.getElementById("cur-init").value = initials[key] || "";
-  document.getElementById("init-error").style.display = "none";
-
   // Last page = go to signatures
   var btn = document.getElementById("btn-pg-next");
   if (docPageIdx === PAGES.length - 1) {
-    btn.textContent = "Proceed to Sign";
+    btn.innerHTML = 'Proceed to Sign <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>';
     btn.classList.add("teal");
   } else {
     btn.innerHTML = 'Next Page <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>';
@@ -433,32 +444,17 @@ document.getElementById("doc-frame").addEventListener("load", function() {
 });
 
 function nextDocPage() {
-  var key = "page" + (docPageIdx + 1);
-  var val = document.getElementById("cur-init").value.trim().toUpperCase();
-  if (!val) {
-    document.getElementById("init-error").style.display = "block";
-    document.getElementById("cur-init").focus();
-    return;
-  }
-  initials[key] = val;
-
   if (docPageIdx === PAGES.length - 1) {
     showPhase("ph-sigs");
     return;
   }
   docPageIdx++;
   updatePageUI();
-  // Scroll iframe
   var fr = document.getElementById("doc-frame");
   if (frameReady) PAGES[docPageIdx].scroll(fr);
 }
 
 function prevDocPage() {
-  // Save current initials
-  var key = "page" + (docPageIdx + 1);
-  var val = document.getElementById("cur-init").value.trim().toUpperCase();
-  if (val) initials[key] = val;
-
   if (docPageIdx > 0) {
     docPageIdx--;
     updatePageUI();
@@ -500,10 +496,11 @@ function submitAgreement() {
   var repName = document.getElementById("rep-name").value.trim();
   var repRel  = document.getElementById("rep-relationship").value.trim();
 
-  if (!patName)           { showError("Please enter the patient name in Section 1."); return; }
+  if (!patName)              { showError("Please enter your full name in Section 1."); return; }
   if (isCanvasEmpty("sig1")) { showError("Please draw your signature in Section 1."); return; }
-  if (!repName)           { showError("Please enter the representative name in Section 2."); return; }
-  if (isCanvasEmpty("sig2")) { showError("Please draw the representative signature in Section 2."); return; }
+  // Rep is optional — only validate if they started filling it
+  if (repName && isCanvasEmpty("sig2")) { showError("You entered a representative name — please also draw the representative signature."); return; }
+  if (!repName && !isCanvasEmpty("sig2")) { showError("You drew a representative signature — please also enter the representative name."); return; }
 
   var btn = document.getElementById("btn-submit");
   btn.disabled = true;

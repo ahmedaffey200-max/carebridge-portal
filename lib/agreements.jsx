@@ -116,6 +116,9 @@
     return "AGR-" + year + "-" + String(next).padStart(3, "0");
   }
 
+  const SB_URL  = "https://htvjjwfenvittdritjni.supabase.co";
+  const SB_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh0dmpqd2ZlbnZpdHRkcml0am5pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2NTQ3OTAsImV4cCI6MjA5OTIzMDc5MH0.AMKUctPj49ahqXAFZbzJ341ZFH5XTckBUQaDmF5ZLj8";
+
   function AgreementsView() {
     const [agreements, setAgreements] = useState([]);
     const [showNew, setShowNew] = useState(false);
@@ -126,6 +129,37 @@
     useEffect(() => {
       const load = () => setAgreements(window.CBStore.getAgreements ? window.CBStore.getAgreements() : []);
       load();
+
+      // Sync signed status from Supabase so agreements signed by patient show up
+      fetch(SB_URL + "/rest/v1/portal_state?id=eq.main&select=state", {
+        headers: { apikey: SB_ANON, Authorization: "Bearer " + SB_ANON }
+      })
+      .then(r => r.json())
+      .then(rows => {
+        if (!rows || !rows[0] || !rows[0].state) return;
+        const sbAgrs = rows[0].state.agreements || [];
+        if (!sbAgrs.length) return;
+        const local = window.CBStore.getAgreements ? window.CBStore.getAgreements() : [];
+        const localMap = {};
+        local.forEach(a => { localMap[a.id] = a; });
+        let changed = false;
+        sbAgrs.forEach(sbA => {
+          if (sbA.status === "signed") {
+            if (localMap[sbA.id]) {
+              if (localMap[sbA.id].status !== "signed" && window.CBStore.updateAgreement) {
+                window.CBStore.updateAgreement(sbA.id, sbA);
+                changed = true;
+              }
+            } else if (window.CBStore.addAgreement) {
+              window.CBStore.addAgreement(sbA);
+              changed = true;
+            }
+          }
+        });
+        if (changed) load();
+      })
+      .catch(() => {});
+
       return window.CBStore.subscribe(load);
     }, []);
 
