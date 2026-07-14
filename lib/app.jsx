@@ -22,7 +22,7 @@ const NAV = [
     { id: "commissions", label: "Hospital commissions", icon: "badge-dollar-sign", adminOnly: true },
     { id: "financial", label: "Financial", icon: "wallet", adminOnly: true },
     { id: "finance", label: "Finance", icon: "line-chart", adminOnly: true },
-    { id: "expenses", label: "Company expenses", icon: "receipt", adminOnly: true },
+    { id: "expenses", label: "Company expenses", icon: "receipt" },
     { id: "analytics", label: "Analytics", icon: "bar-chart-3" },
   ]},
   { group: "Patient experience", items: [
@@ -30,8 +30,9 @@ const NAV = [
   ]},
   { group: "Administration", items: [
     { id: "ai-assistant", label: "AI Intelligence", icon: "brain-circuit", adminOnly: true },
+    { id: "agreements", label: "Patient Agreements", icon: "file-signature", adminOnly: true },
     { id: "patient-portal", label: "Patient Invitations", icon: "send" },
-    { id: "security", label: "Security & access", icon: "shield-check", adminOnly: true },
+    { id: "security", label: "Security & access", icon: "shield-check" },
     { id: "settings", label: "Settings & admin", icon: "settings" },
   ]},
 ];
@@ -54,6 +55,7 @@ const META = {
   analytics: { title: "Analytics & reporting", crumb: "Network & business" },
   mobile: { title: "Patient mobile app", crumb: "Patient experience" },
   "ai-assistant": { title: "AI Intelligence Assistant", crumb: "Administration" },
+  "agreements": { title: "Patient Agreements", crumb: "Administration" },
   "patient-portal": { title: "Patient Invitations", crumb: "Administration" },
   security: { title: "Security & access center", crumb: "Administration" },
   settings: { title: "Settings & administration", crumb: "Administration" },
@@ -384,7 +386,7 @@ function App() {
   }, []);
 
   const isAdmin = (localStorage.getItem("cb_user_role") || "admin") === "admin";
-  const ADMIN_ONLY = new Set(["commissions", "financial", "finance", "expenses", "ai-assistant", "security"]);
+  const ADMIN_ONLY = new Set(["commissions", "financial", "finance", "ai-assistant"]);
 
   let content = null;
   if (!isAdmin && ADMIN_ONLY.has(view.name)) {
@@ -413,6 +415,7 @@ function App() {
       case "analytics": content = <AnalyticsView />; break;
       case "mobile": content = <MobileView />; break;
       case "ai-assistant": content = <AIAssistantView />; break;
+      case "agreements": content = <AgreementsView />; break;
       case "patient-portal": content = <PatientInvitationsView />; break;
       case "security": content = <SecurityView />; break;
       case "settings": content = <SettingsView />; break;

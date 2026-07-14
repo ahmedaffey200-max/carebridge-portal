@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<title>Carebridge International — Patient Agreement</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --navy: #1B3A6B;
+  --navy2: #14305a;
+  --teal: #1CA89C;
+  --teal2: #158f85;
+  --text: #1e2d40;
+  --sub: #5a6a7e;
+  --bg: #f0f4f8;
+  --card: #fff;
+  --border: #d4dde8;
+  --success: #12a154;
+  --red: #c0392b;
+  --radius: 12px;
+  --shadow: 0 2px 16px rgba(27,58,107,0.10);
+}
+body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+/* ---- TOP BAR ---- */
+.top-bar { background: var(--navy); color: #fff; padding: 0 32px; height: 64px; display: flex; align-items: center; gap: 16px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 12px rgba(0,0,0,0.18); }
+.top-bar img { height: 38px; }
+.top-bar__title { font-size: 15px; font-weight: 600; opacity: 0.9; }
+.top-bar__secure { margin-left: auto; display: flex; align-items: center; gap: 6px; font-size: 12px; opacity: 0.7; }
+.top-bar__secure svg { width: 14px; height: 14px; }
+
+/* ---- PROGRESS ---- */
+.progress-wrap { background: #fff; border-bottom: 1px solid var(--border); padding: 16px 32px; }
+.progress-steps { display: flex; align-items: center; max-width: 800px; margin: 0 auto; gap: 0; }
+.step-item { display: flex; align-items: center; flex: 1; }
+.step-circle { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; transition: all 0.3s; border: 2px solid var(--border); background: #fff; color: var(--sub); }
+.step-circle.active { background: var(--navy); border-color: var(--navy); color: #fff; }
+.step-circle.done { background: var(--teal); border-color: var(--teal); color: #fff; }
+.step-label { font-size: 11px; font-weight: 600; color: var(--sub); margin-left: 8px; white-space: nowrap; }
+.step-label.active { color: var(--navy); }
+.step-connector { flex: 1; height: 2px; background: var(--border); margin: 0 8px; transition: background 0.3s; }
+.step-connector.done { background: var(--teal); }
+
+/* ---- MAIN ---- */
+.main { max-width: 860px; margin: 0 auto; padding: 32px 16px 64px; }
+
+/* ---- CARD ---- */
+.card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 36px 40px; margin-bottom: 24px; }
+.card__title { font-size: 22px; font-weight: 800; color: var(--navy); margin-bottom: 6px; }
+.card__sub { font-size: 14px; color: var(--sub); margin-bottom: 28px; }
+
+/* ---- COVER PAGE ---- */
+.cover-header { text-align: center; padding: 20px 0 32px; }
+.cover-header img { height: 80px; margin-bottom: 16px; }
+.cover-header h1 { font-size: 28px; font-weight: 900; color: var(--navy); line-height: 1.2; }
+.cover-header .doc-type { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--teal); font-weight: 700; margin-bottom: 8px; }
+.cover-header .services { font-size: 13px; color: var(--sub); margin-top: 8px; }
+
+.cover-divider { height: 3px; background: linear-gradient(90deg, var(--navy), var(--teal)); border-radius: 2px; margin: 24px 0; }
+
+/* ---- GRID FIELDS ---- */
+.field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.field-cell { padding: 14px 18px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); }
+.field-cell:nth-child(even) { border-right: none; }
+.field-cell:nth-last-child(-n+2) { border-bottom: none; }
+.field-cell label { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--sub); display: block; margin-bottom: 6px; }
+.field-cell input { width: 100%; border: none; border-bottom: 1.5px solid var(--border); padding: 4px 0; font-size: 14px; font-weight: 600; color: var(--text); background: transparent; outline: none; }
+.field-cell input:focus { border-bottom-color: var(--teal); }
+.field-cell .readonly-val { font-size: 14px; font-weight: 600; color: var(--text); padding: 4px 0; border-bottom: 1.5px solid transparent; }
+.field-cell.highlight .readonly-val { color: var(--navy); }
+
+.conf-notice { background: #f0f7ff; border-left: 4px solid var(--teal); border-radius: 0 8px 8px 0; padding: 14px 18px; margin-top: 20px; }
+.conf-notice strong { font-size: 12px; letter-spacing: 1px; text-transform: uppercase; color: var(--teal); display: block; margin-bottom: 4px; }
+.conf-notice p { font-size: 13px; color: var(--sub); line-height: 1.5; }
+
+/* ---- PDF VIEWER ---- */
+.pdf-frame { width: 100%; height: 680px; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.pdf-hint { background: #fffbea; border: 1px solid #f0d060; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; font-size: 13px; color: #7a5c00; display: flex; align-items: center; gap: 8px; }
+
+/* ---- INITIALS ---- */
+.initials-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.initial-item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--bg); border-radius: 8px; border: 1px solid var(--border); }
+.initial-item label { font-size: 13px; font-weight: 600; color: var(--sub); flex: 1; }
+.initial-item input { width: 80px; text-align: center; border: none; border-bottom: 2px solid var(--border); background: #fff; padding: 4px 8px; font-size: 15px; font-weight: 700; color: var(--navy); outline: none; border-radius: 4px; letter-spacing: 2px; }
+.initial-item input:focus { border-bottom-color: var(--teal); }
+.initial-item.done { border-color: var(--teal); background: #f0faf9; }
+
+/* ---- CONSENT TEXT ---- */
+.consent-text { font-size: 13.5px; line-height: 1.7; color: var(--sub); background: #f8fafc; border-radius: 8px; padding: 18px 20px; border: 1px solid var(--border); margin-bottom: 22px; }
+.consent-text strong { color: var(--text); }
+
+/* ---- SIG SECTION ---- */
+.sig-section { border: 1.5px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+.sig-section__title { font-size: 14px; font-weight: 800; color: var(--navy); letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 4px; }
+.sig-section__sub { font-size: 12px; color: var(--sub); margin-bottom: 20px; }
+.sig-field { margin-bottom: 16px; }
+.sig-field label { font-size: 12px; font-weight: 700; color: var(--sub); text-transform: uppercase; letter-spacing: 0.8px; display: block; margin-bottom: 6px; }
+.sig-field input { width: 100%; border: none; border-bottom: 1.5px solid var(--border); padding: 6px 0; font-size: 14px; font-weight: 600; background: transparent; outline: none; color: var(--text); }
+.sig-field input:focus { border-bottom-color: var(--teal); }
+.sig-field .static-val { padding: 6px 0; font-size: 14px; font-weight: 600; color: var(--text); border-bottom: 1.5px solid #eee; }
+
+.canvas-wrap { position: relative; border: 1.5px dashed var(--border); border-radius: 8px; background: #fafcff; margin-top: 6px; }
+.sig-canvas { display: block; width: 100%; height: 120px; cursor: crosshair; border-radius: 8px; touch-action: none; }
+.canvas-label { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); font-size: 11px; color: #bbb; pointer-events: none; font-style: italic; }
+.canvas-clear { position: absolute; top: 6px; right: 8px; font-size: 11px; color: var(--teal); cursor: pointer; background: none; border: none; font-weight: 600; }
+
+/* ---- BUTTONS ---- */
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 28px; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; border: none; transition: all 0.2s; }
+.btn-primary { background: var(--navy); color: #fff; }
+.btn-primary:hover { background: var(--navy2); }
+.btn-teal { background: var(--teal); color: #fff; }
+.btn-teal:hover { background: var(--teal2); }
+.btn-outline { background: transparent; color: var(--navy); border: 2px solid var(--navy); }
+.btn-outline:hover { background: var(--navy); color: #fff; }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-row { display: flex; align-items: center; gap: 12px; margin-top: 24px; }
+.btn-row .btn-back { background: transparent; color: var(--sub); border: 1.5px solid var(--border); }
+.btn-row .btn-back:hover { background: var(--bg); }
+
+/* ---- SUCCESS ---- */
+.success-page { text-align: center; padding: 48px 32px; }
+.success-icon { width: 80px; height: 80px; background: linear-gradient(135deg, var(--teal), var(--navy)); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; }
+.success-icon svg { width: 40px; height: 40px; stroke: #fff; fill: none; stroke-width: 2.5; }
+.success-page h2 { font-size: 26px; font-weight: 900; color: var(--navy); margin-bottom: 12px; }
+.success-page p { font-size: 15px; color: var(--sub); line-height: 1.7; max-width: 480px; margin: 0 auto 24px; }
+.success-ref { background: var(--bg); border-radius: 8px; padding: 14px 20px; display: inline-block; font-size: 13px; color: var(--sub); }
+.success-ref strong { color: var(--navy); font-size: 15px; }
+
+/* ---- FOOTER ---- */
+.page-footer { text-align: center; padding: 20px; font-size: 12px; color: #aaa; }
+
+/* ---- SECTION HIDDEN ---- */
+.step-section { display: none; }
+.step-section.active { display: block; }
+
+/* ---- CHECKBOX ---- */
+.check-row { display: flex; align-items: flex-start; gap: 12px; padding: 16px; background: var(--bg); border-radius: 8px; border: 1.5px solid var(--border); cursor: pointer; }
+.check-row input[type=checkbox] { width: 20px; height: 20px; flex-shrink: 0; accent-color: var(--teal); cursor: pointer; margin-top: 1px; }
+.check-row span { font-size: 13.5px; font-weight: 500; color: var(--text); line-height: 1.5; }
+
+/* ---- RESPONSIVE ---- */
+@media (max-width: 600px) {
+  .card { padding: 24px 18px; }
+  .field-grid { grid-template-columns: 1fr; }
+  .field-cell:nth-child(odd), .field-cell:nth-child(even) { border-right: none; }
+  .field-cell:last-child { border-bottom: none; }
+  .initials-grid { grid-template-columns: 1fr; }
+  .progress-wrap { padding: 12px 16px; }
+  .step-label { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="top-bar">
+  <img src="assets/carebridge-logo.png" alt="Carebridge International" onerror="this.style.display='none'" />
+  <span class="top-bar__title">Patient Medical Travel Service Agreement</span>
+  <span class="top-bar__secure">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    Secured & Private
+  </span>
+</div>
+
+<!-- PROGRESS BAR -->
+<div class="progress-wrap">
+  <div class="progress-steps">
+    <div class="step-item">
+      <div class="step-circle active" id="sc1">1</div>
+      <span class="step-label active" id="sl1">Details</span>
+    </div>
+    <div class="step-connector" id="con1"></div>
+    <div class="step-item">
+      <div class="step-circle" id="sc2">2</div>
+      <span class="step-label" id="sl2">Read</span>
+    </div>
+    <div class="step-connector" id="con2"></div>
+    <div class="step-item">
+      <div class="step-circle" id="sc3">3</div>
+      <span class="step-label" id="sl3">Initials</span>
+    </div>
+    <div class="step-connector" id="con3"></div>
+    <div class="step-item">
+      <div class="step-circle" id="sc4">4</div>
+      <span class="step-label" id="sl4">Sign</span>
+    </div>
+    <div class="step-connector" id="con4"></div>
+    <div class="step-item">
+      <div class="step-circle" id="sc5">5</div>
+      <span class="step-label" id="sl5">Done</span>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- ===== STEP 1: DETAILS ===== -->
+  <div class="step-section active" id="step1">
+    <div class="card">
+      <div class="cover-header">
+        <img src="assets/carebridge-logo.png" alt="Carebridge International" onerror="this.style.display='none'" style="height:70px;margin-bottom:14px;" />
+        <div class="doc-type">International Healthcare Agreement</div>
+        <h1>Patient Medical Travel<br>Service Agreement</h1>
+        <div class="services" style="margin-top:10px;">International Healthcare Coordination &nbsp;•&nbsp; Medical Tourism &nbsp;•&nbsp; Patient Support &nbsp;•&nbsp; Healthcare Travel Services</div>
+      </div>
+      <div class="cover-divider"></div>
+
+      <div class="field-grid">
+        <div class="field-cell">
+          <label>Agreement Number</label>
+          <div class="readonly-val" id="agr-num-display" style="color:var(--teal);font-size:15px;font-weight:800;">—</div>
+        </div>
+        <div class="field-cell">
+          <label>Version Number</label>
+          <div class="readonly-val">1.0</div>
+        </div>
+        <div class="field-cell">
+          <label>Patient Name</label>
+          <input type="text" id="patient-name-input" placeholder="Enter your full legal name" autocomplete="name" />
+        </div>
+        <div class="field-cell">
+          <label>Date</label>
+          <div class="readonly-val" id="date-display">—</div>
+        </div>
+        <div class="field-cell">
+          <label>Prepared By</label>
+          <div class="readonly-val">Sidii Hamza</div>
+        </div>
+        <div class="field-cell highlight">
+          <label>Company</label>
+          <div class="readonly-val">Carebridge International Inc.</div>
+        </div>
+      </div>
+
+      <div class="conf-notice" style="margin-top:20px;">
+        <strong>Confidentiality Notice</strong>
+        <p>This document contains confidential and proprietary information intended solely for the parties to this Agreement. It may not be copied, distributed, or disclosed to any third party without the prior written consent of Carebridge International Inc., except as required by law.</p>
+      </div>
+
+      <div class="btn-row" style="justify-content:flex-end;">
+        <button class="btn btn-primary" id="btn-step1">Begin Reading Agreement &rarr;</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== STEP 2: READ ===== -->
+  <div class="step-section" id="step2">
+    <div class="card">
+      <div class="card__title">Read Your Agreement</div>
+      <div class="card__sub">Please read all 14 pages carefully. Scroll through the full document before continuing.</div>
+
+      <div class="pdf-hint">
+        📄 &nbsp;<strong>14-page document</strong> — Please scroll through all pages before checking the box below.
+      </div>
+
+      <iframe class="pdf-frame" id="pdf-frame" src="assets/carebridge-agreement.pdf#toolbar=1&navpanes=0" title="Patient Medical Travel Service Agreement"></iframe>
+
+      <div style="margin-top:20px;">
+        <label class="check-row" for="read-confirm">
+          <input type="checkbox" id="read-confirm" />
+          <span>I confirm that I have fully read, understood, and agree to all 14 pages of the <strong>Carebridge International Patient Medical Travel Service Agreement</strong>, including all 42 sections covering the complete scope of services, responsibilities, financial terms, privacy provisions, and limitation of liability.</span>
+        </label>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-back" onclick="goTo(1)">&larr; Back</button>
+        <button class="btn btn-primary" id="btn-step2" disabled>Continue to Initials &rarr;</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== STEP 3: INITIALS ===== -->
+  <div class="step-section" id="step3">
+    <div class="card">
+      <div class="card__title">Page Initials</div>
+      <div class="card__sub">Please initial each page to confirm you have read it. Enter your initials in each field.</div>
+
+      <div class="initials-grid" id="initials-grid">
+        <!-- Generated by JS -->
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-back" onclick="goTo(2)">&larr; Back</button>
+        <button class="btn btn-primary" id="btn-step3">Continue to Signatures &rarr;</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== STEP 4: SIGNATURES ===== -->
+  <div class="step-section" id="step4">
+    <div class="card">
+      <div class="card__title">Signatures</div>
+      <div class="card__sub">Please sign in the boxes below. Use your mouse or finger to draw your signature.</div>
+
+      <!-- Patient Acknowledgment -->
+      <div class="consent-text">
+        <strong>Patient Acknowledgment and Consent</strong><br><br>
+        I have read and understood the Privacy, Confidentiality, Data Security, and Limitation of Liability provisions of this Agreement. I understand that no electronic system is completely secure and that, despite reasonable safeguards, cybersecurity incidents or data breaches may occur. I voluntarily consent to the collection, use, storage, processing, and international transfer of my personal and medical information for the purpose of coordinating my medical care and related services, and I acknowledge and accept the risks described above.
+      </div>
+
+      <div class="sig-section">
+        <div class="sig-section__title">Patient Acknowledgment &amp; Consent</div>
+        <div class="sig-section__sub">Signed by the patient confirming full agreement</div>
+        <div class="sig-field">
+          <label>Patient Name</label>
+          <div class="static-val" id="sig-patient-name-display">—</div>
+        </div>
+        <div class="sig-field">
+          <label>Signature</label>
+          <div class="canvas-wrap">
+            <canvas class="sig-canvas" id="sig1" width="800" height="120"></canvas>
+            <span class="canvas-label">Sign here</span>
+            <button class="canvas-clear" onclick="clearSig('sig1')">Clear</button>
+          </div>
+        </div>
+        <div class="sig-field">
+          <label>Date</label>
+          <div class="static-val" id="sig-date-1">—</div>
+        </div>
+      </div>
+
+      <!-- Patient / Authorized Representative -->
+      <div class="sig-section">
+        <div class="sig-section__title">Patient / Authorized Representative</div>
+        <div class="sig-section__sub">Signed by the Patient or a person authorized to sign on the Patient's behalf</div>
+        <div class="sig-field">
+          <label>Name</label>
+          <input type="text" id="rep-name" placeholder="Full legal name" />
+        </div>
+        <div class="sig-field">
+          <label>Relationship to Patient</label>
+          <input type="text" id="rep-relationship" placeholder="e.g. Self, Spouse, Parent, Legal Guardian" />
+        </div>
+        <div class="sig-field">
+          <label>Signature</label>
+          <div class="canvas-wrap">
+            <canvas class="sig-canvas" id="sig2" width="800" height="120"></canvas>
+            <span class="canvas-label">Sign here</span>
+            <button class="canvas-clear" onclick="clearSig('sig2')">Clear</button>
+          </div>
+        </div>
+        <div class="sig-field">
+          <label>Date</label>
+          <div class="static-val" id="sig-date-2">—</div>
+        </div>
+      </div>
+
+      <!-- Witness 2 -->
+      <div class="sig-section">
+        <div class="sig-section__title">Witness 2</div>
+        <div class="sig-section__sub">Witness to the signatures above</div>
+        <div class="sig-field">
+          <label>Name</label>
+          <input type="text" id="witness-name" placeholder="Witness full name" />
+        </div>
+        <div class="sig-field">
+          <label>Signature</label>
+          <div class="canvas-wrap">
+            <canvas class="sig-canvas" id="sig3" width="800" height="120"></canvas>
+            <span class="canvas-label">Sign here</span>
+            <button class="canvas-clear" onclick="clearSig('sig3')">Clear</button>
+          </div>
+        </div>
+        <div class="sig-field">
+          <label>Date</label>
+          <div class="static-val" id="sig-date-3">—</div>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-back" onclick="goTo(3)">&larr; Back</button>
+        <button class="btn btn-teal" id="btn-submit" onclick="submitAgreement()">&#10003; Submit Signed Agreement</button>
+      </div>
+      <p id="submit-error" style="color:var(--red);font-size:13px;margin-top:12px;display:none;"></p>
+    </div>
+  </div>
+
+  <!-- ===== STEP 5: SUCCESS ===== -->
+  <div class="step-section" id="step5">
+    <div class="card">
+      <div class="success-page">
+        <div class="success-icon">
+          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        </div>
+        <h2>Agreement Signed Successfully</h2>
+        <p>Thank you. Your signed Patient Medical Travel Service Agreement has been submitted to Carebridge International. Our coordination team will be in touch with you shortly.</p>
+        <div class="success-ref">
+          Agreement Reference: &nbsp;<strong id="success-ref-id">—</strong>
+        </div>
+        <div style="margin-top:24px;font-size:13px;color:#aaa;">
+          support@carebridgeinternational.ca &nbsp;|&nbsp; +1 (825) 785-3396 &nbsp;|&nbsp; www.carebridgeinternational.ca
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="page-footer">
+  Private &amp; Confidential &nbsp;|&nbsp; support@carebridgeinternational.ca &nbsp;|&nbsp; +1 (825) 785-3396 &nbsp;|&nbsp; www.carebridgeinternational.ca
+</div>
+
+<script>
+// ============================================================
+//  Agreement page logic
+// ============================================================
+var SB_URL  = "https://htvjjwfenvittdritjni.supabase.co";
+var SB_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh0dmpqd2ZlbnZpdHRkcml0am5pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2NTQ3OTAsImV4cCI6MjA5OTIzMDc5MH0.AMKUctPj49ahqXAFZbzJ341ZFH5XTckBUQaDmF5ZLj8";
+
+// Email notification (Web3Forms — replace key with yours from web3forms.com)
+var WEB3FORMS_KEY = "ced130e3-f4d4-424b-96fe-bd50558254f2";
+var ADMIN_EMAIL   = "ahmedaffey200@gmail.com";
+
+var currentStep = 1;
+var agrId = "";
+var patientName = "";
+
+// ---- Read URL params ----
+var params = new URLSearchParams(window.location.search);
+agrId = params.get("id") || ("AGR-" + new Date().getFullYear() + "-" + Math.floor(Math.random()*900+100));
+patientName = decodeURIComponent(params.get("name") || "");
+
+// ---- Init ----
+document.addEventListener("DOMContentLoaded", function () {
+  var today = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+  document.getElementById("agr-num-display").textContent = agrId;
+  document.getElementById("date-display").textContent = today;
+  document.getElementById("sig-date-1").textContent = today;
+  document.getElementById("sig-date-2").textContent = today;
+  document.getElementById("sig-date-3").textContent = today;
+  document.getElementById("success-ref-id").textContent = agrId;
+
+  if (patientName) {
+    document.getElementById("patient-name-input").value = patientName;
+    document.getElementById("sig-patient-name-display").textContent = patientName;
+    document.getElementById("rep-name").value = patientName;
+    document.getElementById("rep-relationship").value = "Self";
+  }
+
+  // Build initials grid
+  var grid = document.getElementById("initials-grid");
+  for (var i = 1; i <= 14; i++) {
+    var item = document.createElement("div");
+    item.className = "initial-item";
+    item.id = "init-item-" + i;
+    item.innerHTML = '<label>Page ' + i + '</label><input type="text" id="init-' + i + '" maxlength="5" placeholder="——" oninput="onInitialInput(this,' + i + ')" />';
+    grid.appendChild(item);
+  }
+
+  // Setup canvas signatures
+  setupCanvas("sig1");
+  setupCanvas("sig2");
+  setupCanvas("sig3");
+
+  // Step 1 next
+  document.getElementById("btn-step1").addEventListener("click", function () {
+    var name = document.getElementById("patient-name-input").value.trim();
+    if (!name) { alert("Please enter your full legal name to continue."); return; }
+    patientName = name;
+    document.getElementById("sig-patient-name-display").textContent = name;
+    if (!document.getElementById("rep-name").value) document.getElementById("rep-name").value = name;
+    goTo(2);
+  });
+
+  // Step 2 checkbox
+  document.getElementById("read-confirm").addEventListener("change", function () {
+    document.getElementById("btn-step2").disabled = !this.checked;
+  });
+  document.getElementById("btn-step2").addEventListener("click", function () { goTo(3); });
+
+  // Step 3 next
+  document.getElementById("btn-step3").addEventListener("click", function () {
+    var missing = [];
+    for (var i = 1; i <= 14; i++) {
+      if (!document.getElementById("init-" + i).value.trim()) missing.push(i);
+    }
+    if (missing.length) {
+      alert("Please initial all pages before continuing. Missing: Page " + missing.join(", "));
+      return;
+    }
+    goTo(4);
+  });
+});
+
+function onInitialInput(el, page) {
+  var item = document.getElementById("init-item-" + page);
+  item.classList.toggle("done", el.value.trim().length > 0);
+}
+
+// ---- Navigation ----
+function goTo(n) {
+  document.getElementById("step" + currentStep).classList.remove("active");
+  currentStep = n;
+  document.getElementById("step" + n).classList.add("active");
+  updateProgress(n);
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function updateProgress(n) {
+  for (var i = 1; i <= 5; i++) {
+    var circle = document.getElementById("sc" + i);
+    var label = document.getElementById("sl" + i);
+    circle.classList.remove("active", "done");
+    label && label.classList.remove("active");
+    if (i < n) { circle.classList.add("done"); circle.textContent = "✓"; }
+    else if (i === n) { circle.classList.add("active"); circle.textContent = i; label && label.classList.add("active"); }
+    else { circle.textContent = i; }
+    if (i < 5) {
+      var con = document.getElementById("con" + i);
+      if (con) con.classList.toggle("done", i < n);
+    }
+  }
+}
+
+// ---- Canvas signatures ----
+function setupCanvas(id) {
+  var canvas = document.getElementById(id);
+  if (!canvas) return;
+  var ctx = canvas.getContext("2d");
+  ctx.strokeStyle = "#1B3A6B";
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  var drawing = false;
+
+  function getPos(e) {
+    var rect = canvas.getBoundingClientRect();
+    var scaleX = canvas.width / rect.width;
+    var scaleY = canvas.height / rect.height;
+    if (e.touches) {
+      return { x: (e.touches[0].clientX - rect.left) * scaleX, y: (e.touches[0].clientY - rect.top) * scaleY };
+    }
+    return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
+  }
+
+  canvas.addEventListener("mousedown", function (e) { drawing = true; ctx.beginPath(); var p = getPos(e); ctx.moveTo(p.x, p.y); });
+  canvas.addEventListener("mousemove", function (e) { if (!drawing) return; var p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); ctx.beginPath(); ctx.moveTo(p.x, p.y); });
+  canvas.addEventListener("mouseup", function () { drawing = false; });
+  canvas.addEventListener("mouseleave", function () { drawing = false; });
+  canvas.addEventListener("touchstart", function (e) { e.preventDefault(); drawing = true; ctx.beginPath(); var p = getPos(e); ctx.moveTo(p.x, p.y); }, { passive: false });
+  canvas.addEventListener("touchmove", function (e) { e.preventDefault(); if (!drawing) return; var p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); ctx.beginPath(); ctx.moveTo(p.x, p.y); }, { passive: false });
+  canvas.addEventListener("touchend", function () { drawing = false; });
+}
+
+function clearSig(id) {
+  var canvas = document.getElementById(id);
+  canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
+}
+
+function isCanvasEmpty(id) {
+  var canvas = document.getElementById(id);
+  var data = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height).data;
+  for (var i = 0; i < data.length; i += 4) { if (data[i + 3] > 0) return false; }
+  return true;
+}
+
+// ---- Submit ----
+function submitAgreement() {
+  var name = document.getElementById("patient-name-input").value.trim();
+  var repName = document.getElementById("rep-name").value.trim();
+  var repRel = document.getElementById("rep-relationship").value.trim();
+
+  if (!name) { showError("Please enter your patient name."); return; }
+  if (isCanvasEmpty("sig1")) { showError("Please sign in the Patient Acknowledgment section."); return; }
+  if (!repName) { showError("Please enter the authorized representative name."); return; }
+  if (isCanvasEmpty("sig2")) { showError("Please sign in the Patient / Authorized Representative section."); return; }
+
+  var btn = document.getElementById("btn-submit");
+  btn.disabled = true;
+  btn.textContent = "Submitting…";
+  showError("");
+
+  // Collect initials
+  var initials = {};
+  for (var i = 1; i <= 14; i++) {
+    initials["page" + i] = document.getElementById("init-" + i).value.trim();
+  }
+
+  var today = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+  var timestamp = new Date().toISOString();
+
+  var payload = {
+    id: agrId,
+    patientName: name,
+    repName: repName,
+    repRelationship: repRel,
+    witnesName: document.getElementById("witness-name").value.trim(),
+    initials: initials,
+    sig1: document.getElementById("sig1").toDataURL(),
+    sig2: document.getElementById("sig2").toDataURL(),
+    sig3: isCanvasEmpty("sig3") ? null : document.getElementById("sig3").toDataURL(),
+    dateSigned: today,
+    timestamp: timestamp,
+    status: "signed",
+    preparedBy: "Sidii Hamza",
+    version: "1.0",
+  };
+
+  // 1. Save to Supabase
+  saveToSupabase(payload, function () {
+    // 2. Send email notification
+    sendEmailNotification(payload, function () {
+      goTo(5);
+    });
+  });
+}
+
+function saveToSupabase(payload, callback) {
+  // Load current portal state, add agreement, save back
+  fetch(SB_URL + "/rest/v1/portal_state?id=eq.main&select=state", {
+    headers: { "apikey": SB_ANON, "Authorization": "Bearer " + SB_ANON }
+  })
+  .then(function (r) { return r.json(); })
+  .then(function (data) {
+    var state = (data && data[0] && data[0].state) || {};
+    if (!Array.isArray(state.agreements)) state.agreements = [];
+    // Update or add
+    var idx = state.agreements.findIndex(function (a) { return a.id === payload.id; });
+    if (idx >= 0) { state.agreements[idx] = Object.assign({}, state.agreements[idx], payload); }
+    else { state.agreements.push(payload); }
+
+    return fetch(SB_URL + "/rest/v1/portal_state?id=eq.main", {
+      method: "PATCH",
+      headers: {
+        "apikey": SB_ANON, "Authorization": "Bearer " + SB_ANON,
+        "Content-Type": "application/json", "Prefer": "return=minimal"
+      },
+      body: JSON.stringify({ state: state, updated_at: new Date().toISOString() })
+    });
+  })
+  .then(function () { callback(); })
+  .catch(function () { callback(); }); // proceed even if Supabase fails
+}
+
+function sendEmailNotification(payload, callback) {
+  if (WEB3FORMS_KEY === "YOUR_WEB3FORMS_KEY") { callback(); return; }
+
+  var today = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+  fetch("https://api.web3forms.com/submit", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      access_key: WEB3FORMS_KEY,
+      subject: "✅ Agreement Signed — " + payload.patientName + " (" + payload.id + ")",
+      from_name: "Carebridge Portal",
+      to: ADMIN_EMAIL,
+      message:
+        "AGREEMENT SIGNED\n" +
+        "================\n\n" +
+        "Agreement ID:   " + payload.id + "\n" +
+        "Patient Name:   " + payload.patientName + "\n" +
+        "Rep/Signer:     " + payload.repName + " (" + payload.repRelationship + ")\n" +
+        "Witness:        " + (payload.witnesName || "—") + "\n" +
+        "Date Signed:    " + today + "\n" +
+        "Timestamp:      " + payload.timestamp + "\n\n" +
+        "All 14 pages have been initialed and all required signatures have been captured.\n\n" +
+        "Log in to the Carebridge Portal → Agreements to view the full signed document."
+    })
+  })
+  .then(function () { callback(); })
+  .catch(function () { callback(); });
+}
+
+function showError(msg) {
+  var el = document.getElementById("submit-error");
+  el.textContent = msg;
+  el.style.display = msg ? "block" : "none";
+}
+</script>
+</body>
+</html>
