@@ -2,16 +2,26 @@
    Carebridge Portal — Patient Agreements
    ============================================================ */
 (function () {
-  const { useState, useEffect, useRef } = React;
+  const { useState, useEffect } = React;
   const BASE_URL = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, "/");
   const ADMIN_EMAIL = "ahmedaffey200@gmail.com";
+  const W3KEY = "ced130e3-f4d4-424b-96fe-bd50558254f2";
+
+  // Inline SVG icons — avoids Lucide/React DOM conflict
+  const Icon = {
+    Plus: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+    Link: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>,
+    Eye: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>,
+    X: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+    Check: () => <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>,
+    Copy: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>,
+    Doc: () => <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" style={{opacity:0.25,display:"block",margin:"0 auto 16px"}}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>,
+  };
 
   function nextAgrId() {
     const year = new Date().getFullYear();
-    const existing = (window.CBStore.getAgreements ? window.CBStore.getAgreements() : []);
-    const nums = existing
-      .map((a) => parseInt((a.id || "").split("-").pop(), 10))
-      .filter((n) => !isNaN(n));
+    const existing = window.CBStore.getAgreements ? window.CBStore.getAgreements() : [];
+    const nums = existing.map((a) => parseInt((a.id || "").split("-").pop(), 10)).filter((n) => !isNaN(n));
     const next = nums.length ? Math.max(...nums) + 1 : 1;
     return "AGR-" + year + "-" + String(next).padStart(3, "0");
   }
@@ -21,6 +31,7 @@
     const [showNew, setShowNew] = useState(false);
     const [viewAgr, setViewAgr] = useState(null);
     const [filter, setFilter] = useState("all");
+    const [copied, setCopied] = useState(null);
 
     useEffect(() => {
       const load = () => setAgreements(window.CBStore.getAgreements ? window.CBStore.getAgreements() : []);
@@ -28,32 +39,28 @@
       return window.CBStore.subscribe(load);
     }, []);
 
-    const filtered = filter === "all" ? agreements
-      : agreements.filter((a) => a.status === filter);
-
-    const statusColor = (s) => s === "signed" ? "success" : s === "pending" ? "warn" : "muted";
+    const filtered = filter === "all" ? agreements : agreements.filter((a) => a.status === filter);
+    const statusColor = (s) => s === "signed" ? "success" : "warn";
     const statusLabel = (s) => s === "signed" ? "Signed" : "Pending";
 
-    function copyLink(link) {
-      navigator.clipboard.writeText(link).catch(() => {});
-      // simple visual feedback via title
+    function copyLink(id, link) {
+      navigator.clipboard.writeText(link || "").catch(() => {});
+      setCopied(id);
+      setTimeout(() => setCopied(null), 2000);
     }
 
     return (
       <div className="cb-section">
-        {/* Header */}
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
           <div style={{ flex: 1 }}>
             <h2 style={{ fontSize: 20, fontWeight: 800, color: "var(--navy-700, #1B3A6B)", margin: 0 }}>Patient Agreements</h2>
             <p style={{ fontSize: 13, color: "var(--text-faint)", margin: "4px 0 0" }}>Send, track and manage signed patient service agreements</p>
           </div>
           <button className="cb-btn cb-btn--primary" onClick={() => setShowNew(true)} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <i data-lucide="plus" style={{ width: 16, height: 16 }} />
-            New Agreement
+            <Icon.Plus /> New Agreement
           </button>
         </div>
 
-        {/* Filter tabs */}
         <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
           {[["all", "All"], ["pending", "Pending"], ["signed", "Signed"]].map(([k, l]) => (
             <button key={k} onClick={() => setFilter(k)}
@@ -63,11 +70,10 @@
           ))}
         </div>
 
-        {/* Table */}
         {filtered.length === 0 ? (
           <div style={{ textAlign: "center", padding: "64px 0", color: "var(--text-faint)" }}>
-            <i data-lucide="file-signature" style={{ width: 48, height: 48, opacity: 0.3, display: "block", margin: "0 auto 16px" }} />
-            <p style={{ fontSize: 15, fontWeight: 600 }}>No agreements yet</p>
+            <Icon.Doc />
+            <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>No agreements yet</p>
             <p style={{ fontSize: 13 }}>Click "New Agreement" to send one to a patient.</p>
           </div>
         ) : (
@@ -95,12 +101,12 @@
                     </td>
                     <td style={{ padding: "12px 16px" }}>
                       <div style={{ display: "flex", gap: 6 }}>
-                        <button className="cb-icon-pill" title="Copy patient link" onClick={() => copyLink(a.link || "")} style={{ width: 32, height: 32 }}>
-                          <i data-lucide="link" style={{ width: 14, height: 14 }} />
+                        <button className="cb-icon-pill" title={copied === a.id ? "Copied!" : "Copy patient link"} onClick={() => copyLink(a.id, a.link)} style={{ width: 32, height: 32, background: copied === a.id ? "var(--teal-600, #1CA89C)" : "", color: copied === a.id ? "#fff" : "" }}>
+                          <Icon.Link />
                         </button>
                         {a.status === "signed" && (
                           <button className="cb-icon-pill" title="View signed agreement" onClick={() => setViewAgr(a)} style={{ width: 32, height: 32 }}>
-                            <i data-lucide="eye" style={{ width: 14, height: 14 }} />
+                            <Icon.Eye />
                           </button>
                         )}
                       </div>
@@ -124,6 +130,7 @@
     const [sending, setSending] = useState(false);
     const [done, setDone] = useState(false);
     const [link, setLink] = useState("");
+    const [copied, setCopied] = useState(false);
 
     function send() {
       if (!name.trim()) return;
@@ -133,47 +140,28 @@
       const agrLink = BASE_URL + "agreement?id=" + encodeURIComponent(id) + "&name=" + encodeURIComponent(name.trim());
       const record = { id, patientName: name.trim(), patientEmail: email.trim(), sentDate: today, status: "pending", link: agrLink, version: "1.0", preparedBy: "Sidii Hamza" };
 
-      // Save to store
       if (window.CBStore.addAgreement) window.CBStore.addAgreement(record);
 
-      // Send admin notification + patient link via Web3Forms
-      const W3KEY = window.CB_WEB3FORMS_KEY || "ced130e3-f4d4-424b-96fe-bd50558254f2";
-      const emails = [];
-      if (W3KEY && W3KEY !== "YOUR_WEB3FORMS_KEY") {
-        // Admin notification
-        emails.push(fetch("https://api.web3forms.com/submit", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            access_key: W3KEY,
-            subject: "📋 New Agreement Sent — " + name.trim() + " (" + id + ")",
-            from_name: "Carebridge Portal",
-            to: ADMIN_EMAIL,
-            message: "A new agreement has been sent.\n\nAgreement ID: " + id + "\nPatient: " + name.trim() + "\nEmail: " + (email.trim() || "—") + "\nDate: " + today + "\n\nPatient Link:\n" + agrLink,
-          }),
-        }).catch(() => {}));
+      const reqs = [];
+      reqs.push(fetch("https://api.web3forms.com/submit", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ access_key: W3KEY, subject: "📋 New Agreement Sent — " + name.trim() + " (" + id + ")", from_name: "Carebridge Portal", to: ADMIN_EMAIL, message: "Agreement ID: " + id + "\nPatient: " + name.trim() + "\nEmail: " + (email.trim() || "—") + "\nDate: " + today + "\n\nPatient Link:\n" + agrLink }),
+      }).catch(() => {}));
 
-        // Patient email if provided
-        if (email.trim()) {
-          emails.push(fetch("https://api.web3forms.com/submit", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              access_key: W3KEY,
-              subject: "Please sign your Carebridge International Service Agreement",
-              from_name: "Carebridge International",
-              to: email.trim(),
-              message: "Dear " + name.trim() + ",\n\nPlease click the link below to review and sign your Patient Medical Travel Service Agreement with Carebridge International Inc.\n\n" + agrLink + "\n\nYour Agreement Number: " + id + "\nPrepared By: Sidii Hamza\n\nIf you have any questions, please contact us at support@carebridgeinternational.ca or +1 (825) 785-3396.\n\nSincerely,\nCarebridge International Inc.",
-            }),
-          }).catch(() => {}));
-        }
+      if (email.trim()) {
+        reqs.push(fetch("https://api.web3forms.com/submit", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ access_key: W3KEY, subject: "Please sign your Carebridge International Service Agreement", from_name: "Carebridge International", to: email.trim(), message: "Dear " + name.trim() + ",\n\nPlease click the link below to review and sign your Patient Medical Travel Service Agreement with Carebridge International Inc.\n\n" + agrLink + "\n\nAgreement Number: " + id + "\nPrepared By: Sidii Hamza\n\nQuestions? Contact us at support@carebridgeinternational.ca or +1 (825) 785-3396.\n\nSincerely,\nCarebridge International Inc." }),
+        }).catch(() => {}));
       }
 
-      Promise.all(emails).finally(() => {
-        setSending(false);
-        setLink(agrLink);
-        setDone(true);
-      });
+      Promise.all(reqs).finally(() => { setSending(false); setLink(agrLink); setDone(true); });
+    }
+
+    function doCopy() {
+      navigator.clipboard.writeText(link).catch(() => {});
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     }
 
     return (
@@ -181,24 +169,22 @@
         <div className="cb-modal__card" style={{ maxWidth: 520, width: "100%" }}>
           <div className="cb-modal__head">
             <h2 className="cb-modal__title">New Patient Agreement</h2>
-            <button className="cb-modal__close" onClick={onClose} aria-label="Close"><i data-lucide="x" /></button>
+            <button className="cb-modal__close" onClick={onClose} aria-label="Close"><Icon.X /></button>
           </div>
 
           {done ? (
             <div style={{ padding: "16px 24px 24px" }}>
               <div style={{ textAlign: "center", marginBottom: 20 }}>
                 <div style={{ width: 56, height: 56, borderRadius: "50%", background: "linear-gradient(135deg, #1CA89C, #1B3A6B)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}>
-                  <i data-lucide="check" style={{ width: 28, height: 28, color: "#fff" }} />
+                  <Icon.Check />
                 </div>
                 <div style={{ fontSize: 17, fontWeight: 800, color: "var(--navy-700, #1B3A6B)" }}>Agreement Created</div>
                 <div style={{ fontSize: 13, color: "var(--text-faint)", marginTop: 4 }}>Send this link to the patient</div>
               </div>
-              <div style={{ background: "var(--surface-2, #f8fafc)", border: "1.5px solid var(--border)", borderRadius: 8, padding: 14, fontSize: 12, wordBreak: "break-all", color: "var(--text-faint)", marginBottom: 16 }}>
-                {link}
-              </div>
+              <div style={{ background: "var(--surface-2, #f8fafc)", border: "1.5px solid var(--border)", borderRadius: 8, padding: 14, fontSize: 12, wordBreak: "break-all", color: "var(--text-faint)", marginBottom: 16 }}>{link}</div>
               <div style={{ display: "flex", gap: 10 }}>
-                <button className="cb-btn cb-btn--primary" style={{ flex: 1 }} onClick={() => { navigator.clipboard.writeText(link).catch(() => {}); }}>
-                  <i data-lucide="copy" style={{ width: 14, height: 14, marginRight: 6 }} />Copy Link
+                <button className="cb-btn cb-btn--primary" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }} onClick={doCopy}>
+                  <Icon.Copy />{copied ? "Copied!" : "Copy Link"}
                 </button>
                 <button className="cb-btn" style={{ flex: 1 }} onClick={onClose}>Done</button>
               </div>
@@ -236,10 +222,9 @@
         <div className="cb-modal__card" style={{ maxWidth: 680, width: "100%", maxHeight: "90vh", overflow: "auto" }}>
           <div className="cb-modal__head">
             <h2 className="cb-modal__title">Signed Agreement — {agr.id}</h2>
-            <button className="cb-modal__close" onClick={onClose} aria-label="Close"><i data-lucide="x" /></button>
+            <button className="cb-modal__close" onClick={onClose} aria-label="Close"><Icon.X /></button>
           </div>
           <div style={{ padding: "16px 24px 24px" }}>
-            {/* Summary */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
               {[["Patient", agr.patientName], ["Agreement #", agr.id], ["Date Signed", agr.dateSigned || "—"], ["Prepared By", agr.preparedBy || "Sidii Hamza"], ["Version", agr.version || "1.0"], ["Status", "Signed ✓"]].map(([l, v]) => (
                 <div key={l} style={{ background: "var(--surface-2, #f8fafc)", borderRadius: 8, padding: "10px 14px" }}>
@@ -249,7 +234,6 @@
               ))}
             </div>
 
-            {/* Rep / Witness */}
             {agr.repName && (
               <div style={{ marginBottom: 16, padding: "12px 16px", border: "1px solid var(--border)", borderRadius: 8 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-faint)", marginBottom: 8 }}>AUTHORIZED REPRESENTATIVE</div>
@@ -263,7 +247,6 @@
               </div>
             )}
 
-            {/* Signatures */}
             {[["Patient Signature", agr.sig1], ["Representative Signature", agr.sig2], ["Witness Signature", agr.sig3]].filter(([, s]) => s).map(([label, src]) => (
               <div key={label} style={{ marginBottom: 16 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-faint)", marginBottom: 6 }}>{label.toUpperCase()}</div>
@@ -273,7 +256,6 @@
               </div>
             ))}
 
-            {/* Initials */}
             {agr.initials && (
               <div>
                 <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-faint)", marginBottom: 10 }}>PAGE INITIALS</div>
