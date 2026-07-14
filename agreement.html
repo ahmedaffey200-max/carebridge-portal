@@ -360,6 +360,31 @@ agrId = params.get("id") || ("AGR-" + new Date().getFullYear() + "-" + Math.floo
 patientNameVal = decodeURIComponent(params.get("name") || "");
 
 document.addEventListener("DOMContentLoaded", function () {
+  // Check Supabase: if this agreement is already signed, block re-opening
+  fetch(SB_URL + "/rest/v1/portal_state?id=eq.main&select=state", {
+    headers: { "apikey": SB_ANON, "Authorization": "Bearer " + SB_ANON }
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    var state = (data && data[0] && data[0].state) || {};
+    var agrs = state.agreements || [];
+    var found = null;
+    for (var i = 0; i < agrs.length; i++) { if (agrs[i].id === agrId) { found = agrs[i]; break; } }
+    if (found && found.status === "signed") {
+      document.body.innerHTML =
+        '<div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#f0f4f8;font-family:Segoe UI,Arial,sans-serif;padding:24px;">' +
+        '<div style="background:#fff;border-radius:16px;padding:40px 32px;max-width:480px;width:100%;text-align:center;box-shadow:0 4px 24px rgba(27,58,107,0.12);">' +
+        '<div style="width:64px;height:64px;background:#e8f7f0;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;">' +
+        '<svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#12a154" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+        '</div>' +
+        '<h2 style="font-size:22px;font-weight:800;color:#1B3A6B;margin-bottom:8px;">Agreement Already Completed</h2>' +
+        '<p style="color:#5a6a7e;font-size:14px;line-height:1.6;margin-bottom:24px;">Agreement <strong>' + agrId + '</strong> has already been signed' + (found.dateSigned ? ' on <strong>' + found.dateSigned + '</strong>' : '') + '. This link is no longer active.</p>' +
+        '<div style="background:#f0f4f8;border-radius:10px;padding:16px;font-size:13px;color:#5a6a7e;line-height:1.6;">If you believe this is an error, please contact<br><strong style="color:#1B3A6B;">support@carebridgeinternational.ca</strong><br>or call <strong style="color:#1B3A6B;">+1 (825) 785-3396</strong></div>' +
+        '</div></div>';
+    }
+  })
+  .catch(function() {}); // silently proceed if check fails
+
   // Pre-fill name field
   if (patientNameVal) document.getElementById("patient-name-input").value = patientNameVal;
 

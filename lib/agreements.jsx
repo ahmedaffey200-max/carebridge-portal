@@ -130,7 +130,7 @@
       const load = () => setAgreements(window.CBStore.getAgreements ? window.CBStore.getAgreements() : []);
       load();
 
-      // Sync signed status from Supabase so agreements signed by patient show up
+      // Sync agreements from Supabase — Supabase is authoritative for status
       fetch(SB_URL + "/rest/v1/portal_state?id=eq.main&select=state", {
         headers: { apikey: SB_ANON, Authorization: "Bearer " + SB_ANON }
       })
@@ -144,16 +144,15 @@
         local.forEach(a => { localMap[a.id] = a; });
         let changed = false;
         sbAgrs.forEach(sbA => {
-          if (sbA.status === "signed") {
-            if (localMap[sbA.id]) {
-              if (localMap[sbA.id].status !== "signed" && window.CBStore.updateAgreement) {
-                window.CBStore.updateAgreement(sbA.id, sbA);
-                changed = true;
-              }
-            } else if (window.CBStore.addAgreement) {
-              window.CBStore.addAgreement(sbA);
+          if (localMap[sbA.id]) {
+            // Supabase wins on status — update if different
+            if (localMap[sbA.id].status !== sbA.status && window.CBStore.updateAgreement) {
+              window.CBStore.updateAgreement(sbA.id, { status: sbA.status, dateSigned: sbA.dateSigned || localMap[sbA.id].dateSigned });
               changed = true;
             }
+          } else if (window.CBStore.addAgreement) {
+            window.CBStore.addAgreement(sbA);
+            changed = true;
           }
         });
         if (changed) load();
