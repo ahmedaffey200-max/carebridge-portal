@@ -15,8 +15,98 @@
     X: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
     Check: () => <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>,
     Copy: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>,
+    Download: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
     Doc: () => <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" style={{opacity:0.25,display:"block",margin:"0 auto 16px"}}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>,
   };
+
+  function downloadAgreementPDF(a) {
+    var jsPDF = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
+    if (!jsPDF) { alert("PDF library not loaded. Please refresh the page."); return; }
+    var W = 210, H = 297;
+    var navy = [27,58,107], teal = [28,168,156], white = [255,255,255], light = [240,244,248], grey = [90,106,126];
+    var doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+
+    function header(pg) {
+      doc.setFillColor(navy[0],navy[1],navy[2]); doc.rect(0,0,W,22,"F");
+      doc.setFillColor(teal[0],teal[1],teal[2]); doc.rect(0,20,W,2,"F");
+      doc.setFont("helvetica","bold"); doc.setFontSize(13); doc.setTextColor(255,255,255);
+      doc.text("CAREBRIDGE INTERNATIONAL INC.",14,14);
+      doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.setTextColor(200,215,235);
+      doc.text("Patient Medical Travel Service Agreement — Executed Copy",W-14,14,{align:"right"});
+      doc.setFontSize(8); doc.setTextColor(grey[0],grey[1],grey[2]);
+      doc.text("Page "+pg, W-14, H-8, {align:"right"});
+      doc.setDrawColor(220,228,238); doc.line(14,H-12,W-14,H-12);
+    }
+
+    function sectionTitle(y,title) {
+      doc.setFillColor(teal[0],teal[1],teal[2]); doc.rect(14,y,3,7,"F");
+      doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.setTextColor(navy[0],navy[1],navy[2]);
+      doc.text(title,20,y+5.5); return y+13;
+    }
+
+    // PAGE 1
+    header(1);
+    doc.setFillColor(light[0],light[1],light[2]); doc.roundedRect(14,28,W-28,18,3,3,"F");
+    doc.setFont("helvetica","bold"); doc.setFontSize(14); doc.setTextColor(teal[0],teal[1],teal[2]);
+    doc.text("EXECUTED AGREEMENT CERTIFICATE",W/2,39,{align:"center"});
+
+    var y = 56; y = sectionTitle(y,"Agreement Details");
+    var cols=[["Agreement Number",a.id],["Version",a.version||"1.0"],["Patient Name",a.patientName],["Date Signed",a.dateSigned||"—"],["Prepared By",a.preparedBy||"Sidii Hamza"],["Company","Carebridge International Inc."]];
+    var colW=(W-28)/2;
+    for(var ci=0;ci<cols.length;ci+=2){
+      var x1=14,x2=14+colW+4;
+      doc.setFont("helvetica","bold");doc.setFontSize(8);doc.setTextColor(grey[0],grey[1],grey[2]);
+      doc.text(cols[ci][0].toUpperCase(),x1,y);
+      if(cols[ci+1])doc.text(cols[ci+1][0].toUpperCase(),x2,y);
+      doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(navy[0],navy[1],navy[2]);
+      doc.text(String(cols[ci][1]||"—"),x1,y+5);
+      if(cols[ci+1])doc.text(String(cols[ci+1][1]||"—"),x2,y+5);
+      y+=14;
+    }
+    if(a.repName){y=sectionTitle(y+4,"Authorized Representative");doc.setFont("helvetica","bold");doc.setFontSize(8);doc.setTextColor(grey[0],grey[1],grey[2]);doc.text("NAME",14,y);doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(navy[0],navy[1],navy[2]);doc.text(a.repName,14,y+5);doc.setFont("helvetica","bold");doc.setFontSize(8);doc.setTextColor(grey[0],grey[1],grey[2]);doc.text("RELATIONSHIP",14+colW+4,y);doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(navy[0],navy[1],navy[2]);doc.text(a.repRelationship||"—",14+colW+4,y+5);y+=14;}
+    if(a.witnesName){y=sectionTitle(y+4,"Witness 2");doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(navy[0],navy[1],navy[2]);doc.text(a.witnesName,14,y);y+=14;}
+
+    y=sectionTitle(y+4,"Page Initials — All 14 Pages");
+    var cellW=(W-28)/7,cellH=14;
+    for(var pi=0;pi<14;pi++){
+      var col=pi%7,row=Math.floor(pi/7),cx=14+col*cellW,cy=y+row*cellH;
+      doc.setFillColor(col%2===0?247:243,col%2===0?249:245,col%2===0?252:249);
+      doc.roundedRect(cx,cy,cellW-1,cellH-1,2,2,"F");
+      doc.setFont("helvetica","normal");doc.setFontSize(7);doc.setTextColor(grey[0],grey[1],grey[2]);
+      doc.text("Pg"+(pi+1),cx+(cellW-1)/2,cy+4,{align:"center"});
+      doc.setFont("helvetica","bold");doc.setFontSize(11);doc.setTextColor(navy[0],navy[1],navy[2]);
+      doc.text((a.initials||{})["page"+(pi+1)]||"—",cx+(cellW-1)/2,cy+10,{align:"center"});
+    }
+    y+=2*cellH+8;
+    doc.setFillColor(navy[0],navy[1],navy[2]);doc.roundedRect(14,y,W-28,14,3,3,"F");
+    doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(200,215,235);
+    doc.text("Digitally submitted: "+(a.timestamp||a.dateSigned||""),W/2,y+5.5,{align:"center"});
+    doc.setFont("helvetica","bold");doc.setFontSize(8);doc.setTextColor(teal[0],teal[1],teal[2]);
+    doc.text("All signatures captured electronically via Carebridge Portal",W/2,y+10.5,{align:"center"});
+
+    // PAGE 2 — Signatures
+    doc.addPage(); header(2);
+    var sy=32; sy=sectionTitle(sy,"Signatures");
+    var sigs=[{label:"Patient Acknowledgment & Consent",name:a.patientName,sub:null,img:a.sig1},{label:"Patient / Authorized Representative",name:a.repName,sub:a.repRelationship,img:a.sig2}];
+    if(a.sig3)sigs.push({label:"Witness 2",name:a.witnesName,sub:null,img:a.sig3});
+    sigs.forEach(function(s){
+      doc.setFillColor(light[0],light[1],light[2]);doc.roundedRect(14,sy,W-28,52,3,3,"F");
+      doc.setFillColor(teal[0],teal[1],teal[2]);doc.rect(14,sy,W-28,8,"F");
+      doc.setFont("helvetica","bold");doc.setFontSize(9);doc.setTextColor(255,255,255);doc.text(s.label.toUpperCase(),18,sy+5.5);
+      doc.setFont("helvetica","bold");doc.setFontSize(9);doc.setTextColor(navy[0],navy[1],navy[2]);doc.text(s.name||"—",18,sy+16);
+      if(s.sub){doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(grey[0],grey[1],grey[2]);doc.text(s.sub,18,sy+22);}
+      if(s.img){try{doc.addImage(s.img,"PNG",W-90,sy+10,72,34);}catch(e){}}
+      doc.setDrawColor(teal[0],teal[1],teal[2]);doc.setLineWidth(0.5);doc.line(18,sy+46,W-18,sy+46);
+      doc.setFont("helvetica","normal");doc.setFontSize(7);doc.setTextColor(grey[0],grey[1],grey[2]);
+      doc.text("Signature",18,sy+50);doc.text(a.dateSigned||"",W-18,sy+50,{align:"right"});
+      sy+=58;
+    });
+    doc.setFont("helvetica","italic");doc.setFontSize(8);doc.setTextColor(grey[0],grey[1],grey[2]);
+    doc.text("This document was executed electronically. Electronic signatures are legally binding under applicable law.",W/2,H-18,{align:"center"});
+    doc.text("support@carebridgeinternational.ca  |  +1 (825) 785-3396  |  www.carebridgeinternational.ca",W/2,H-13,{align:"center"});
+
+    doc.save("Carebridge-Agreement-"+a.id+".pdf");
+  }
 
   function nextAgrId() {
     const year = new Date().getFullYear();
@@ -107,6 +197,11 @@
                         {a.status === "signed" && (
                           <button className="cb-icon-pill" title="View signed agreement" onClick={() => setViewAgr(a)} style={{ width: 32, height: 32 }}>
                             <Icon.Eye />
+                          </button>
+                        )}
+                        {a.status === "signed" && (
+                          <button className="cb-icon-pill" title="Download signed PDF" onClick={() => downloadAgreementPDF(a)} style={{ width: 32, height: 32 }}>
+                            <Icon.Download />
                           </button>
                         )}
                       </div>

@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
 <title>Carebridge International — Patient Agreement</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -388,6 +389,13 @@ body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); color:
         <div class="success-ref">
           Agreement Reference: &nbsp;<strong id="success-ref-id">—</strong>
         </div>
+        <div id="pdf-download-wrap" style="margin-top:28px;">
+          <button id="btn-download-pdf" onclick="downloadSignedPDF()" style="display:inline-flex;align-items:center;gap:10px;background:linear-gradient(135deg,#1CA89C,#1B3A6B);color:#fff;border:none;border-radius:10px;padding:14px 28px;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(27,58,107,0.25);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download Your Signed Copy (PDF)
+          </button>
+          <div style="margin-top:10px;font-size:12px;color:#aaa;">Keep this for your records</div>
+        </div>
         <div style="margin-top:24px;font-size:13px;color:#aaa;">
           support@carebridgeinternational.ca &nbsp;|&nbsp; +1 (825) 785-3396 &nbsp;|&nbsp; www.carebridgeinternational.ca
         </div>
@@ -601,6 +609,12 @@ function submitAgreement() {
   saveToSupabase(payload, function () {
     // 2. Send email notification
     sendEmailNotification(payload, function () {
+      // 3. Store payload for PDF download + auto-download
+      _signedPayload = payload;
+      try {
+        var doc = generateSignedPDF(payload);
+        if (doc) doc.save("Carebridge-Agreement-" + payload.id + ".pdf");
+      } catch(e) { console.warn("PDF generation failed:", e); }
       goTo(5);
     });
   });
@@ -667,6 +681,188 @@ function showError(msg) {
   el.textContent = msg;
   el.style.display = msg ? "block" : "none";
 }
+
+// ---- PDF Generation ----
+var _signedPayload = null;
+
+function generateSignedPDF(payload) {
+  var jsPDF = window.jspdf ? window.jspdf.jsPDF : (window.jsPDF || (window.jspdf && window.jspdf.jsPDF));
+  if (!jsPDF) { console.warn("jsPDF not loaded"); return null; }
+
+  var doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  var W = 210, H = 297;
+  var navy = [27, 58, 107], teal = [28, 168, 156], white = [255,255,255], light = [240,244,248], grey = [90,106,126];
+
+  function header(pageNum) {
+    doc.setFillColor(navy[0], navy[1], navy[2]);
+    doc.rect(0, 0, W, 22, "F");
+    doc.setFillColor(teal[0], teal[1], teal[2]);
+    doc.rect(0, 20, W, 2, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(13);
+    doc.setTextColor(white[0], white[1], white[2]);
+    doc.text("CAREBRIDGE INTERNATIONAL INC.", 14, 14);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(200, 215, 235);
+    doc.text("Patient Medical Travel Service Agreement — Executed Copy", W - 14, 14, { align: "right" });
+    if (pageNum > 0) {
+      doc.setFontSize(8);
+      doc.setTextColor(grey[0], grey[1], grey[2]);
+      doc.text("Page " + pageNum, W - 14, H - 8, { align: "right" });
+      doc.setDrawColor(220, 228, 238);
+      doc.line(14, H - 12, W - 14, H - 12);
+    }
+  }
+
+  function sectionTitle(y, title) {
+    doc.setFillColor(teal[0], teal[1], teal[2]);
+    doc.rect(14, y, 3, 7, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(navy[0], navy[1], navy[2]);
+    doc.text(title, 20, y + 5.5);
+    return y + 13;
+  }
+
+  function infoRow(y, label, value) {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.setTextColor(grey[0], grey[1], grey[2]);
+    doc.text(label.toUpperCase(), 14, y);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(navy[0], navy[1], navy[2]);
+    doc.text(String(value || "—"), 14, y + 5);
+    return y + 12;
+  }
+
+  // ======== PAGE 1 — Summary ========
+  header(1);
+
+  // Executed badge
+  doc.setFillColor(light[0], light[1], light[2]);
+  doc.roundedRect(14, 28, W - 28, 18, 3, 3, "F");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.setTextColor(teal[0], teal[1], teal[2]);
+  doc.text("EXECUTED AGREEMENT CERTIFICATE", W / 2, 39, { align: "center" });
+
+  var y = 56;
+  y = sectionTitle(y, "Agreement Details");
+
+  // 2-column grid
+  var cols = [
+    ["Agreement Number", payload.id],
+    ["Version", payload.version || "1.0"],
+    ["Patient Name", payload.patientName],
+    ["Date Signed", payload.dateSigned],
+    ["Prepared By", payload.preparedBy || "Sidii Hamza"],
+    ["Company", "Carebridge International Inc."],
+  ];
+  var colW = (W - 28) / 2;
+  for (var ci = 0; ci < cols.length; ci += 2) {
+    var x1 = 14, x2 = 14 + colW + 4;
+    doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.setTextColor(grey[0], grey[1], grey[2]);
+    doc.text(cols[ci][0].toUpperCase(), x1, y);
+    if (cols[ci + 1]) doc.text(cols[ci + 1][0].toUpperCase(), x2, y);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(10); doc.setTextColor(navy[0], navy[1], navy[2]);
+    doc.text(String(cols[ci][1] || "—"), x1, y + 5);
+    if (cols[ci + 1]) doc.text(String(cols[ci + 1][1] || "—"), x2, y + 5);
+    y += 14;
+  }
+
+  y += 4;
+  if (payload.repName) {
+    y = sectionTitle(y, "Authorized Representative");
+    y = infoRow(y, "Name", payload.repName);
+    y = infoRow(y, "Relationship", payload.repRelationship || "—");
+    y += 2;
+  }
+  if (payload.witnesName) {
+    y = sectionTitle(y, "Witness 2");
+    y = infoRow(y, "Name", payload.witnesName);
+    y += 2;
+  }
+
+  // Initials grid
+  y = sectionTitle(y, "Page Initials — All 14 Pages");
+  var initKeys = Object.keys(payload.initials || {});
+  var cellW = (W - 28) / 7, cellH = 14;
+  for (var pi = 0; pi < 14; pi++) {
+    var col = pi % 7, row = Math.floor(pi / 7);
+    var cx = 14 + col * cellW, cy = y + row * cellH;
+    doc.setFillColor(col % 2 === 0 ? 247 : 243, col % 2 === 0 ? 249 : 245, col % 2 === 0 ? 252 : 249);
+    doc.roundedRect(cx, cy, cellW - 1, cellH - 1, 2, 2, "F");
+    doc.setFont("helvetica", "normal"); doc.setFontSize(7); doc.setTextColor(grey[0], grey[1], grey[2]);
+    doc.text("Pg " + (pi + 1), cx + (cellW - 1) / 2, cy + 4, { align: "center" });
+    doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.setTextColor(navy[0], navy[1], navy[2]);
+    var initVal = (payload.initials || {})["page" + (pi + 1)] || "—";
+    doc.text(initVal, cx + (cellW - 1) / 2, cy + 10, { align: "center" });
+  }
+  y += 2 * cellH + 6;
+
+  // Timestamp
+  doc.setFillColor(navy[0], navy[1], navy[2]);
+  doc.roundedRect(14, y, W - 28, 14, 3, 3, "F");
+  doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(200, 215, 235);
+  doc.text("Digitally submitted: " + payload.timestamp, W / 2, y + 5.5, { align: "center" });
+  doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.setTextColor(teal[0], teal[1], teal[2]);
+  doc.text("All signatures captured electronically via Carebridge Portal", W / 2, y + 10.5, { align: "center" });
+
+  // ======== PAGE 2 — Signatures ========
+  doc.addPage();
+  header(2);
+
+  var sy = 32;
+  sy = sectionTitle(sy, "Signatures");
+
+  var sigSections = [
+    { label: "Patient Acknowledgment & Consent", name: payload.patientName, sub: null, img: payload.sig1 },
+    { label: "Patient / Authorized Representative", name: payload.repName, sub: payload.repRelationship, img: payload.sig2 },
+  ];
+  if (payload.sig3) sigSections.push({ label: "Witness 2", name: payload.witnesName, sub: null, img: payload.sig3 });
+
+  sigSections.forEach(function (s) {
+    doc.setFillColor(light[0], light[1], light[2]);
+    doc.roundedRect(14, sy, W - 28, 52, 3, 3, "F");
+    doc.setFillColor(teal[0], teal[1], teal[2]);
+    doc.rect(14, sy, W - 28, 8, "F");
+    doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(white[0], white[1], white[2]);
+    doc.text(s.label.toUpperCase(), 18, sy + 5.5);
+
+    doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(navy[0], navy[1], navy[2]);
+    doc.text(s.name || "—", 18, sy + 16);
+    if (s.sub) { doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(grey[0], grey[1], grey[2]); doc.text(s.sub, 18, sy + 22); }
+
+    if (s.img) {
+      try { doc.addImage(s.img, "PNG", W - 90, sy + 10, 72, 34); } catch(e) {}
+    }
+
+    doc.setDrawColor(teal[0], teal[1], teal[2]);
+    doc.setLineWidth(0.5);
+    doc.line(18, sy + 46, W - 18, sy + 46);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(7); doc.setTextColor(grey[0], grey[1], grey[2]);
+    doc.text("Signature", 18, sy + 50);
+    doc.text(payload.dateSigned || "", W - 18, sy + 50, { align: "right" });
+
+    sy += 58;
+  });
+
+  // Footer note
+  doc.setFont("helvetica", "italic"); doc.setFontSize(8); doc.setTextColor(grey[0], grey[1], grey[2]);
+  doc.text("This document was executed electronically. Electronic signatures are legally binding under applicable law.", W / 2, H - 18, { align: "center" });
+  doc.text("support@carebridgeinternational.ca  |  +1 (825) 785-3396  |  www.carebridgeinternational.ca", W / 2, H - 13, { align: "center" });
+
+  return doc;
+}
+
+function downloadSignedPDF() {
+  if (!_signedPayload) return;
+  var doc = generateSignedPDF(_signedPayload);
+  if (doc) doc.save("Carebridge-Agreement-" + _signedPayload.id + ".pdf");
+}
+
 </script>
 </body>
 </html>
