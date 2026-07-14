@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
@@ -46,9 +46,9 @@
 <script src="_ds/carebridge-design-system-1211a801-6b8c-4eac-9f98-9ed53e456f1c/_ds_bundle.js"></script>
 
 <!-- Data + store -->
-<script src="lib/data.js"></script>
+<script src="lib/data.js?v=2"></script>
 <script src="lib/api-client.js"></script>
-<script src="lib/store.js"></script>
+<script src="lib/store.js?v=2"></script>
 <script src="lib/cb-activity.js"></script>
 
 <!-- App modules (Babel JSX) v2 -->
@@ -56,7 +56,7 @@
 <script type="text/babel" src="lib/ios-frame.jsx?v=2"></script>
 <script type="text/babel" src="lib/ui.jsx?v=2"></script>
 <script type="text/babel" src="lib/dashboard.jsx?v=3"></script>
-<script type="text/babel" src="lib/patients.jsx?v=2"></script>
+<script type="text/babel" src="lib/patients.jsx?v=5"></script>
 <script type="text/babel" src="lib/hospitals.jsx?v=2"></script>
 <script type="text/babel" src="lib/financial.jsx?v=2"></script>
 <script type="text/babel" src="lib/commissions.jsx?v=2"></script>
@@ -67,12 +67,12 @@
 <script type="text/babel" src="lib/appointments.jsx?v=2"></script>
 <script type="text/babel" src="lib/travel.jsx?v=2"></script>
 <script type="text/babel" src="lib/travel2.jsx?v=2"></script>
-<script type="text/babel" src="lib/centers.jsx?v=3"></script>
-<script type="text/babel" src="lib/security.jsx?v=2"></script>
+<script type="text/babel" src="lib/centers.jsx?v=5"></script>
+<script type="text/babel" src="lib/security.jsx?v=4"></script>
 <script type="text/babel" src="lib/mobile.jsx?v=2"></script>
-<script type="text/babel" src="lib/ai-assistant.jsx?v=2"></script>
+<script type="text/babel" src="lib/ai-assistant.jsx?v=8"></script>
 <script type="text/babel" src="lib/patient-invitations.jsx?v=3"></script>
-<script type="text/babel" src="lib/app.jsx?v=3"></script>
+<script type="text/babel" src="lib/app.jsx?v=5"></script>
 
 <script type="text/babel" data-presets="env,react">
   (function () {
@@ -82,23 +82,36 @@
       if (!token) { window.location.href = 'Carebridge Login.html'; }
     })();
 
-    // Voice reminder
+    // Voice reminder — plays on first user interaction after login (every 4 hours)
     (function () {
       try {
-        if (sessionStorage.getItem("cb_salawat_played") === "1") return;
         if (!("speechSynthesis" in window)) return;
-        var text = "صَلِّ عَلَى النَّبِيّ";
+        var FOUR_HOURS = 4 * 60 * 60 * 1000;
+        var last = parseInt(localStorage.getItem("cb_salawat_ts") || "0", 10);
+        if (Date.now() - last < FOUR_HOURS) return;
+        var played = false;
         var speak = function () {
+          if (played) return;
+          played = true;
+          document.removeEventListener("click", speak, true);
+          document.removeEventListener("keydown", speak, true);
+          var voices = window.speechSynthesis.getVoices() || [];
+          var ar = voices.find(function (v) { return /ar/i.test(v.lang) && /microsoft/i.test(v.name); })
+                || voices.find(function (v) { return /ar-SA/i.test(v.lang); })
+                || voices.find(function (v) { return /^ar/i.test(v.lang); });
+          var text = "صَلِّ عَلَى النَّبِيِّ";
           var u = new SpeechSynthesisUtterance(text);
           u.lang = "ar-SA";
-          var ar = (window.speechSynthesis.getVoices() || []).find(function (v) { return /^ar/i.test(v.lang); });
           if (ar) u.voice = ar;
-          u.rate = 0.9;
+          u.rate = 0.72;
+          u.pitch = 1.05;
+          u.volume = 1;
           try { window.speechSynthesis.cancel(); window.speechSynthesis.speak(u); } catch (e) {}
+          localStorage.setItem("cb_salawat_ts", String(Date.now()));
         };
-        if ((window.speechSynthesis.getVoices() || []).length) speak();
-        else window.speechSynthesis.onvoiceschanged = speak;
-        sessionStorage.setItem("cb_salawat_played", "1");
+        // Wait for first user interaction (Chrome requires this for audio)
+        document.addEventListener("click", speak, true);
+        document.addEventListener("keydown", speak, true);
       } catch (e) {}
     })();
 

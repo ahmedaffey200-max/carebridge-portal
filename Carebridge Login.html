@@ -113,6 +113,61 @@
 (function () {
   if (window.lucide) lucide.createIcons();
 
+  // Handle password recovery redirect (user clicked link in recovery email)
+  var hash = window.location.hash;
+  if (hash.includes('type=recovery') || hash.includes('access_token')) {
+    var card = document.getElementById('auth-card');
+    card.innerHTML = '<h2 class="auth__title">Set new password</h2>' +
+      '<p class="auth__sub">Enter your new password below.</p>' +
+      '<div class="auth__hint" id="reset-error" style="display:none;background:#fff1f2;border-color:#fda4af;">' +
+        '<span style="color:#be123c">Passwords do not match or are too short (min 8 characters).</span>' +
+      '</div>' +
+      '<div class="auth__hint" id="reset-success" style="display:none;background:#f0fdf4;border-color:#86efac;">' +
+        '<span style="color:#166534">Password updated! Redirecting to portal...</span>' +
+      '</div>' +
+      '<form id="reset-form" novalidate>' +
+        '<div class="auth__field"><label class="auth__label">New password</label>' +
+          '<div class="auth__inputwrap"><i data-lucide="lock"></i>' +
+            '<input class="auth__input" type="password" id="new-pw" placeholder="At least 8 characters" />' +
+          '</div></div>' +
+        '<div class="auth__field"><label class="auth__label">Confirm password</label>' +
+          '<div class="auth__inputwrap"><i data-lucide="lock"></i>' +
+            '<input class="auth__input" type="password" id="confirm-pw" placeholder="Repeat password" />' +
+          '</div></div>' +
+        '<button type="submit" class="auth__btn auth__btn--primary"><span id="reset-label">Set new password</span></button>' +
+      '</form>';
+    if (window.lucide) lucide.createIcons();
+    document.getElementById('reset-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      var pw = document.getElementById('new-pw').value;
+      var pw2 = document.getElementById('confirm-pw').value;
+      document.getElementById('reset-error').style.display = 'none';
+      if (pw.length < 8 || pw !== pw2) {
+        document.getElementById('reset-error').style.display = 'flex';
+        return;
+      }
+      document.getElementById('reset-label').textContent = 'Saving…';
+      // Wait for Supabase to be ready
+      var tries = 0;
+      var wait = setInterval(async function() {
+        tries++;
+        if (window.CB_SB || tries > 30) {
+          clearInterval(wait);
+          if (!window.CB_SB) { document.getElementById('reset-error').style.display = 'flex'; return; }
+          var res = await window.CB_SB.auth.updateUser({ password: pw });
+          if (res.error) {
+            document.getElementById('reset-error').style.display = 'flex';
+            document.getElementById('reset-label').textContent = 'Set new password';
+          } else {
+            document.getElementById('reset-success').style.display = 'flex';
+            setTimeout(function() { window.location.href = 'Carebridge Portal.html?role=admin'; }, 1500);
+          }
+        }
+      }, 200);
+    });
+    return; // Skip rest of login script
+  }
+
   /* SHA-256 helper */
   async function sha256(str) {
     var buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
@@ -154,10 +209,10 @@
   var COPY = {
     admin: {
       sub: "Staff sign-in for coordinators, doctors and administrators.",
-      emailLabel: "Username",
-      placeholder: "admin",
+      emailLabel: "Email address",
+      placeholder: "you@carebridge.com",
       submit: "Sign in to staff portal",
-      icon: "shield",
+      icon: "mail",
     },
     client: {
       sub: "Sign in to your patient portal to follow your care journey.",
@@ -250,11 +305,29 @@
     document.getElementById("submit-label").textContent = "Signing in…";
 
     if (role === "admin") {
-      // 1. Check portal_users table (Supabase — preferred)
+      // 1. Try Supabase Auth (email + password) — most secure
+      var sb = window.CB_SB;
+      if (sb) {
+        var authRes = await sb.auth.signInWithPassword({ email: username, password: password });
+        if (authRes.data && authRes.data.session) {
+          var session = authRes.data.session;
+          // Look up display name and role from portal_users table
+          var userRow = await sb.from("portal_users").select("name, role").eq("email", username).maybeSingle();
+          localStorage.setItem("cb_token", "sb-" + session.access_token.slice(0, 20));
+          localStorage.setItem("cb_role", "admin");
+          localStorage.setItem("cb_user_name", (userRow.data && userRow.data.name) || authRes.data.user.email);
+          localStorage.setItem("cb_user_email", username);
+          localStorage.setItem("cb_user_role", (userRow.data && userRow.data.role) || "admin");
+          window.location.href = "Carebridge Portal.html?role=admin";
+          return;
+        }
+      }
+
+      // 2. Fall back to portal_users SHA-256 check (for coordinators not yet on Supabase Auth)
       var user = await checkPortalUser(username, password);
       if (user) {
         localStorage.setItem("cb_token", "auth-admin");
-        localStorage.setItem("cb_role", user.role === "admin" ? "admin" : "admin");
+        localStorage.setItem("cb_role", "admin");
         localStorage.setItem("cb_user_name", user.name);
         localStorage.setItem("cb_user_email", user.email || "");
         localStorage.setItem("cb_user_role", user.role);
@@ -262,7 +335,7 @@
         return;
       }
 
-      // 2. Fall back to legacy localStorage credentials
+      // 3. Legacy localStorage credentials fallback
       var creds = getCredentials();
       if (username === creds.username && password === creds.password) {
         localStorage.setItem("cb_token", "auth-admin");
@@ -297,7 +370,7 @@
   // Forgot password
   document.getElementById("forgot").addEventListener("click", function (e) {
     e.preventDefault();
-    alert("To reset your password, open the portal > Settings & admin > Change password.\n\nDefault credentials: admin / Carebridge2024");
+    alert("To reset your password, go to Supabase → Authentication → Users and reset it from there.\n\nOr contact your system administrator.");
   });
 
   setRole("admin");

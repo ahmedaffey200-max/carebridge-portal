@@ -25,18 +25,45 @@ const SUGGESTED_QUESTIONS = [
 function buildPortalContext() {
   const lines = [];
   try {
-    const patients = window.CBStore ? window.CBStore.getPatients() : [];
+    // Read directly from localStorage to get the most accurate saved state,
+    // bypassing any in-memory cloud-sync timing issues
+    let patients = [];
+    try {
+      const raw = localStorage.getItem("cb_portal_state_v13");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed.patients) && parsed.patients.length > 0) {
+          patients = parsed.patients;
+        }
+      }
+    } catch (e2) {}
+    // Fallback to store if localStorage read failed
+    if (!patients.length && window.CBStore) patients = window.CBStore.getPatients();
+    let totalBilled = 0, totalCollected = 0, totalOutstanding = 0;
     lines.push("=== PATIENTS (" + patients.length + " total) ===");
     patients.forEach((p) => {
+      const billed = parseFloat(p.pkgTotal) || 0;
+      const paid = parseFloat(p.pkgPaid) || 0;
+      const unpaid = parseFloat(p.pkgUnpaid) || Math.max(0, billed - paid);
+      totalBilled += billed;
+      totalCollected += paid;
+      totalOutstanding += unpaid;
       lines.push(
         "• " + p.name + " (" + p.id + ") | " + (p.specialty || "—") +
         " | Status: " + (p.status || "—") +
+        " | Stage: " + (p.stage != null ? p.stage : "—") +
         " | Priority: " + (p.priority || "—") +
-        " | Hospital: " + (p.hospital || "—") +
-        " | Country: " + (p.destCountry || (window.CB_DATA ? window.CB_DATA.destCountry(p) : "—")) +
-        " | Coordinator: " + (p.coordinator || "—")
+        " | Package: " + (p.pkg || "—") +
+        " | Package total: $" + billed +
+        " | Paid: $" + paid +
+        " | Outstanding: $" + unpaid +
+        " | Payment status: " + (p.paymentStatus || "—") +
+        " | Destination: " + (p.dest || "—") +
+        " | Coordinator: " + (p.coordinator || "—") +
+        " | Started: " + (p.started || "—")
       );
     });
+    lines.push("Patient billing summary — Total billed: $" + totalBilled + " | Collected: $" + totalCollected + " | Outstanding: $" + totalOutstanding);
   } catch (e) {}
 
   try {
@@ -63,6 +90,7 @@ function buildPortalContext() {
       lines.push(
         "• " + (h.name || h.id) +
         " | Country: " + (h.country || "—") +
+        " | Active: " + (h.active ? "Yes" : "No") +
         " | Specialties: " + (Array.isArray(h.specialties) ? h.specialties.join(", ") : (h.specialties || "—")) +
         " | Rating: " + (h.rating || "—") +
         " | Commission: " + (h.commission || "—")
@@ -72,34 +100,92 @@ function buildPortalContext() {
 
   try {
     const commissions = window.CBStore ? window.CBStore.getCommissions() : [];
-    lines.push("\n=== COMMISSIONS (" + commissions.length + " entries) ===");
+    let commTotal = 0, commPaid = 0;
+    lines.push("\n=== HOSPITAL COMMISSIONS (" + commissions.length + " entries) ===");
     commissions.forEach((c) => {
+      const amt = parseFloat(c.amount) || 0;
+      commTotal += amt;
+      if (c.status === "Paid") commPaid += amt;
       lines.push(
         "• " + (c.hospital || "—") +
-        " | Amount: " + (c.amount || "—") +
+        " | Patient: " + (c.patient || "—") +
+        " | Amount: $" + amt +
         " | Status: " + (c.status || "—") +
-        " | Due: " + (c.dueDate || c.due || "—") +
-        " | Patient: " + (c.patient || "—")
+        " | Due: " + (c.dueDate || "—") +
+        " | Recorded: " + (c.recorded || "—")
       );
     });
+    lines.push("Commission summary — Total: $" + commTotal + " | Paid: $" + commPaid + " | Unpaid: $" + (commTotal - commPaid));
   } catch (e) {}
 
   try {
-    const expenses = window.CBStore ? window.CBStore.getExpenses() : [];
-    lines.push("\n=== COMPANY EXPENSES (" + expenses.length + " entries) ===");
+    const expenses = window.CBStore ? window.CBStore.getCompanyExpenses() : [];
     let total = 0;
+    lines.push("\n=== COMPANY EXPENSES (" + expenses.length + " entries) ===");
     expenses.forEach((ex) => {
       const amt = parseFloat(ex.amount) || 0;
       total += amt;
       lines.push(
-        "• " + (ex.description || ex.title || "Expense") +
-        " | Amount: $" + amt.toLocaleString() +
+        "• " + (ex.description || ex.category || "Expense") +
+        " | Amount: $" + amt +
         " | Category: " + (ex.category || "—") +
         " | Date: " + (ex.date || "—") +
-        " | Status: " + (ex.status || "—")
+        " | Status: " + (ex.status || "—") +
+        " | Department: " + (ex.department || "—")
       );
     });
-    lines.push("Total expenses: $" + total.toLocaleString());
+    lines.push("Total company expenses: $" + total);
+  } catch (e) {}
+
+  try {
+    const income = window.CBStore ? window.CBStore.getIncome() : [];
+    const autoIncome = window.CBStore ? window.CBStore.getAutoIncome() : [];
+    const allIncome = income.concat(autoIncome);
+    let incomeTotal = 0;
+    lines.push("\n=== INCOME LEDGER (" + allIncome.length + " entries) ===");
+    allIncome.forEach((inc) => {
+      const amt = parseFloat(inc.amount) || 0;
+      incomeTotal += amt;
+      lines.push(
+        "• " + (inc.source || "—") +
+        " | Amount: $" + amt +
+        " | Category: " + (inc.category || "—") +
+        " | Date: " + (inc.date || "—") +
+        " | Patient: " + (inc.patient || "—") +
+        (inc.auto ? " [auto-synced]" : "")
+      );
+    });
+    lines.push("Total income recorded: $" + incomeTotal);
+  } catch (e) {}
+
+  try {
+    const invoices = window.CBStore ? window.CBStore.getInvoices() : [];
+    let invTotal = 0, invPaid = 0;
+    lines.push("\n=== INVOICES (" + invoices.length + " entries) ===");
+    invoices.forEach((iv) => {
+      const amt = parseFloat(iv.amount) || 0;
+      const paid = parseFloat(iv.paid) || 0;
+      invTotal += amt;
+      invPaid += paid;
+      lines.push(
+        "• " + (iv.id || "—") +
+        " | Patient: " + (iv.patient || "—") +
+        " | Amount: $" + amt +
+        " | Paid: $" + paid +
+        " | Balance: $" + (amt - paid) +
+        " | Status: " + (iv.status || "—") +
+        " | Due: " + (iv.due || "—")
+      );
+    });
+    lines.push("Invoice summary — Total billed: $" + invTotal + " | Collected: $" + invPaid + " | Outstanding: $" + (invTotal - invPaid));
+  } catch (e) {}
+
+  try {
+    const ratings = window.CBStore ? window.CBStore.getRatings() : [];
+    lines.push("\n=== PATIENT RATINGS (" + ratings.length + " entries) ===");
+    ratings.forEach((r) => {
+      lines.push("• " + (r.patient || "—") + " | Stars: " + r.stars + "/5 | Comment: " + (r.comment || "—") + " | Date: " + (r.date || "—"));
+    });
   } catch (e) {}
 
   return lines.join("\n");
@@ -114,16 +200,30 @@ Your role:
 - Give clear, structured, actionable insights
 - Be concise yet thorough — admins are busy
 
+FINANCIAL DATA RULES — READ CAREFULLY:
+- Patient "Package total" (pkgTotal) = the total value of the medical package sold to the patient. This IS billed revenue.
+- Patient "Paid" (pkgPaid) = money already collected from the patient. This IS real collected income.
+- Patient "Outstanding" = money still owed. This IS real accounts receivable.
+- The "Patient billing summary" line shows the TOTAL across all patients — use this for revenue/income reporting.
+- Invoices are a separate formal record system — if invoices are empty but patients have pkgPaid > 0, the patient package payments are the actual financial data. Do NOT report "$0 revenue" when patients have pkgPaid values.
+- When asked about finances, ALWAYS report patient package billing totals (total billed, collected, outstanding) as the primary financial figures.
+- Income ledger entries and commission entries are supplementary — their absence does not mean $0 revenue if patients have package payments.
+
 Current portal snapshot (live data):
 ${buildPortalContext()}
 
 Guidelines:
 - Always refer to real data from the snapshot above
+- The "Patient billing summary" line is the authoritative revenue figure
 - If data is missing or a field is "—", note it and suggest what to check
 - Format responses with clear sections and bullet points when helpful
 - Highlight urgent/critical items prominently
 - For financial data, always include totals and percentages where relevant
-- Today's date context: ${new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}`;
+- Today's date context: ${new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+
+MANDATORY: Start every response with this exact line (fill in real values from the snapshot above):
+"[v7] IFRAH package: $PKGTOTAL billed / $PKGPAID paid"
+where PKGTOTAL and PKGPAID are the exact numbers from the Patient billing summary line above.`;
 }
 
 async function callAI(messages, onChunk, onDone, onError) {
