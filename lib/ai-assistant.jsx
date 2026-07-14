@@ -221,9 +221,7 @@ Guidelines:
 - For financial data, always include totals and percentages where relevant
 - Today's date context: ${new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
 
-MANDATORY: Start every response with this exact line (fill in real values from the snapshot above):
-"[v7] IFRAH package: $PKGTOTAL billed / $PKGPAID paid"
-where PKGTOTAL and PKGPAID are the exact numbers from the Patient billing summary line above.`;
+Always cite specific numbers from the snapshot above. Never say "$0" if patients have package billing data.`;
 }
 
 async function callAI(messages, onChunk, onDone, onError) {
@@ -426,7 +424,7 @@ function AIAssistantView() {
           <div className="cb-ai-header__icon"><i data-lucide="brain-circuit" /></div>
           <div>
             <div className="cb-ai-header__title">Carebridge Intelligence</div>
-            <div className="cb-ai-header__sub">Powered by Claude Opus 4.8 via Supabase · Full portal access · v9</div>
+            <div className="cb-ai-header__sub">Powered by Claude Opus 4.8 via Supabase · Full portal access</div>
           </div>
         </div>
         <div className="cb-ai-header__actions">
