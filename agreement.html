@@ -606,19 +606,32 @@ function extractPageContent(pageIdx) {
       var ranges = [[1,4],[5,8],[9,12],[13,16],[17,20],[21,24],[25,28],[29,32],[33,36],[37,40],[41,41],[42,42]];
       var range = ranges[pageIdx - 2];
       if (range) {
+        var seenNums = {};
+        var snippetParts = [];
         var allSpans = ifrDoc.querySelectorAll(".n");
         for (var s = 0; s < allSpans.length; s++) {
           var raw = allSpans[s].textContent.trim().replace(/\.0$/,"").replace(/\.$/,"");
           var num = parseInt(raw);
-          if (!isNaN(num) && num >= range[0] && num <= range[1]) {
+          if (!isNaN(num) && num >= range[0] && num <= range[1] && !seenNums[num]) {
+            seenNums[num] = true;
+            // Get the heading text from the parent, stripping the leading number
             var h = allSpans[s].parentElement;
-            if (h) result.headings.push(h.textContent.trim().substring(0, 90));
-            if (num === range[0] && !result.snippet) {
-              var clause = allSpans[s].closest ? allSpans[s].closest(".clause") : null;
-              if (clause) result.snippet = clause.innerText.replace(/\s+/g," ").trim().substring(0, 600);
+            if (h) {
+              var heading = h.textContent.trim().replace(/^\d+\.?\d*\s*/,"");
+              if (heading) result.headings.push(num + ".  " + heading.substring(0, 80));
+            }
+            // Collect clause body text from each section (skip heading line)
+            var clause = allSpans[s].closest ? allSpans[s].closest(".clause") : null;
+            if (!clause) clause = h ? h.parentElement : null;
+            if (clause) {
+              var clauseText = clause.innerText.replace(/\s+/g," ").trim();
+              // Strip leading "N.0 Heading" prefix
+              clauseText = clauseText.replace(/^\d+\.?\d*\s+[^\n]{0,100}\s*/,"");
+              if (clauseText.length > 20) snippetParts.push(clauseText.substring(0, 400));
             }
           }
         }
+        result.snippet = snippetParts.join("\n\n").substring(0, 1800);
       }
     }
   } catch(e) {}
