@@ -3,594 +3,517 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
-<title>Carebridge International — Patient Agreement</title>
+<title>Carebridge International — Patient Service Agreement</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
-  --navy: #1B3A6B;
-  --navy2: #14305a;
-  --teal: #1CA89C;
-  --teal2: #158f85;
-  --text: #1e2d40;
-  --sub: #5a6a7e;
-  --bg: #f0f4f8;
-  --card: #fff;
-  --border: #d4dde8;
-  --success: #12a154;
-  --red: #c0392b;
-  --radius: 12px;
-  --shadow: 0 2px 16px rgba(27,58,107,0.10);
+  --navy: #1B3A6B; --navy2: #14305a; --teal: #1CA89C; --teal2: #158f85;
+  --text: #1e2d40; --sub: #5a6a7e; --bg: #f0f4f8; --card: #fff;
+  --border: #d4dde8; --success: #12a154; --red: #c0392b;
 }
-body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+html, body { height: 100%; overflow: hidden; font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); color: var(--text); }
 
-/* ---- TOP BAR ---- */
-.top-bar { background: var(--navy); color: #fff; padding: 0 32px; height: 64px; display: flex; align-items: center; gap: 16px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 12px rgba(0,0,0,0.18); }
-.top-bar img { height: 38px; }
-.top-bar__title { font-size: 15px; font-weight: 600; opacity: 0.9; }
-.top-bar__secure { margin-left: auto; display: flex; align-items: center; gap: 6px; font-size: 12px; opacity: 0.7; }
-.top-bar__secure svg { width: 14px; height: 14px; }
+/* ── HEADER ── */
+.hdr { height: 56px; background: var(--navy); display: flex; align-items: center; gap: 12px; padding: 0 20px; flex-shrink: 0; box-shadow: 0 2px 10px rgba(0,0,0,0.25); }
+.hdr img { height: 34px; }
+.hdr-title { color: #fff; font-size: 14px; font-weight: 700; flex: 1; }
+.hdr-secure { color: rgba(255,255,255,0.6); font-size: 11px; display: flex; align-items: center; gap: 5px; }
 
-/* ---- PROGRESS ---- */
-.progress-wrap { background: #fff; border-bottom: 1px solid var(--border); padding: 16px 32px; }
-.progress-steps { display: flex; align-items: center; max-width: 800px; margin: 0 auto; gap: 0; }
-.step-item { display: flex; align-items: center; flex: 1; }
-.step-circle { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; transition: all 0.3s; border: 2px solid var(--border); background: #fff; color: var(--sub); }
-.step-circle.active { background: var(--navy); border-color: var(--navy); color: #fff; }
-.step-circle.done { background: var(--teal); border-color: var(--teal); color: #fff; }
-.step-label { font-size: 11px; font-weight: 600; color: var(--sub); margin-left: 8px; white-space: nowrap; }
-.step-label.active { color: var(--navy); }
-.step-connector { flex: 1; height: 2px; background: var(--border); margin: 0 8px; transition: background 0.3s; }
-.step-connector.done { background: var(--teal); }
+/* ── LAYOUT ── */
+.app { display: flex; flex-direction: column; height: 100vh; }
+.phase { display: none; flex: 1; overflow: hidden; flex-direction: column; }
+.phase.active { display: flex; }
 
-/* ---- MAIN ---- */
-.main { max-width: 860px; margin: 0 auto; padding: 32px 16px 64px; }
+/* ── PHASE 1: DETAILS ── */
+.ph-details { overflow-y: auto; padding: 28px 20px 80px; }
+.welcome-card { max-width: 600px; margin: 0 auto; background: var(--card); border-radius: 16px; box-shadow: 0 4px 24px rgba(27,58,107,0.12); overflow: hidden; }
+.welcome-card__head { background: linear-gradient(135deg, var(--navy) 0%, var(--teal) 100%); padding: 32px 28px; color: #fff; }
+.welcome-card__head h1 { font-size: 22px; font-weight: 800; margin-bottom: 6px; }
+.welcome-card__head p { font-size: 13px; opacity: 0.85; }
+.welcome-card__body { padding: 28px; }
+.prefill-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+.prefill-cell { background: #f5f8fc; border-radius: 8px; padding: 12px 14px; border: 1px solid var(--border); }
+.prefill-cell__label { font-size: 10px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; color: var(--sub); margin-bottom: 4px; }
+.prefill-cell__val { font-size: 14px; font-weight: 700; color: var(--navy); }
+.field-label { font-size: 12px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: var(--sub); margin-bottom: 8px; display: block; }
+.field-input { width: 100%; border: 1.5px solid var(--border); border-radius: 8px; padding: 12px 14px; font-size: 15px; font-family: inherit; transition: border-color 0.15s; outline: none; }
+.field-input:focus { border-color: var(--teal); }
+.btn-begin { width: 100%; margin-top: 24px; padding: 16px; background: linear-gradient(135deg, var(--navy) 0%, var(--teal) 100%); color: #fff; border: none; border-radius: 10px; font-size: 16px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; letter-spacing: 0.3px; }
+.notice { margin-top: 16px; background: #fffbe6; border: 1px solid #f0c040; border-radius: 8px; padding: 12px 14px; font-size: 12px; color: #7a5c00; }
 
-/* ---- CARD ---- */
-.card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 36px 40px; margin-bottom: 24px; }
-.card__title { font-size: 22px; font-weight: 800; color: var(--navy); margin-bottom: 6px; }
-.card__sub { font-size: 14px; color: var(--sub); margin-bottom: 28px; }
+/* ── PHASE 2: DOCUMENT READING ── */
+.ph-read { display: none; flex-direction: column; }
+.ph-read.active { display: flex; }
 
-/* ---- COVER PAGE ---- */
-.cover-header { text-align: center; padding: 20px 0 32px; }
-.cover-header img { height: 80px; margin-bottom: 16px; }
-.cover-header h1 { font-size: 28px; font-weight: 900; color: var(--navy); line-height: 1.2; }
-.cover-header .doc-type { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--teal); font-weight: 700; margin-bottom: 8px; }
-.cover-header .services { font-size: 13px; color: var(--sub); margin-top: 8px; }
+.doc-topbar { background: var(--navy); color: #fff; padding: 10px 20px; display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.doc-prog-wrap { flex: 1; }
+.doc-prog-label { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.7); margin-bottom: 5px; letter-spacing: 0.5px; text-transform: uppercase; }
+.doc-prog-bar { height: 6px; background: rgba(255,255,255,0.15); border-radius: 4px; overflow: hidden; }
+.doc-prog-fill { height: 100%; background: var(--teal); border-radius: 4px; transition: width 0.3s; }
+.doc-page-badge { background: rgba(255,255,255,0.12); border-radius: 8px; padding: 6px 14px; font-size: 13px; font-weight: 800; color: #fff; white-space: nowrap; }
+.doc-page-name { font-size: 11px; color: rgba(255,255,255,0.6); text-align: right; white-space: nowrap; max-width: 160px; overflow: hidden; text-overflow: ellipsis; }
 
-.cover-divider { height: 3px; background: linear-gradient(90deg, var(--navy), var(--teal)); border-radius: 2px; margin: 24px 0; }
+.doc-viewer { flex: 1; overflow: hidden; position: relative; }
+.doc-viewer iframe { width: 100%; height: 100%; border: none; display: block; }
 
-/* ---- GRID FIELDS ---- */
-.field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
-.field-cell { padding: 14px 18px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); }
-.field-cell:nth-child(even) { border-right: none; }
-.field-cell:nth-last-child(-n+2) { border-bottom: none; }
-.field-cell label { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--sub); display: block; margin-bottom: 6px; }
-.field-cell input { width: 100%; border: none; border-bottom: 1.5px solid var(--border); padding: 4px 0; font-size: 14px; font-weight: 600; color: var(--text); background: transparent; outline: none; }
-.field-cell input:focus { border-bottom-color: var(--teal); }
-.field-cell .readonly-val { font-size: 14px; font-weight: 600; color: var(--text); padding: 4px 0; border-bottom: 1.5px solid transparent; }
-.field-cell.highlight .readonly-val { color: var(--navy); }
+.sign-panel { background: var(--card); border-top: 3px solid var(--teal); padding: 14px 20px 20px; flex-shrink: 0; box-shadow: 0 -4px 20px rgba(27,58,107,0.10); }
+.sign-panel__row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.init-label { font-size: 12px; font-weight: 700; color: var(--sub); text-transform: uppercase; letter-spacing: 0.6px; white-space: nowrap; }
+.init-input { border: 2px solid var(--border); border-radius: 8px; padding: 10px 14px; font-size: 16px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; width: 100px; text-align: center; outline: none; font-family: inherit; transition: border-color 0.15s; }
+.init-input:focus { border-color: var(--teal); }
+.init-error { font-size: 12px; color: var(--red); display: none; margin-top: 6px; }
+.btn-prev { padding: 10px 18px; border: 1.5px solid var(--border); border-radius: 8px; background: transparent; font-size: 14px; font-weight: 600; color: var(--sub); cursor: pointer; display: flex; align-items: center; gap: 6px; }
+.btn-next-pg { padding: 10px 22px; border: none; border-radius: 8px; background: var(--navy); color: #fff; font-size: 14px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.btn-next-pg:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-next-pg.teal { background: linear-gradient(135deg, var(--teal), var(--navy)); }
 
-.conf-notice { background: #f0f7ff; border-left: 4px solid var(--teal); border-radius: 0 8px 8px 0; padding: 14px 18px; margin-top: 20px; }
-.conf-notice strong { font-size: 12px; letter-spacing: 1px; text-transform: uppercase; color: var(--teal); display: block; margin-bottom: 4px; }
-.conf-notice p { font-size: 13px; color: var(--sub); line-height: 1.5; }
+/* ── PHASE 3: SIGNATURES ── */
+.ph-sigs { overflow-y: auto; padding: 20px 16px 80px; }
+.sigs-inner { max-width: 600px; margin: 0 auto; }
+.sigs-head { margin-bottom: 24px; }
+.sigs-head h2 { font-size: 20px; font-weight: 800; color: var(--navy); }
+.sigs-head p { font-size: 13px; color: var(--sub); margin-top: 4px; }
+.sig-card { background: var(--card); border-radius: 12px; border: 1.5px solid var(--border); margin-bottom: 16px; overflow: hidden; }
+.sig-card__head { background: var(--navy); color: #fff; padding: 12px 18px; font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+.sig-card__head .badge { background: var(--teal); color: #fff; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; flex-shrink: 0; }
+.sig-card__body { padding: 16px 18px; }
+.sig-field { margin-bottom: 14px; }
+.sig-field label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--sub); display: block; margin-bottom: 6px; }
+.sig-field input { width: 100%; border: 1.5px solid var(--border); border-radius: 8px; padding: 10px 12px; font-size: 14px; font-family: inherit; outline: none; }
+.sig-field input:focus { border-color: var(--teal); }
+.canvas-wrap { border: 2px dashed var(--border); border-radius: 8px; position: relative; background: #fafcff; cursor: crosshair; }
+.canvas-wrap canvas { display: block; width: 100%; }
+.canvas-actions { display: flex; justify-content: flex-end; margin-top: 6px; }
+.btn-clear { font-size: 12px; color: var(--sub); border: 1px solid var(--border); border-radius: 6px; padding: 4px 12px; background: transparent; cursor: pointer; }
+.optional-badge { font-size: 11px; color: var(--sub); background: #f0f4f8; border-radius: 4px; padding: 2px 6px; margin-left: 8px; font-weight: 600; }
+.btn-submit-wrap { margin-top: 24px; }
+.btn-submit { width: 100%; padding: 16px; background: linear-gradient(135deg, var(--teal), var(--navy)); color: #fff; border: none; border-radius: 10px; font-size: 16px; font-weight: 800; cursor: pointer; }
+.btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+.submit-error { color: var(--red); font-size: 13px; margin-top: 10px; display: none; }
 
-/* ---- PDF VIEWER ---- */
-.pdf-frame { width: 100%; height: 680px; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
-.pdf-hint { background: #fffbea; border: 1px solid #f0d060; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; font-size: 13px; color: #7a5c00; display: flex; align-items: center; gap: 8px; }
+/* ── PHASE 4: DONE ── */
+.ph-done { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px 24px; overflow-y: auto; }
+.done-card { background: var(--card); border-radius: 16px; box-shadow: 0 4px 32px rgba(27,58,107,0.13); padding: 40px 32px; text-align: center; max-width: 480px; width: 100%; }
+.done-icon { width: 72px; height: 72px; background: linear-gradient(135deg, var(--teal), var(--navy)); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; }
+.done-card h2 { font-size: 22px; font-weight: 800; color: var(--navy); margin-bottom: 10px; }
+.done-card p { font-size: 14px; color: var(--sub); line-height: 1.6; margin-bottom: 8px; }
+.done-ref { background: #f0f4f8; border-radius: 8px; padding: 10px 16px; font-size: 14px; font-weight: 700; color: var(--navy); margin: 16px 0; }
+.btn-dl { display: inline-flex; align-items: center; gap: 10px; background: linear-gradient(135deg, var(--teal), var(--navy)); color: #fff; border: none; border-radius: 10px; padding: 14px 28px; font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 20px; }
+.done-contact { margin-top: 24px; font-size: 12px; color: #aaa; }
 
-/* ---- INITIALS ---- */
-.initials-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.initial-item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--bg); border-radius: 8px; border: 1px solid var(--border); }
-.initial-item label { font-size: 13px; font-weight: 600; color: var(--sub); flex: 1; }
-.initial-item input { width: 80px; text-align: center; border: none; border-bottom: 2px solid var(--border); background: #fff; padding: 4px 8px; font-size: 15px; font-weight: 700; color: var(--navy); outline: none; border-radius: 4px; letter-spacing: 2px; }
-.initial-item input:focus { border-bottom-color: var(--teal); }
-.initial-item.done { border-color: var(--teal); background: #f0faf9; }
-
-/* ---- CONSENT TEXT ---- */
-.consent-text { font-size: 13.5px; line-height: 1.7; color: var(--sub); background: #f8fafc; border-radius: 8px; padding: 18px 20px; border: 1px solid var(--border); margin-bottom: 22px; }
-.consent-text strong { color: var(--text); }
-
-/* ---- SIG SECTION ---- */
-.sig-section { border: 1.5px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 20px; }
-.sig-section__title { font-size: 14px; font-weight: 800; color: var(--navy); letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 4px; }
-.sig-section__sub { font-size: 12px; color: var(--sub); margin-bottom: 20px; }
-.sig-field { margin-bottom: 16px; }
-.sig-field label { font-size: 12px; font-weight: 700; color: var(--sub); text-transform: uppercase; letter-spacing: 0.8px; display: block; margin-bottom: 6px; }
-.sig-field input { width: 100%; border: none; border-bottom: 1.5px solid var(--border); padding: 6px 0; font-size: 14px; font-weight: 600; background: transparent; outline: none; color: var(--text); }
-.sig-field input:focus { border-bottom-color: var(--teal); }
-.sig-field .static-val { padding: 6px 0; font-size: 14px; font-weight: 600; color: var(--text); border-bottom: 1.5px solid #eee; }
-
-.canvas-wrap { position: relative; border: 1.5px dashed var(--border); border-radius: 8px; background: #fafcff; margin-top: 6px; }
-.sig-canvas { display: block; width: 100%; height: 120px; cursor: crosshair; border-radius: 8px; touch-action: none; }
-.canvas-label { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); font-size: 11px; color: #bbb; pointer-events: none; font-style: italic; }
-.canvas-clear { position: absolute; top: 6px; right: 8px; font-size: 11px; color: var(--teal); cursor: pointer; background: none; border: none; font-weight: 600; }
-
-/* ---- BUTTONS ---- */
-.btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 28px; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; border: none; transition: all 0.2s; }
-.btn-primary { background: var(--navy); color: #fff; }
-.btn-primary:hover { background: var(--navy2); }
-.btn-teal { background: var(--teal); color: #fff; }
-.btn-teal:hover { background: var(--teal2); }
-.btn-outline { background: transparent; color: var(--navy); border: 2px solid var(--navy); }
-.btn-outline:hover { background: var(--navy); color: #fff; }
-.btn:disabled { opacity: 0.4; cursor: not-allowed; }
-.btn-row { display: flex; align-items: center; gap: 12px; margin-top: 24px; }
-.btn-row .btn-back { background: transparent; color: var(--sub); border: 1.5px solid var(--border); }
-.btn-row .btn-back:hover { background: var(--bg); }
-
-/* ---- SUCCESS ---- */
-.success-page { text-align: center; padding: 48px 32px; }
-.success-icon { width: 80px; height: 80px; background: linear-gradient(135deg, var(--teal), var(--navy)); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; }
-.success-icon svg { width: 40px; height: 40px; stroke: #fff; fill: none; stroke-width: 2.5; }
-.success-page h2 { font-size: 26px; font-weight: 900; color: var(--navy); margin-bottom: 12px; }
-.success-page p { font-size: 15px; color: var(--sub); line-height: 1.7; max-width: 480px; margin: 0 auto 24px; }
-.success-ref { background: var(--bg); border-radius: 8px; padding: 14px 20px; display: inline-block; font-size: 13px; color: var(--sub); }
-.success-ref strong { color: var(--navy); font-size: 15px; }
-
-/* ---- FOOTER ---- */
-.page-footer { text-align: center; padding: 20px; font-size: 12px; color: #aaa; }
-
-/* ---- SECTION HIDDEN ---- */
-.step-section { display: none; }
-.step-section.active { display: block; }
-
-/* ---- CHECKBOX ---- */
-.check-row { display: flex; align-items: flex-start; gap: 12px; padding: 16px; background: var(--bg); border-radius: 8px; border: 1.5px solid var(--border); cursor: pointer; }
-.check-row input[type=checkbox] { width: 20px; height: 20px; flex-shrink: 0; accent-color: var(--teal); cursor: pointer; margin-top: 1px; }
-.check-row span { font-size: 13.5px; font-weight: 500; color: var(--text); line-height: 1.5; }
-
-/* ---- RESPONSIVE ---- */
-@media (max-width: 600px) {
-  .card { padding: 24px 18px; }
-  .field-grid { grid-template-columns: 1fr; }
-  .field-cell:nth-child(odd), .field-cell:nth-child(even) { border-right: none; }
-  .field-cell:last-child { border-bottom: none; }
-  .initials-grid { grid-template-columns: 1fr; }
-  .progress-wrap { padding: 12px 16px; }
-  .step-label { display: none; }
-}
+/* ── MISC ── */
+.page-footer { background: var(--navy); color: rgba(255,255,255,0.5); font-size: 11px; text-align: center; padding: 10px; flex-shrink: 0; }
 </style>
 </head>
 <body>
 
-<!-- TOP BAR -->
-<div class="top-bar">
-  <img src="assets/carebridge-logo.png" alt="Carebridge International" onerror="this.style.display='none'" />
-  <span class="top-bar__title">Patient Medical Travel Service Agreement</span>
-  <span class="top-bar__secure">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-    Secured & Private
+<div class="app">
+
+<!-- HEADER -->
+<header class="hdr">
+  <img src="assets/carebridge-logo.png" alt="Carebridge International">
+  <span class="hdr-title">Patient Service Agreement</span>
+  <span class="hdr-secure">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    Secure
   </span>
-</div>
+</header>
 
-<!-- PROGRESS BAR -->
-<div class="progress-wrap">
-  <div class="progress-steps">
-    <div class="step-item">
-      <div class="step-circle active" id="sc1">1</div>
-      <span class="step-label active" id="sl1">Details</span>
-    </div>
-    <div class="step-connector" id="con1"></div>
-    <div class="step-item">
-      <div class="step-circle" id="sc2">2</div>
-      <span class="step-label" id="sl2">Read</span>
-    </div>
-    <div class="step-connector" id="con2"></div>
-    <div class="step-item">
-      <div class="step-circle" id="sc3">3</div>
-      <span class="step-label" id="sl3">Initials</span>
-    </div>
-    <div class="step-connector" id="con3"></div>
-    <div class="step-item">
-      <div class="step-circle" id="sc4">4</div>
-      <span class="step-label" id="sl4">Sign</span>
-    </div>
-    <div class="step-connector" id="con4"></div>
-    <div class="step-item">
-      <div class="step-circle" id="sc5">5</div>
-      <span class="step-label" id="sl5">Done</span>
-    </div>
-  </div>
-</div>
-
-<div class="main">
-
-  <!-- ===== STEP 1: DETAILS ===== -->
-  <div class="step-section active" id="step1">
-    <div class="card">
-      <div class="cover-header">
-        <img src="assets/carebridge-logo.png" alt="Carebridge International" onerror="this.style.display='none'" style="height:70px;margin-bottom:14px;" />
-        <div class="doc-type">International Healthcare Agreement</div>
+<!-- PHASE 1: PATIENT DETAILS -->
+<div class="phase active" id="ph-details">
+  <div class="ph-details">
+    <div class="welcome-card">
+      <div class="welcome-card__head">
         <h1>Patient Medical Travel<br>Service Agreement</h1>
-        <div class="services" style="margin-top:10px;">International Healthcare Coordination &nbsp;•&nbsp; Medical Tourism &nbsp;•&nbsp; Patient Support &nbsp;•&nbsp; Healthcare Travel Services</div>
+        <p>Carebridge International Inc. &nbsp;·&nbsp; Please review and confirm your details to begin</p>
       </div>
-      <div class="cover-divider"></div>
+      <div class="welcome-card__body">
+        <div class="prefill-grid" id="prefill-grid"></div>
 
-      <div class="field-grid">
-        <div class="field-cell">
-          <label>Agreement Number</label>
-          <div class="readonly-val" id="agr-num-display" style="color:var(--teal);font-size:15px;font-weight:800;">—</div>
+        <div class="sig-field" style="margin-bottom:0">
+          <label class="field-label">Your Full Name *</label>
+          <input class="field-input" type="text" id="patient-name-input" placeholder="Enter your full legal name" autocomplete="name" />
         </div>
-        <div class="field-cell">
-          <label>Version Number</label>
-          <div class="readonly-val">1.0</div>
-        </div>
-        <div class="field-cell">
-          <label>Patient Name</label>
-          <input type="text" id="patient-name-input" placeholder="Enter your full legal name" autocomplete="name" />
-        </div>
-        <div class="field-cell">
-          <label>Date</label>
-          <div class="readonly-val" id="date-display">—</div>
-        </div>
-        <div class="field-cell">
-          <label>Prepared By</label>
-          <div class="readonly-val">Sidii Hamza</div>
-        </div>
-        <div class="field-cell highlight">
-          <label>Company</label>
-          <div class="readonly-val">Carebridge International Inc.</div>
-        </div>
-      </div>
 
-      <div class="conf-notice" style="margin-top:20px;">
-        <strong>Confidentiality Notice</strong>
-        <p>This document contains confidential and proprietary information intended solely for the parties to this Agreement. It may not be copied, distributed, or disclosed to any third party without the prior written consent of Carebridge International Inc., except as required by law.</p>
-      </div>
+        <div class="notice" style="margin-top:16px">
+          <strong>What happens next:</strong> You'll review each of the 14 pages of the agreement and provide your initials. Then you'll sign in the designated signature areas. The whole process takes about 5 minutes.
+        </div>
 
-      <div class="btn-row" style="justify-content:flex-end;">
-        <button class="btn btn-primary" id="btn-step1">Begin Reading Agreement &rarr;</button>
+        <button class="btn-begin" onclick="beginSigning()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          Begin Signing
+        </button>
       </div>
     </div>
   </div>
-
-  <!-- ===== STEP 2: READ ===== -->
-  <div class="step-section" id="step2">
-    <div class="card">
-      <div class="card__title">Read Your Agreement</div>
-      <div class="card__sub">Please read all 14 pages carefully. Scroll through the full document before continuing.</div>
-
-      <div class="pdf-hint">
-        📄 &nbsp;<strong>14-page document</strong> — Please scroll through all pages before checking the box below.
-      </div>
-
-      <iframe class="pdf-frame" id="pdf-frame" src="assets/carebridge-agreement.pdf#toolbar=1&navpanes=0" title="Patient Medical Travel Service Agreement"></iframe>
-
-      <div style="margin-top:20px;">
-        <label class="check-row" for="read-confirm">
-          <input type="checkbox" id="read-confirm" />
-          <span>I confirm that I have fully read, understood, and agree to all 14 pages of the <strong>Carebridge International Patient Medical Travel Service Agreement</strong>, including all 42 sections covering the complete scope of services, responsibilities, financial terms, privacy provisions, and limitation of liability.</span>
-        </label>
-      </div>
-
-      <div class="btn-row">
-        <button class="btn btn-back" onclick="goTo(1)">&larr; Back</button>
-        <button class="btn btn-primary" id="btn-step2" disabled>Continue to Initials &rarr;</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ===== STEP 3: INITIALS ===== -->
-  <div class="step-section" id="step3">
-    <div class="card">
-      <div class="card__title">Page Initials</div>
-      <div class="card__sub">Please initial each page to confirm you have read it. Enter your initials in each field.</div>
-
-      <div class="initials-grid" id="initials-grid">
-        <!-- Generated by JS -->
-      </div>
-
-      <div class="btn-row">
-        <button class="btn btn-back" onclick="goTo(2)">&larr; Back</button>
-        <button class="btn btn-primary" id="btn-step3">Continue to Signatures &rarr;</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ===== STEP 4: SIGNATURES ===== -->
-  <div class="step-section" id="step4">
-    <div class="card">
-      <div class="card__title">Signatures</div>
-      <div class="card__sub">Please sign in the boxes below. Use your mouse or finger to draw your signature.</div>
-
-      <!-- Patient Acknowledgment -->
-      <div class="consent-text">
-        <strong>Patient Acknowledgment and Consent</strong><br><br>
-        I have read and understood the Privacy, Confidentiality, Data Security, and Limitation of Liability provisions of this Agreement. I understand that no electronic system is completely secure and that, despite reasonable safeguards, cybersecurity incidents or data breaches may occur. I voluntarily consent to the collection, use, storage, processing, and international transfer of my personal and medical information for the purpose of coordinating my medical care and related services, and I acknowledge and accept the risks described above.
-      </div>
-
-      <div class="sig-section">
-        <div class="sig-section__title">Patient Acknowledgment &amp; Consent</div>
-        <div class="sig-section__sub">Signed by the patient confirming full agreement</div>
-        <div class="sig-field">
-          <label>Patient Name</label>
-          <div class="static-val" id="sig-patient-name-display">—</div>
-        </div>
-        <div class="sig-field">
-          <label>Signature</label>
-          <div class="canvas-wrap">
-            <canvas class="sig-canvas" id="sig1" width="800" height="120"></canvas>
-            <span class="canvas-label">Sign here</span>
-            <button class="canvas-clear" onclick="clearSig('sig1')">Clear</button>
-          </div>
-        </div>
-        <div class="sig-field">
-          <label>Date</label>
-          <div class="static-val" id="sig-date-1">—</div>
-        </div>
-      </div>
-
-      <!-- Patient / Authorized Representative -->
-      <div class="sig-section">
-        <div class="sig-section__title">Patient / Authorized Representative</div>
-        <div class="sig-section__sub">Signed by the Patient or a person authorized to sign on the Patient's behalf</div>
-        <div class="sig-field">
-          <label>Name</label>
-          <input type="text" id="rep-name" placeholder="Full legal name" />
-        </div>
-        <div class="sig-field">
-          <label>Relationship to Patient</label>
-          <input type="text" id="rep-relationship" placeholder="e.g. Self, Spouse, Parent, Legal Guardian" />
-        </div>
-        <div class="sig-field">
-          <label>Signature</label>
-          <div class="canvas-wrap">
-            <canvas class="sig-canvas" id="sig2" width="800" height="120"></canvas>
-            <span class="canvas-label">Sign here</span>
-            <button class="canvas-clear" onclick="clearSig('sig2')">Clear</button>
-          </div>
-        </div>
-        <div class="sig-field">
-          <label>Date</label>
-          <div class="static-val" id="sig-date-2">—</div>
-        </div>
-      </div>
-
-      <!-- Witness 2 -->
-      <div class="sig-section">
-        <div class="sig-section__title">Witness 2</div>
-        <div class="sig-section__sub">Witness to the signatures above</div>
-        <div class="sig-field">
-          <label>Name</label>
-          <input type="text" id="witness-name" placeholder="Witness full name" />
-        </div>
-        <div class="sig-field">
-          <label>Signature</label>
-          <div class="canvas-wrap">
-            <canvas class="sig-canvas" id="sig3" width="800" height="120"></canvas>
-            <span class="canvas-label">Sign here</span>
-            <button class="canvas-clear" onclick="clearSig('sig3')">Clear</button>
-          </div>
-        </div>
-        <div class="sig-field">
-          <label>Date</label>
-          <div class="static-val" id="sig-date-3">—</div>
-        </div>
-      </div>
-
-      <div class="btn-row">
-        <button class="btn btn-back" onclick="goTo(3)">&larr; Back</button>
-        <button class="btn btn-teal" id="btn-submit" onclick="submitAgreement()">&#10003; Submit Signed Agreement</button>
-      </div>
-      <p id="submit-error" style="color:var(--red);font-size:13px;margin-top:12px;display:none;"></p>
-    </div>
-  </div>
-
-  <!-- ===== STEP 5: SUCCESS ===== -->
-  <div class="step-section" id="step5">
-    <div class="card">
-      <div class="success-page">
-        <div class="success-icon">
-          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
-        </div>
-        <h2>Agreement Signed Successfully</h2>
-        <p>Thank you. Your signed Patient Medical Travel Service Agreement has been submitted to Carebridge International. Our coordination team will be in touch with you shortly.</p>
-        <div class="success-ref">
-          Agreement Reference: &nbsp;<strong id="success-ref-id">—</strong>
-        </div>
-        <div id="pdf-download-wrap" style="margin-top:28px;">
-          <button id="btn-download-pdf" onclick="downloadSignedPDF()" style="display:inline-flex;align-items:center;gap:10px;background:linear-gradient(135deg,#1CA89C,#1B3A6B);color:#fff;border:none;border-radius:10px;padding:14px 28px;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(27,58,107,0.25);">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            Download Your Signed Copy (PDF)
-          </button>
-          <div style="margin-top:10px;font-size:12px;color:#aaa;">Keep this for your records</div>
-        </div>
-        <div style="margin-top:24px;font-size:13px;color:#aaa;">
-          support@carebridgeinternational.ca &nbsp;|&nbsp; +1 (825) 785-3396 &nbsp;|&nbsp; www.carebridgeinternational.ca
-        </div>
-      </div>
-    </div>
-  </div>
-
 </div>
 
-<div class="page-footer">
-  Private &amp; Confidential &nbsp;|&nbsp; support@carebridgeinternational.ca &nbsp;|&nbsp; +1 (825) 785-3396 &nbsp;|&nbsp; www.carebridgeinternational.ca
+<!-- PHASE 2: DOCUMENT READING (14 pages) -->
+<div class="phase" id="ph-read">
+  <div class="doc-topbar">
+    <div class="doc-prog-wrap">
+      <div class="doc-prog-label">Agreement Progress</div>
+      <div class="doc-prog-bar"><div class="doc-prog-fill" id="prog-fill" style="width:0%"></div></div>
+    </div>
+    <div class="doc-page-badge" id="page-badge">Page 1 / 14</div>
+    <div class="doc-page-name" id="page-name">Cover Page</div>
+  </div>
+
+  <div class="doc-viewer">
+    <iframe id="doc-frame" src="agr-preview.html"></iframe>
+  </div>
+
+  <div class="sign-panel">
+    <div class="sign-panel__row">
+      <span class="init-label">Initials — Page <span id="sign-panel-pg">1</span>:</span>
+      <input class="init-input" type="text" id="cur-init" maxlength="5" placeholder="A.H." autocapitalize="characters" autocomplete="off" oninput="this.value=this.value.toUpperCase()" />
+      <button class="btn-prev" id="btn-pg-prev" onclick="prevDocPage()" style="display:none">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        Back
+      </button>
+      <button class="btn-next-pg" id="btn-pg-next" onclick="nextDocPage()">
+        Next Page
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </button>
+    </div>
+    <div class="init-error" id="init-error">Please enter your initials before continuing.</div>
+  </div>
 </div>
+
+<!-- PHASE 3: SIGNATURES -->
+<div class="phase" id="ph-sigs">
+  <div class="ph-sigs">
+    <div class="sigs-inner">
+      <div class="sigs-head">
+        <h2>Signatures &amp; Witnesses</h2>
+        <p>All required signatures must be completed below to finalise the agreement.</p>
+      </div>
+
+      <!-- Sig 1: Patient -->
+      <div class="sig-card">
+        <div class="sig-card__head"><span class="badge">1</span>Patient Acknowledgment &amp; Consent</div>
+        <div class="sig-card__body">
+          <div class="sig-field">
+            <label>Patient Full Name</label>
+            <input type="text" id="sig1-name" placeholder="Full legal name" />
+          </div>
+          <div class="sig-field">
+            <label>Signature <span style="font-size:11px;color:var(--sub)">(draw below)</span></label>
+            <div class="canvas-wrap"><canvas id="sig1" height="130"></canvas></div>
+            <div class="canvas-actions"><button class="btn-clear" onclick="clearCanvas('sig1')">Clear</button></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sig 2: Rep -->
+      <div class="sig-card">
+        <div class="sig-card__head"><span class="badge">2</span>Patient / Authorized Representative</div>
+        <div class="sig-card__body">
+          <div class="sig-field">
+            <label>Representative Full Name</label>
+            <input type="text" id="rep-name" placeholder="Full legal name" />
+          </div>
+          <div class="sig-field">
+            <label>Relationship to Patient</label>
+            <input type="text" id="rep-relationship" placeholder="e.g. Parent, Guardian, Self" />
+          </div>
+          <div class="sig-field">
+            <label>Signature <span style="font-size:11px;color:var(--sub)">(draw below)</span></label>
+            <div class="canvas-wrap"><canvas id="sig2" height="130"></canvas></div>
+            <div class="canvas-actions"><button class="btn-clear" onclick="clearCanvas('sig2')">Clear</button></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sig 3: Witness -->
+      <div class="sig-card">
+        <div class="sig-card__head">
+          <span class="badge">3</span>Witness 2
+          <span class="optional-badge">Optional</span>
+        </div>
+        <div class="sig-card__body">
+          <div class="sig-field">
+            <label>Witness Full Name</label>
+            <input type="text" id="witness-name" placeholder="Full legal name" />
+          </div>
+          <div class="sig-field">
+            <label>Signature <span style="font-size:11px;color:var(--sub)">(draw below)</span></label>
+            <div class="canvas-wrap"><canvas id="sig3" height="130"></canvas></div>
+            <div class="canvas-actions"><button class="btn-clear" onclick="clearCanvas('sig3')">Clear</button></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="btn-submit-wrap">
+        <button class="btn-submit" id="btn-submit" onclick="submitAgreement()">Submit Signed Agreement</button>
+        <div class="submit-error" id="submit-error"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PHASE 4: DONE -->
+<div class="phase" id="ph-done">
+  <div class="ph-done">
+    <div class="done-card">
+      <div class="done-icon">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <h2>Agreement Signed Successfully</h2>
+      <p>Thank you. Your signed Patient Medical Travel Service Agreement has been submitted to Carebridge International.</p>
+      <p>Our coordination team will be in touch with you shortly.</p>
+      <div class="done-ref">Agreement Reference: <strong id="success-ref-id">—</strong></div>
+      <button class="btn-dl" id="btn-dl" onclick="downloadSignedPDF()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Download Your Signed Copy (PDF)
+      </button>
+      <div class="done-contact">support@carebridgeinternational.ca &nbsp;·&nbsp; +1 (825) 785-3396</div>
+    </div>
+  </div>
+</div>
+
+<div class="page-footer">Private &amp; Confidential &nbsp;|&nbsp; Carebridge International Inc.</div>
+
+</div><!-- /.app -->
 
 <script>
 // ============================================================
-//  Agreement page logic
-// ============================================================
 var SB_URL  = "https://htvjjwfenvittdritjni.supabase.co";
 var SB_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh0dmpqd2ZlbnZpdHRkcml0am5pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2NTQ3OTAsImV4cCI6MjA5OTIzMDc5MH0.AMKUctPj49ahqXAFZbzJ341ZFH5XTckBUQaDmF5ZLj8";
-
-// Email notification (Web3Forms — replace key with yours from web3forms.com)
 var WEB3FORMS_KEY = "ced130e3-f4d4-424b-96fe-bd50558254f2";
 var ADMIN_EMAIL   = "ahmedaffey200@gmail.com";
 
-var currentStep = 1;
-var agrId = "";
-var patientName = "";
+var agrId = "", patientNameVal = "";
+var docPageIdx = 0;  // 0-based index into PAGES array
+var initials = {};   // { page1: "AH", page2: "AH", ... }
+var frameReady = false;
+var _signedPayload = null;
 
-// ---- Read URL params ----
+// 14 pages: page 1 = cover, page 2 = TOC, pages 3-14 = body sections
+var PAGES = [
+  { label: "Cover Page",                          scroll: function(fr) { fr.contentWindow.scrollTo({top:0,behavior:"smooth"}); } },
+  { label: "Table of Contents",                   scroll: function(fr) { scrollToEl(fr, ".toc"); } },
+  { label: "Sections 1–4: Definitions & Scope",   scroll: function(fr) { scrollToEl(fr, ".body"); } },
+  { label: "Sections 5–8: Services",              scroll: function(fr) { scrollToSec(fr, 5); } },
+  { label: "Sections 9–12: Patient Responsibilities", scroll: function(fr) { scrollToSec(fr, 9); } },
+  { label: "Sections 13–16: Authorization & Costs",scroll: function(fr) { scrollToSec(fr, 13); } },
+  { label: "Sections 17–20: Travel & Logistics",  scroll: function(fr) { scrollToSec(fr, 17); } },
+  { label: "Sections 21–24: Communication & Privacy", scroll: function(fr) { scrollToSec(fr, 21); } },
+  { label: "Sections 25–28: Electronic & Data",   scroll: function(fr) { scrollToSec(fr, 25); } },
+  { label: "Sections 29–32: Limitations",         scroll: function(fr) { scrollToSec(fr, 29); } },
+  { label: "Sections 33–36: Third Party & Force Majeure", scroll: function(fr) { scrollToSec(fr, 33); } },
+  { label: "Sections 37–40: Conduct & Compliance",scroll: function(fr) { scrollToSec(fr, 37); } },
+  { label: "Section 41: Intellectual Property",   scroll: function(fr) { scrollToSec(fr, 41); } },
+  { label: "Section 42: Signatures & Witnesses",  scroll: function(fr) { scrollToSec(fr, 42); } },
+];
+
+function scrollToEl(fr, selector) {
+  try {
+    var el = fr.contentWindow.document.querySelector(selector);
+    if (el) el.scrollIntoView({ behavior: "smooth" });
+  } catch(e) {}
+}
+
+function scrollToSec(fr, num) {
+  try {
+    var spans = fr.contentWindow.document.querySelectorAll(".sec .n, h2 .n, .toc-item .n");
+    for (var i = 0; i < spans.length; i++) {
+      var t = spans[i].textContent.trim();
+      if (t === String(num) || t === num + ".0" || t === num + ".") {
+        var clause = spans[i].closest(".clause") || spans[i].parentElement;
+        if (clause) { clause.scrollIntoView({ behavior: "smooth" }); return; }
+      }
+    }
+    // Fallback: search by text content
+    var allH2 = fr.contentWindow.document.querySelectorAll("h2");
+    for (var j = 0; j < allH2.length; j++) {
+      if (allH2[j].textContent.trim().startsWith(num + ".")) {
+        allH2[j].scrollIntoView({ behavior: "smooth" }); return;
+      }
+    }
+  } catch(e) {}
+}
+
+// ---- URL Params ----
 var params = new URLSearchParams(window.location.search);
 agrId = params.get("id") || ("AGR-" + new Date().getFullYear() + "-" + Math.floor(Math.random()*900+100));
-patientName = decodeURIComponent(params.get("name") || "");
+patientNameVal = decodeURIComponent(params.get("name") || "");
 
-// ---- Init ----
 document.addEventListener("DOMContentLoaded", function () {
+  // Pre-fill name field
+  if (patientNameVal) document.getElementById("patient-name-input").value = patientNameVal;
+
+  // Build pre-fill grid
   var today = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
-  document.getElementById("agr-num-display").textContent = agrId;
-  document.getElementById("date-display").textContent = today;
-  document.getElementById("sig-date-1").textContent = today;
-  document.getElementById("sig-date-2").textContent = today;
-  document.getElementById("sig-date-3").textContent = today;
+  var fields = [
+    ["Agreement Number", agrId],
+    ["Version Number", "1.0"],
+    ["Date", today],
+    ["Prepared By", "Sidii Hamza"],
+    ["Company", "Carebridge International Inc."],
+  ];
+  var grid = document.getElementById("prefill-grid");
+  fields.forEach(function(f) {
+    var cell = document.createElement("div");
+    cell.className = "prefill-cell";
+    cell.innerHTML = '<div class="prefill-cell__label">' + f[0] + '</div><div class="prefill-cell__val">' + f[1] + '</div>';
+    grid.appendChild(cell);
+  });
+
   document.getElementById("success-ref-id").textContent = agrId;
 
-  if (patientName) {
-    document.getElementById("patient-name-input").value = patientName;
-    document.getElementById("sig-patient-name-display").textContent = patientName;
-    document.getElementById("rep-name").value = patientName;
-    document.getElementById("rep-relationship").value = "Self";
-  }
-
-  // Build initials grid
-  var grid = document.getElementById("initials-grid");
-  for (var i = 1; i <= 14; i++) {
-    var item = document.createElement("div");
-    item.className = "initial-item";
-    item.id = "init-item-" + i;
-    item.innerHTML = '<label>Page ' + i + '</label><input type="text" id="init-' + i + '" maxlength="5" placeholder="——" oninput="onInitialInput(this,' + i + ')" />';
-    grid.appendChild(item);
-  }
-
-  // Setup canvas signatures
-  setupCanvas("sig1");
-  setupCanvas("sig2");
-  setupCanvas("sig3");
-
-  // Step 1 next
-  document.getElementById("btn-step1").addEventListener("click", function () {
-    var name = document.getElementById("patient-name-input").value.trim();
-    if (!name) { alert("Please enter your full legal name to continue."); return; }
-    patientName = name;
-    document.getElementById("sig-patient-name-display").textContent = name;
-    if (!document.getElementById("rep-name").value) document.getElementById("rep-name").value = name;
-    goTo(2);
-  });
-
-  // Step 2 checkbox
-  document.getElementById("read-confirm").addEventListener("change", function () {
-    document.getElementById("btn-step2").disabled = !this.checked;
-  });
-  document.getElementById("btn-step2").addEventListener("click", function () { goTo(3); });
-
-  // Step 3 next
-  document.getElementById("btn-step3").addEventListener("click", function () {
-    var missing = [];
-    for (var i = 1; i <= 14; i++) {
-      if (!document.getElementById("init-" + i).value.trim()) missing.push(i);
-    }
-    if (missing.length) {
-      alert("Please initial all pages before continuing. Missing: Page " + missing.join(", "));
-      return;
-    }
-    goTo(4);
-  });
+  // Setup signature canvases
+  ["sig1","sig2","sig3"].forEach(setupCanvas);
 });
 
-function onInitialInput(el, page) {
-  var item = document.getElementById("init-item-" + page);
-  item.classList.toggle("done", el.value.trim().length > 0);
+// ---- Phase switching ----
+function showPhase(id) {
+  ["ph-details","ph-read","ph-sigs","ph-done"].forEach(function(p) {
+    var el = document.getElementById(p);
+    el.classList.remove("active");
+    el.style.display = "";
+  });
+  var target = document.getElementById(id);
+  target.classList.add("active");
+  target.style.display = "flex";
 }
 
-// ---- Navigation ----
-function goTo(n) {
-  document.getElementById("step" + currentStep).classList.remove("active");
-  currentStep = n;
-  document.getElementById("step" + n).classList.add("active");
-  updateProgress(n);
-  window.scrollTo({ top: 0, behavior: "smooth" });
+// ---- Phase 1 → 2 ----
+function beginSigning() {
+  var name = document.getElementById("patient-name-input").value.trim();
+  if (!name) {
+    document.getElementById("patient-name-input").style.borderColor = "var(--red)";
+    document.getElementById("patient-name-input").focus();
+    return;
+  }
+  patientNameVal = name;
+
+  // Pre-fill sig1 name
+  document.getElementById("sig1-name").value = name;
+
+  showPhase("ph-read");
+  updatePageUI();
 }
 
-function updateProgress(n) {
-  for (var i = 1; i <= 5; i++) {
-    var circle = document.getElementById("sc" + i);
-    var label = document.getElementById("sl" + i);
-    circle.classList.remove("active", "done");
-    label && label.classList.remove("active");
-    if (i < n) { circle.classList.add("done"); circle.textContent = "✓"; }
-    else if (i === n) { circle.classList.add("active"); circle.textContent = i; label && label.classList.add("active"); }
-    else { circle.textContent = i; }
-    if (i < 5) {
-      var con = document.getElementById("con" + i);
-      if (con) con.classList.toggle("done", i < n);
-    }
+// ---- Document page navigation ----
+function updatePageUI() {
+  var pg = docPageIdx + 1;
+  document.getElementById("page-badge").textContent = "Page " + pg + " / 14";
+  document.getElementById("page-name").textContent = PAGES[docPageIdx].label;
+  document.getElementById("sign-panel-pg").textContent = pg;
+  document.getElementById("prog-fill").style.width = (pg / 14 * 100) + "%";
+  document.getElementById("btn-pg-prev").style.display = docPageIdx > 0 ? "flex" : "none";
+
+  // Restore saved initial if any
+  var key = "page" + pg;
+  document.getElementById("cur-init").value = initials[key] || "";
+  document.getElementById("init-error").style.display = "none";
+
+  // Last page = go to signatures
+  var btn = document.getElementById("btn-pg-next");
+  if (docPageIdx === PAGES.length - 1) {
+    btn.textContent = "Proceed to Sign";
+    btn.classList.add("teal");
+  } else {
+    btn.innerHTML = 'Next Page <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>';
+    btn.classList.remove("teal");
+  }
+
+  // Scroll the iframe
+  var fr = document.getElementById("doc-frame");
+  if (frameReady) {
+    PAGES[docPageIdx].scroll(fr);
   }
 }
 
-// ---- Canvas signatures ----
+document.getElementById("doc-frame").addEventListener("load", function() {
+  frameReady = true;
+  PAGES[docPageIdx].scroll(this);
+});
+
+function nextDocPage() {
+  var key = "page" + (docPageIdx + 1);
+  var val = document.getElementById("cur-init").value.trim().toUpperCase();
+  if (!val) {
+    document.getElementById("init-error").style.display = "block";
+    document.getElementById("cur-init").focus();
+    return;
+  }
+  initials[key] = val;
+
+  if (docPageIdx === PAGES.length - 1) {
+    showPhase("ph-sigs");
+    return;
+  }
+  docPageIdx++;
+  updatePageUI();
+  // Scroll iframe
+  var fr = document.getElementById("doc-frame");
+  if (frameReady) PAGES[docPageIdx].scroll(fr);
+}
+
+function prevDocPage() {
+  // Save current initials
+  var key = "page" + (docPageIdx + 1);
+  var val = document.getElementById("cur-init").value.trim().toUpperCase();
+  if (val) initials[key] = val;
+
+  if (docPageIdx > 0) {
+    docPageIdx--;
+    updatePageUI();
+  }
+}
+
+// ---- Signature canvases ----
 function setupCanvas(id) {
   var canvas = document.getElementById(id);
   if (!canvas) return;
+  canvas.width = canvas.offsetWidth || 500;
   var ctx = canvas.getContext("2d");
-  ctx.strokeStyle = "#1B3A6B";
-  ctx.lineWidth = 2.5;
-  ctx.lineCap = "round";
-  ctx.lineJoin = "round";
   var drawing = false;
-
-  function getPos(e) {
-    var rect = canvas.getBoundingClientRect();
-    var scaleX = canvas.width / rect.width;
-    var scaleY = canvas.height / rect.height;
-    if (e.touches) {
-      return { x: (e.touches[0].clientX - rect.left) * scaleX, y: (e.touches[0].clientY - rect.top) * scaleY };
-    }
-    return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
+  function pos(e) {
+    var r = canvas.getBoundingClientRect();
+    var src = e.touches ? e.touches[0] : e;
+    return { x: (src.clientX - r.left) * (canvas.width / r.width), y: (src.clientY - r.top) * (canvas.height / r.height) };
   }
-
-  canvas.addEventListener("mousedown", function (e) { drawing = true; ctx.beginPath(); var p = getPos(e); ctx.moveTo(p.x, p.y); });
-  canvas.addEventListener("mousemove", function (e) { if (!drawing) return; var p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); ctx.beginPath(); ctx.moveTo(p.x, p.y); });
-  canvas.addEventListener("mouseup", function () { drawing = false; });
-  canvas.addEventListener("mouseleave", function () { drawing = false; });
-  canvas.addEventListener("touchstart", function (e) { e.preventDefault(); drawing = true; ctx.beginPath(); var p = getPos(e); ctx.moveTo(p.x, p.y); }, { passive: false });
-  canvas.addEventListener("touchmove", function (e) { e.preventDefault(); if (!drawing) return; var p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); ctx.beginPath(); ctx.moveTo(p.x, p.y); }, { passive: false });
-  canvas.addEventListener("touchend", function () { drawing = false; });
+  function start(e) { e.preventDefault(); drawing = true; var p = pos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); }
+  function move(e) { e.preventDefault(); if (!drawing) return; var p = pos(e); ctx.lineTo(p.x, p.y); ctx.strokeStyle = "#1B3A6B"; ctx.lineWidth = 2.5; ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.stroke(); }
+  function end(e) { e.preventDefault(); drawing = false; }
+  canvas.addEventListener("mousedown", start); canvas.addEventListener("mousemove", move); canvas.addEventListener("mouseup", end);
+  canvas.addEventListener("touchstart", start, { passive: false }); canvas.addEventListener("touchmove", move, { passive: false }); canvas.addEventListener("touchend", end);
 }
 
-function clearSig(id) {
-  var canvas = document.getElementById(id);
-  canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
+function clearCanvas(id) {
+  var c = document.getElementById(id);
+  c.getContext("2d").clearRect(0, 0, c.width, c.height);
 }
 
 function isCanvasEmpty(id) {
-  var canvas = document.getElementById(id);
-  var data = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height).data;
-  for (var i = 0; i < data.length; i += 4) { if (data[i + 3] > 0) return false; }
-  return true;
+  var c = document.getElementById(id);
+  return !c.getContext("2d").getImageData(0, 0, c.width, c.height).data.some(function(v) { return v !== 0; });
 }
 
 // ---- Submit ----
 function submitAgreement() {
-  var name = document.getElementById("patient-name-input").value.trim();
+  var patName = document.getElementById("sig1-name").value.trim();
   var repName = document.getElementById("rep-name").value.trim();
-  var repRel = document.getElementById("rep-relationship").value.trim();
+  var repRel  = document.getElementById("rep-relationship").value.trim();
 
-  if (!name) { showError("Please enter your patient name."); return; }
-  if (isCanvasEmpty("sig1")) { showError("Please sign in the Patient Acknowledgment section."); return; }
-  if (!repName) { showError("Please enter the authorized representative name."); return; }
-  if (isCanvasEmpty("sig2")) { showError("Please sign in the Patient / Authorized Representative section."); return; }
+  if (!patName)           { showError("Please enter the patient name in Section 1."); return; }
+  if (isCanvasEmpty("sig1")) { showError("Please draw your signature in Section 1."); return; }
+  if (!repName)           { showError("Please enter the representative name in Section 2."); return; }
+  if (isCanvasEmpty("sig2")) { showError("Please draw the representative signature in Section 2."); return; }
 
   var btn = document.getElementById("btn-submit");
   btn.disabled = true;
   btn.textContent = "Submitting…";
   showError("");
 
-  // Collect initials
-  var initials = {};
-  for (var i = 1; i <= 14; i++) {
-    initials["page" + i] = document.getElementById("init-" + i).value.trim();
-  }
-
   var today = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
-  var timestamp = new Date().toISOString();
-
   var payload = {
     id: agrId,
-    patientName: name,
+    patientName: patName,
     repName: repName,
     repRelationship: repRel,
     witnesName: document.getElementById("witness-name").value.trim(),
@@ -599,261 +522,148 @@ function submitAgreement() {
     sig2: document.getElementById("sig2").toDataURL(),
     sig3: isCanvasEmpty("sig3") ? null : document.getElementById("sig3").toDataURL(),
     dateSigned: today,
-    timestamp: timestamp,
+    timestamp: new Date().toISOString(),
     status: "signed",
     preparedBy: "Sidii Hamza",
     version: "1.0",
   };
 
-  // 1. Save to Supabase
   saveToSupabase(payload, function () {
-    // 2. Send email notification
     sendEmailNotification(payload, function () {
-      // 3. Store payload for PDF download + auto-download
       _signedPayload = payload;
-      try {
-        var doc = generateSignedPDF(payload);
-        if (doc) doc.save("Carebridge-Agreement-" + payload.id + ".pdf");
-      } catch(e) { console.warn("PDF generation failed:", e); }
-      goTo(5);
+      try { var doc = generateSignedPDF(payload); if (doc) doc.save("Carebridge-Agreement-" + payload.id + ".pdf"); } catch(e) {}
+      showPhase("ph-done");
     });
   });
 }
 
 function saveToSupabase(payload, callback) {
-  // Load current portal state, add agreement, save back
   fetch(SB_URL + "/rest/v1/portal_state?id=eq.main&select=state", {
     headers: { "apikey": SB_ANON, "Authorization": "Bearer " + SB_ANON }
   })
-  .then(function (r) { return r.json(); })
-  .then(function (data) {
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
     var state = (data && data[0] && data[0].state) || {};
     if (!Array.isArray(state.agreements)) state.agreements = [];
-    // Update or add
-    var idx = state.agreements.findIndex(function (a) { return a.id === payload.id; });
+    var idx = state.agreements.findIndex(function(a) { return a.id === payload.id; });
     if (idx >= 0) { state.agreements[idx] = Object.assign({}, state.agreements[idx], payload); }
     else { state.agreements.push(payload); }
-
     return fetch(SB_URL + "/rest/v1/portal_state?id=eq.main", {
       method: "PATCH",
-      headers: {
-        "apikey": SB_ANON, "Authorization": "Bearer " + SB_ANON,
-        "Content-Type": "application/json", "Prefer": "return=minimal"
-      },
+      headers: { "apikey": SB_ANON, "Authorization": "Bearer " + SB_ANON, "Content-Type": "application/json", "Prefer": "return=minimal" },
       body: JSON.stringify({ state: state, updated_at: new Date().toISOString() })
     });
   })
-  .then(function () { callback(); })
-  .catch(function () { callback(); }); // proceed even if Supabase fails
+  .then(function() { callback(); })
+  .catch(function() { callback(); });
 }
 
 function sendEmailNotification(payload, callback) {
-  if (WEB3FORMS_KEY === "YOUR_WEB3FORMS_KEY") { callback(); return; }
-
-  var today = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
   fetch("https://api.web3forms.com/submit", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
+    method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       access_key: WEB3FORMS_KEY,
       subject: "✅ Agreement Signed — " + payload.patientName + " (" + payload.id + ")",
       from_name: "Carebridge Portal",
       to: ADMIN_EMAIL,
-      message:
-        "AGREEMENT SIGNED\n" +
-        "================\n\n" +
-        "Agreement ID:   " + payload.id + "\n" +
-        "Patient Name:   " + payload.patientName + "\n" +
-        "Rep/Signer:     " + payload.repName + " (" + payload.repRelationship + ")\n" +
-        "Witness:        " + (payload.witnesName || "—") + "\n" +
-        "Date Signed:    " + today + "\n" +
-        "Timestamp:      " + payload.timestamp + "\n\n" +
-        "All 14 pages have been initialed and all required signatures have been captured.\n\n" +
-        "Log in to the Carebridge Portal → Agreements to view the full signed document."
+      message: "AGREEMENT SIGNED\n================\n\nAgreement ID: " + payload.id + "\nPatient: " + payload.patientName + "\nRep: " + payload.repName + " (" + (payload.repRelationship||"—") + ")\nWitness: " + (payload.witnesName||"—") + "\nDate: " + payload.dateSigned + "\nTimestamp: " + payload.timestamp + "\n\nAll 14 pages initialled. Download PDF from portal → Patient Agreements."
     })
   })
-  .then(function () { callback(); })
-  .catch(function () { callback(); });
+  .then(function() { callback(); })
+  .catch(function() { callback(); });
 }
 
 function showError(msg) {
   var el = document.getElementById("submit-error");
-  el.textContent = msg;
-  el.style.display = msg ? "block" : "none";
+  el.textContent = msg; el.style.display = msg ? "block" : "none";
 }
 
 // ---- PDF Generation ----
-var _signedPayload = null;
-
 function generateSignedPDF(payload) {
-  var jsPDF = window.jspdf ? window.jspdf.jsPDF : (window.jsPDF || (window.jspdf && window.jspdf.jsPDF));
-  if (!jsPDF) { console.warn("jsPDF not loaded"); return null; }
-
-  var doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  var jsPDF = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
+  if (!jsPDF) return null;
   var W = 210, H = 297;
-  var navy = [27, 58, 107], teal = [28, 168, 156], white = [255,255,255], light = [240,244,248], grey = [90,106,126];
+  var navy=[27,58,107], teal=[28,168,156], white=[255,255,255], light=[240,244,248], grey=[90,106,126];
+  var doc = new jsPDF({ orientation:"portrait", unit:"mm", format:"a4" });
 
-  function header(pageNum) {
-    doc.setFillColor(navy[0], navy[1], navy[2]);
-    doc.rect(0, 0, W, 22, "F");
-    doc.setFillColor(teal[0], teal[1], teal[2]);
-    doc.rect(0, 20, W, 2, "F");
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(13);
-    doc.setTextColor(white[0], white[1], white[2]);
-    doc.text("CAREBRIDGE INTERNATIONAL INC.", 14, 14);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
-    doc.setTextColor(200, 215, 235);
-    doc.text("Patient Medical Travel Service Agreement — Executed Copy", W - 14, 14, { align: "right" });
-    if (pageNum > 0) {
-      doc.setFontSize(8);
-      doc.setTextColor(grey[0], grey[1], grey[2]);
-      doc.text("Page " + pageNum, W - 14, H - 8, { align: "right" });
-      doc.setDrawColor(220, 228, 238);
-      doc.line(14, H - 12, W - 14, H - 12);
-    }
+  function header(pg) {
+    doc.setFillColor(navy[0],navy[1],navy[2]); doc.rect(0,0,W,22,"F");
+    doc.setFillColor(teal[0],teal[1],teal[2]); doc.rect(0,20,W,2,"F");
+    doc.setFont("helvetica","bold"); doc.setFontSize(13); doc.setTextColor(255,255,255);
+    doc.text("CAREBRIDGE INTERNATIONAL INC.",14,14);
+    doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.setTextColor(200,215,235);
+    doc.text("Patient Medical Travel Service Agreement — Executed Copy",W-14,14,{align:"right"});
+    doc.setFontSize(8); doc.setTextColor(grey[0],grey[1],grey[2]);
+    doc.text("Page "+pg,W-14,H-8,{align:"right"});
+    doc.setDrawColor(220,228,238); doc.line(14,H-12,W-14,H-12);
   }
 
-  function sectionTitle(y, title) {
-    doc.setFillColor(teal[0], teal[1], teal[2]);
-    doc.rect(14, y, 3, 7, "F");
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.setTextColor(navy[0], navy[1], navy[2]);
-    doc.text(title, 20, y + 5.5);
-    return y + 13;
+  function secTitle(y,title) {
+    doc.setFillColor(teal[0],teal[1],teal[2]); doc.rect(14,y,3,7,"F");
+    doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.setTextColor(navy[0],navy[1],navy[2]);
+    doc.text(title,20,y+5.5); return y+13;
   }
 
-  function infoRow(y, label, value) {
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
-    doc.setTextColor(grey[0], grey[1], grey[2]);
-    doc.text(label.toUpperCase(), 14, y);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    doc.setTextColor(navy[0], navy[1], navy[2]);
-    doc.text(String(value || "—"), 14, y + 5);
-    return y + 12;
-  }
-
-  // ======== PAGE 1 — Summary ========
+  // PAGE 1
   header(1);
+  doc.setFillColor(light[0],light[1],light[2]); doc.roundedRect(14,28,W-28,18,3,3,"F");
+  doc.setFont("helvetica","bold"); doc.setFontSize(14); doc.setTextColor(teal[0],teal[1],teal[2]);
+  doc.text("EXECUTED AGREEMENT CERTIFICATE",W/2,39,{align:"center"});
 
-  // Executed badge
-  doc.setFillColor(light[0], light[1], light[2]);
-  doc.roundedRect(14, 28, W - 28, 18, 3, 3, "F");
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(14);
-  doc.setTextColor(teal[0], teal[1], teal[2]);
-  doc.text("EXECUTED AGREEMENT CERTIFICATE", W / 2, 39, { align: "center" });
-
-  var y = 56;
-  y = sectionTitle(y, "Agreement Details");
-
-  // 2-column grid
-  var cols = [
-    ["Agreement Number", payload.id],
-    ["Version", payload.version || "1.0"],
-    ["Patient Name", payload.patientName],
-    ["Date Signed", payload.dateSigned],
-    ["Prepared By", payload.preparedBy || "Sidii Hamza"],
-    ["Company", "Carebridge International Inc."],
-  ];
-  var colW = (W - 28) / 2;
-  for (var ci = 0; ci < cols.length; ci += 2) {
-    var x1 = 14, x2 = 14 + colW + 4;
-    doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.setTextColor(grey[0], grey[1], grey[2]);
-    doc.text(cols[ci][0].toUpperCase(), x1, y);
-    if (cols[ci + 1]) doc.text(cols[ci + 1][0].toUpperCase(), x2, y);
-    doc.setFont("helvetica", "normal"); doc.setFontSize(10); doc.setTextColor(navy[0], navy[1], navy[2]);
-    doc.text(String(cols[ci][1] || "—"), x1, y + 5);
-    if (cols[ci + 1]) doc.text(String(cols[ci + 1][1] || "—"), x2, y + 5);
-    y += 14;
+  var y=56; y=secTitle(y,"Agreement Details");
+  var cols=[["Agreement Number",payload.id],["Version",payload.version||"1.0"],["Patient Name",payload.patientName],["Date Signed",payload.dateSigned],["Prepared By",payload.preparedBy||"Sidii Hamza"],["Company","Carebridge International Inc."]];
+  var colW=(W-28)/2;
+  for(var ci=0;ci<cols.length;ci+=2){
+    var x1=14,x2=14+colW+4;
+    doc.setFont("helvetica","bold");doc.setFontSize(8);doc.setTextColor(grey[0],grey[1],grey[2]);
+    doc.text(cols[ci][0].toUpperCase(),x1,y);
+    if(cols[ci+1])doc.text(cols[ci+1][0].toUpperCase(),x2,y);
+    doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(navy[0],navy[1],navy[2]);
+    doc.text(String(cols[ci][1]||"—"),x1,y+5);
+    if(cols[ci+1])doc.text(String(cols[ci+1][1]||"—"),x2,y+5);
+    y+=14;
   }
+  if(payload.repName){y=secTitle(y+4,"Authorized Representative");doc.setFont("helvetica","bold");doc.setFontSize(8);doc.setTextColor(grey[0],grey[1],grey[2]);doc.text("NAME",14,y);doc.text("RELATIONSHIP",14+colW+4,y);doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(navy[0],navy[1],navy[2]);doc.text(payload.repName||"—",14,y+5);doc.text(payload.repRelationship||"—",14+colW+4,y+5);y+=14;}
+  if(payload.witnesName){y=secTitle(y+4,"Witness 2");doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(navy[0],navy[1],navy[2]);doc.text(payload.witnesName,14,y);y+=14;}
 
-  y += 4;
-  if (payload.repName) {
-    y = sectionTitle(y, "Authorized Representative");
-    y = infoRow(y, "Name", payload.repName);
-    y = infoRow(y, "Relationship", payload.repRelationship || "—");
-    y += 2;
+  y=secTitle(y+4,"Page Initials — All 14 Pages");
+  var cellW=(W-28)/7,cellH=14;
+  for(var pi=0;pi<14;pi++){
+    var col=pi%7,row=Math.floor(pi/7),cx=14+col*cellW,cy=y+row*cellH;
+    doc.setFillColor(col%2===0?247:243,col%2===0?249:245,col%2===0?252:249);
+    doc.roundedRect(cx,cy,cellW-1,cellH-1,2,2,"F");
+    doc.setFont("helvetica","normal");doc.setFontSize(7);doc.setTextColor(grey[0],grey[1],grey[2]);
+    doc.text("Pg"+(pi+1),cx+(cellW-1)/2,cy+4,{align:"center"});
+    doc.setFont("helvetica","bold");doc.setFontSize(11);doc.setTextColor(navy[0],navy[1],navy[2]);
+    doc.text((payload.initials||{})["page"+(pi+1)]||"—",cx+(cellW-1)/2,cy+10,{align:"center"});
   }
-  if (payload.witnesName) {
-    y = sectionTitle(y, "Witness 2");
-    y = infoRow(y, "Name", payload.witnesName);
-    y += 2;
-  }
+  y+=2*cellH+8;
+  doc.setFillColor(navy[0],navy[1],navy[2]);doc.roundedRect(14,y,W-28,14,3,3,"F");
+  doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(200,215,235);
+  doc.text("Digitally submitted: "+(payload.timestamp||""),W/2,y+5.5,{align:"center"});
+  doc.setFont("helvetica","bold");doc.setFontSize(8);doc.setTextColor(teal[0],teal[1],teal[2]);
+  doc.text("All signatures captured electronically via Carebridge Portal",W/2,y+10.5,{align:"center"});
 
-  // Initials grid
-  y = sectionTitle(y, "Page Initials — All 14 Pages");
-  var initKeys = Object.keys(payload.initials || {});
-  var cellW = (W - 28) / 7, cellH = 14;
-  for (var pi = 0; pi < 14; pi++) {
-    var col = pi % 7, row = Math.floor(pi / 7);
-    var cx = 14 + col * cellW, cy = y + row * cellH;
-    doc.setFillColor(col % 2 === 0 ? 247 : 243, col % 2 === 0 ? 249 : 245, col % 2 === 0 ? 252 : 249);
-    doc.roundedRect(cx, cy, cellW - 1, cellH - 1, 2, 2, "F");
-    doc.setFont("helvetica", "normal"); doc.setFontSize(7); doc.setTextColor(grey[0], grey[1], grey[2]);
-    doc.text("Pg " + (pi + 1), cx + (cellW - 1) / 2, cy + 4, { align: "center" });
-    doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.setTextColor(navy[0], navy[1], navy[2]);
-    var initVal = (payload.initials || {})["page" + (pi + 1)] || "—";
-    doc.text(initVal, cx + (cellW - 1) / 2, cy + 10, { align: "center" });
-  }
-  y += 2 * cellH + 6;
-
-  // Timestamp
-  doc.setFillColor(navy[0], navy[1], navy[2]);
-  doc.roundedRect(14, y, W - 28, 14, 3, 3, "F");
-  doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(200, 215, 235);
-  doc.text("Digitally submitted: " + payload.timestamp, W / 2, y + 5.5, { align: "center" });
-  doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.setTextColor(teal[0], teal[1], teal[2]);
-  doc.text("All signatures captured electronically via Carebridge Portal", W / 2, y + 10.5, { align: "center" });
-
-  // ======== PAGE 2 — Signatures ========
-  doc.addPage();
-  header(2);
-
-  var sy = 32;
-  sy = sectionTitle(sy, "Signatures");
-
-  var sigSections = [
-    { label: "Patient Acknowledgment & Consent", name: payload.patientName, sub: null, img: payload.sig1 },
-    { label: "Patient / Authorized Representative", name: payload.repName, sub: payload.repRelationship, img: payload.sig2 },
-  ];
-  if (payload.sig3) sigSections.push({ label: "Witness 2", name: payload.witnesName, sub: null, img: payload.sig3 });
-
-  sigSections.forEach(function (s) {
-    doc.setFillColor(light[0], light[1], light[2]);
-    doc.roundedRect(14, sy, W - 28, 52, 3, 3, "F");
-    doc.setFillColor(teal[0], teal[1], teal[2]);
-    doc.rect(14, sy, W - 28, 8, "F");
-    doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(white[0], white[1], white[2]);
-    doc.text(s.label.toUpperCase(), 18, sy + 5.5);
-
-    doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(navy[0], navy[1], navy[2]);
-    doc.text(s.name || "—", 18, sy + 16);
-    if (s.sub) { doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(grey[0], grey[1], grey[2]); doc.text(s.sub, 18, sy + 22); }
-
-    if (s.img) {
-      try { doc.addImage(s.img, "PNG", W - 90, sy + 10, 72, 34); } catch(e) {}
-    }
-
-    doc.setDrawColor(teal[0], teal[1], teal[2]);
-    doc.setLineWidth(0.5);
-    doc.line(18, sy + 46, W - 18, sy + 46);
-    doc.setFont("helvetica", "normal"); doc.setFontSize(7); doc.setTextColor(grey[0], grey[1], grey[2]);
-    doc.text("Signature", 18, sy + 50);
-    doc.text(payload.dateSigned || "", W - 18, sy + 50, { align: "right" });
-
-    sy += 58;
+  // PAGE 2 — Signatures
+  doc.addPage(); header(2);
+  var sy=32; sy=secTitle(sy,"Signatures");
+  var sigs=[{label:"Patient Acknowledgment & Consent",name:payload.patientName,sub:null,img:payload.sig1},{label:"Patient / Authorized Representative",name:payload.repName,sub:payload.repRelationship,img:payload.sig2}];
+  if(payload.sig3)sigs.push({label:"Witness 2",name:payload.witnesName,sub:null,img:payload.sig3});
+  sigs.forEach(function(s){
+    doc.setFillColor(light[0],light[1],light[2]);doc.roundedRect(14,sy,W-28,52,3,3,"F");
+    doc.setFillColor(teal[0],teal[1],teal[2]);doc.rect(14,sy,W-28,8,"F");
+    doc.setFont("helvetica","bold");doc.setFontSize(9);doc.setTextColor(255,255,255);doc.text(s.label.toUpperCase(),18,sy+5.5);
+    doc.setFont("helvetica","bold");doc.setFontSize(9);doc.setTextColor(navy[0],navy[1],navy[2]);doc.text(s.name||"—",18,sy+16);
+    if(s.sub){doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(grey[0],grey[1],grey[2]);doc.text(s.sub,18,sy+22);}
+    if(s.img){try{doc.addImage(s.img,"PNG",W-90,sy+10,72,34);}catch(e){}}
+    doc.setDrawColor(teal[0],teal[1],teal[2]);doc.setLineWidth(0.5);doc.line(18,sy+46,W-18,sy+46);
+    doc.setFont("helvetica","normal");doc.setFontSize(7);doc.setTextColor(grey[0],grey[1],grey[2]);
+    doc.text("Signature",18,sy+50);doc.text(payload.dateSigned||"",W-18,sy+50,{align:"right"});
+    sy+=58;
   });
-
-  // Footer note
-  doc.setFont("helvetica", "italic"); doc.setFontSize(8); doc.setTextColor(grey[0], grey[1], grey[2]);
-  doc.text("This document was executed electronically. Electronic signatures are legally binding under applicable law.", W / 2, H - 18, { align: "center" });
-  doc.text("support@carebridgeinternational.ca  |  +1 (825) 785-3396  |  www.carebridgeinternational.ca", W / 2, H - 13, { align: "center" });
-
+  doc.setFont("helvetica","italic");doc.setFontSize(8);doc.setTextColor(grey[0],grey[1],grey[2]);
+  doc.text("This document was executed electronically. Electronic signatures are legally binding under applicable law.",W/2,H-18,{align:"center"});
+  doc.text("support@carebridgeinternational.ca  |  +1 (825) 785-3396  |  www.carebridgeinternational.ca",W/2,H-13,{align:"center"});
   return doc;
 }
 
@@ -862,7 +672,6 @@ function downloadSignedPDF() {
   var doc = generateSignedPDF(_signedPayload);
   if (doc) doc.save("Carebridge-Agreement-" + _signedPayload.id + ".pdf");
 }
-
 </script>
 </body>
 </html>
