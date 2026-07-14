@@ -174,15 +174,6 @@
     return Array.from(new Uint8Array(buf)).map(function(b){ return b.toString(16).padStart(2,"0"); }).join("");
   }
 
-  /* Legacy local credentials fallback */
-  function getCredentials() {
-    try {
-      var raw = localStorage.getItem("cb_credentials");
-      if (raw) return JSON.parse(raw);
-    } catch (e) {}
-    return { username: "admin", password: "Carebridge2024" };
-  }
-
   /* Check portal_users table in Supabase */
   async function checkPortalUser(username, password) {
     var sb = window.CB_SB;
@@ -286,10 +277,39 @@
     if (supabaseSession) {
       localStorage.setItem("cb_token", "sb-" + supabaseSession.access_token.slice(0, 20));
     } else {
-      localStorage.setItem("cb_token", "auth-" + role);
+      localStorage.setItem("cb_token", "auth-" + btoa(role + ":" + Date.now()));
     }
+    localStorage.setItem("cb_auth_ts", Date.now());
     localStorage.setItem("cb_role", role);
-    window.location.href = "Carebridge Portal.html?role=" + role;
+    window.location.href = role === "client" ? "Patient Portal.html" : "Carebridge Portal.html";
+  }
+
+  // ---- Rate limiting: 5 failed attempts → 10 min lockout ----
+  var RATE_KEY = "cb_login_attempts";
+  var LOCK_KEY = "cb_login_locked_until";
+
+  function isLocked() {
+    var until = parseInt(localStorage.getItem(LOCK_KEY) || "0", 10);
+    return Date.now() < until;
+  }
+
+  function getLockMinutes() {
+    var until = parseInt(localStorage.getItem(LOCK_KEY) || "0", 10);
+    return Math.ceil((until - Date.now()) / 60000);
+  }
+
+  function recordFail() {
+    var attempts = parseInt(localStorage.getItem(RATE_KEY) || "0", 10) + 1;
+    localStorage.setItem(RATE_KEY, attempts);
+    if (attempts >= 5) {
+      localStorage.setItem(LOCK_KEY, Date.now() + 10 * 60 * 1000);
+      localStorage.setItem(RATE_KEY, "0");
+    }
+  }
+
+  function clearFails() {
+    localStorage.removeItem(RATE_KEY);
+    localStorage.removeItem(LOCK_KEY);
   }
 
   // ---- Submit ----
@@ -297,8 +317,19 @@
     e.preventDefault();
     hideError();
 
+    // Rate limit check
+    if (isLocked()) {
+      var el = document.getElementById("login-error");
+      el.style.display = "flex";
+      el.querySelector("span").innerHTML = "<b>Too many failed attempts.</b> Please wait " + getLockMinutes() + " minute(s) before trying again.";
+      if (window.lucide) lucide.createIcons();
+      return;
+    }
+
     var username = document.getElementById("email").value.trim();
     var password = document.getElementById("password").value;
+
+    if (!username || !password) return;
 
     var btn = document.getElementById("submit-btn");
     btn.disabled = true;
@@ -311,55 +342,62 @@
         var authRes = await sb.auth.signInWithPassword({ email: username, password: password });
         if (authRes.data && authRes.data.session) {
           var session = authRes.data.session;
-          // Look up display name and role from portal_users table
           var userRow = await sb.from("portal_users").select("name, role").eq("email", username).maybeSingle();
           localStorage.setItem("cb_token", "sb-" + session.access_token.slice(0, 20));
+          localStorage.setItem("cb_auth_ts", Date.now());
           localStorage.setItem("cb_role", "admin");
           localStorage.setItem("cb_user_name", (userRow.data && userRow.data.name) || authRes.data.user.email);
           localStorage.setItem("cb_user_email", username);
           localStorage.setItem("cb_user_role", (userRow.data && userRow.data.role) || "admin");
-          window.location.href = "Carebridge Portal.html?role=admin";
+          clearFails();
+          window.location.href = "Carebridge Portal.html";
           return;
         }
       }
 
-      // 2. Fall back to portal_users SHA-256 check (for coordinators not yet on Supabase Auth)
+      // 2. portal_users SHA-256 check (coordinators not yet on Supabase Auth)
       var user = await checkPortalUser(username, password);
       if (user) {
-        localStorage.setItem("cb_token", "auth-admin");
+        localStorage.setItem("cb_token", "auth-" + btoa(username + ":" + Date.now()));
+        localStorage.setItem("cb_auth_ts", Date.now());
         localStorage.setItem("cb_role", "admin");
         localStorage.setItem("cb_user_name", user.name);
         localStorage.setItem("cb_user_email", user.email || "");
         localStorage.setItem("cb_user_role", user.role);
-        window.location.href = "Carebridge Portal.html?role=admin";
+        clearFails();
+        window.location.href = "Carebridge Portal.html";
         return;
       }
 
-      // 3. Legacy localStorage credentials fallback
-      var creds = getCredentials();
-      if (username === creds.username && password === creds.password) {
-        localStorage.setItem("cb_token", "auth-admin");
-        localStorage.setItem("cb_role", "admin");
-        localStorage.setItem("cb_user_name", "Administrator");
-        localStorage.setItem("cb_user_role", "admin");
-        setTimeout(function () { window.location.href = "Carebridge Portal.html?role=admin"; }, 300);
-        return;
-      }
-
+      // All methods failed
+      recordFail();
       btn.disabled = false;
       document.getElementById("submit-label").textContent = COPY[role].submit;
       showError();
       document.getElementById("password").value = "";
       document.getElementById("password").focus();
+
     } else {
-      // Patient portal — pass through (handled by Patient Portal.html)
-      if (username.length > 0 && password.length > 0) {
-        setTimeout(function () { enterPortal(null); }, 300);
-      } else {
-        btn.disabled = false;
-        document.getElementById("submit-label").textContent = COPY[role].submit;
-        showError();
+      // Patient & family — must authenticate via Supabase Auth
+      var sb2 = window.CB_SB;
+      if (sb2) {
+        var patRes = await sb2.auth.signInWithPassword({ email: username, password: password });
+        if (patRes.data && patRes.data.session) {
+          var patSession = patRes.data.session;
+          localStorage.setItem("cb_token", "sb-" + patSession.access_token.slice(0, 20));
+          localStorage.setItem("cb_auth_ts", Date.now());
+          localStorage.setItem("cb_role", "client");
+          clearFails();
+          window.location.href = "Patient Portal.html";
+          return;
+        }
       }
+      recordFail();
+      btn.disabled = false;
+      document.getElementById("submit-label").textContent = COPY[role].submit;
+      showError();
+      document.getElementById("password").value = "";
+      document.getElementById("password").focus();
     }
   });
 

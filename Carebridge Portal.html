@@ -78,10 +78,18 @@
 
 <script type="text/babel" data-presets="env,react">
   (function () {
-    // Auth guard
+    // Auth guard — token must exist, have correct format, and be < 8 hours old
     (function () {
       var token = localStorage.getItem('cb_token');
-      if (!token) { window.location.href = 'Carebridge Login.html'; }
+      var ts    = parseInt(localStorage.getItem('cb_auth_ts') || '0', 10);
+      var EIGHT_HOURS = 8 * 60 * 60 * 1000;
+      var valid = token &&
+                  (token.startsWith('sb-') || token.startsWith('auth-')) &&
+                  (Date.now() - ts < EIGHT_HOURS);
+      if (!valid) {
+        ['cb_token','cb_role','cb_auth_ts','cb_user_name','cb_user_email','cb_user_role'].forEach(function(k){ localStorage.removeItem(k); });
+        window.location.href = 'Carebridge Login.html';
+      }
     })();
 
     // Voice reminder — plays on first user interaction after login (every 4 hours)
@@ -119,11 +127,6 @@
 
     // Remove splash once React mounts
     var started = Date.now();
-    var urlRole = new URLSearchParams(window.location.search).get("role");
-    if (urlRole) {
-      localStorage.setItem("cb_token", "auto-" + urlRole);
-      localStorage.setItem("cb_role", urlRole);
-    }
     var hide = function () {
       var s = document.getElementById("cb-splash");
       if (s) { s.style.opacity = "0"; setTimeout(function () { s.remove(); }, 420); }
