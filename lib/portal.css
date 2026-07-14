@@ -1370,3 +1370,98 @@
 .cb-ai-setup .cb-btn svg { width: 16px; height: 16px; }
 .cb-ai-setup__hint { font-size: 12px; color: var(--text-faint); }
 .cb-ai-setup__hint strong { color: var(--text-body); }
+
+/* ============================================================
+   MOBILE & TABLET OPTIMIZATIONS
+   ============================================================ */
+
+/* ---- Tables: always wrap in scrollable container on small screens ---- */
+@media (max-width: 760px) {
+  .cb-card--pad0 { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .cb-table { min-width: 520px; font-size: 12.5px; }
+  .cb-table th, .cb-table td { padding: 10px 12px; }
+
+  /* Agreements table: hide less important columns */
+  .cb-table th:nth-child(3),
+  .cb-table td:nth-child(3) { display: none; } /* hide Sent date col */
+
+  /* Modal: full-screen sheet on phones */
+  .cb-modal { padding: 0; align-items: flex-end; }
+  .cb-modal__card {
+    border-radius: 20px 20px 0 0;
+    max-height: 92vh;
+    width: 100%;
+    max-width: 100%;
+  }
+  .cb-modal__body { padding: var(--space-5); }
+  .cb-modal__foot { padding: 14px var(--space-5); }
+
+  /* Page header: stack title + actions */
+  .cb-page__intro { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .cb-page__intro .cb-btn { width: 100%; justify-content: center; }
+
+  /* Stat cards: tighten */
+  .cb-stat { padding: var(--space-4); }
+  .cb-stat__val { font-size: 26px; }
+
+  /* AI root: fill available height */
+  .cb-ai-root { height: calc(100dvh - 64px - 28px); min-height: 0; }
+
+  /* Segment tabs: scroll horizontally, don't wrap */
+  .cb-seg { overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; padding-bottom: 2px; }
+  .cb-seg button { flex-shrink: 0; }
+}
+
+/* ---- Very small phones (< 390px) ---- */
+@media (max-width: 390px) {
+  .cb-top { gap: 8px; padding: 10px 12px; }
+  .cb-top__title h1 { font-size: 16px; }
+  .cb-top__actions { gap: 4px; }
+  .cb-icon-pill { min-width: 38px; min-height: 38px; }
+  .cb-page { padding: 12px; }
+  .cb-card { border-radius: var(--radius-md); }
+
+  /* Table: even more compact */
+  .cb-table th, .cb-table td { padding: 8px 10px; font-size: 12px; }
+
+  /* Modals: full screen */
+  .cb-modal__card { max-height: 96vh; }
+
+  /* Pills */
+  .cb-pill { font-size: 11px; padding: 3px 9px; }
+}
+
+/* ---- Tablet (761–1080px): tune grid + sidebar ---- */
+@media (min-width: 761px) and (max-width: 1080px) {
+  .cb-page { padding: 20px; }
+  .cb-modal__card { max-width: 92vw; }
+
+  /* Two-column stat grids stay 2-up */
+  .cb-app [style*="repeat(4"] { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+}
+
+/* ---- Ensure inputs don't trigger iOS zoom (font-size ≥ 16px on focus) ---- */
+@media (max-width: 760px) {
+  .cb-input, .cb-app input[type="text"],
+  .cb-app input[type="email"], .cb-app input[type="tel"],
+  .cb-app input[type="number"], .cb-app input[type="password"],
+  .cb-app textarea, .cb-app select { font-size: 16px; }
+}
+
+/* ---- Modals: max-height + internal scroll on all phones ---- */
+@media (max-width: 760px) {
+  .cb-modal__card { overflow: hidden; display: flex; flex-direction: column; }
+  .cb-modal__body { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+}
+
+/* ---- Bottom nav: show on mobile when sidebar is hidden ---- */
+@media (max-width: 480px) {
+  /* Burger button: larger tap target */
+  .cb-burger { width: 44px; height: 44px; }
+
+  /* Action buttons in page intro: full width */
+  .cb-btn--primary, .cb-btn--secondary { min-height: 44px; }
+
+  /* Seg tabs: bigger touch targets */
+  .cb-seg button { min-height: 40px; padding: 10px 16px; }
+}
