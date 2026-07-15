@@ -351,6 +351,11 @@ function PatientInvitationsView() {
   const loadAll = useCb(async () => {
     const sb = getSB();
     if (!sb) { setLoading(false); return; }
+    // Auto-delete pending invitations past their expiry date
+    await sb.from("patient_invitations")
+      .delete()
+      .eq("status", "pending")
+      .lt("expires_at", new Date().toISOString());
     const { data: invs } = await sb.from("patient_invitations").select("*").order("created_at", { ascending: false });
     if (invs) {
       setInvitations(invs);
