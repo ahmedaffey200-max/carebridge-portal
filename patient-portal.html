@@ -1574,11 +1574,14 @@ function App() {
     }
   }, []);
 
+  const isRevoked = (data) => data?.status === "expired" || data?.status === "revoked";
+
   const loadDashboard = useCallback(async (user) => {
     const metaToken = user?.user_metadata?.token;
     if (metaToken) {
       const { data } = await sb.from("patient_invitations").select("*").eq("token", metaToken).single();
       if (data) {
+        if (isRevoked(data)) { await sb.auth.signOut(); setScreen("revoked"); return; }
         const inv = await enrichInvitation(data);
         setInvitation(inv);
         setScreen("dashboard");
@@ -1587,8 +1590,13 @@ function App() {
       }
     }
     if (user?.id) {
-      const { data } = await sb.from("patient_invitations").select("*").eq("auth_user_id", user.id).single();
+      // Load the most recently active invitation for this auth user
+      const { data: rows } = await sb.from("patient_invitations")
+        .select("*").eq("auth_user_id", user.id)
+        .order("created_at", { ascending: false });
+      const data = rows?.find(r => r.status === "active") || rows?.[0];
       if (data) {
+        if (isRevoked(data)) { await sb.auth.signOut(); setScreen("revoked"); return; }
         const inv = await enrichInvitation(data);
         setInvitation(inv);
         setScreen("dashboard");
