@@ -7,7 +7,16 @@ const { useState: useStateS, useEffect: useEffectS, useRef: useRefS } = React;
 
 /* ---------------- Session lock overlay ----------------
    Auto-locks the portal after inactivity. Re-entry needs a PIN.
-   Demo PIN: 4 digits, any value unlocks (real check is server-side). */
+   PIN is stored as SHA-256 hash in localStorage (cb_lock_pin). Default: 0000 */
+const DEFAULT_PIN_HASH = "9af15b336e6a9619928537df30b2e6a2376569fcf9d7e773eccede65606529a0"; // SHA-256 of "0000"
+async function _hashPin(pin) {
+  var buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(pin));
+  return Array.from(new Uint8Array(buf)).map(function(b){ return b.toString(16).padStart(2,"0"); }).join("");
+}
+function getLockPinHash() {
+  return localStorage.getItem("cb_lock_pin") || DEFAULT_PIN_HASH;
+}
+
 function LockScreen({ user, onUnlock }) {
   const [pin, setPin] = useStateS(["", "", "", ""]);
   const [err, setErr] = useStateS(false);
@@ -19,17 +28,19 @@ function LockScreen({ user, onUnlock }) {
     const digits = (v || "").replace(/[^0-9]/g, "");
     if (!digits) { const next = pin.slice(); next[i] = ""; setPin(next); setErr(false); return; }
     const next = pin.slice();
-    // distribute (handles single keystroke and multi-digit paste)
     let idx = i;
     for (let k = 0; k < digits.length && idx < 4; k++, idx++) next[idx] = digits[k];
     setPin(next); setErr(false);
     const focusTo = Math.min(3, i + digits.length);
     if (refs[focusTo] && refs[focusTo].current) refs[focusTo].current.focus();
   };
-  const submit = (e) => {
+  const submit = async (e) => {
     e && e.preventDefault();
-    if (pin.every((d) => d !== "")) onUnlock();
-    else setErr(true);
+    if (!pin.every((d) => d !== "")) { setErr(true); return; }
+    const entered = pin.join("");
+    const hash = await _hashPin(entered);
+    if (hash === getLockPinHash()) { onUnlock(); }
+    else { setErr(true); setPin(["", "", "", ""]); if (refs[0].current) refs[0].current.focus(); }
   };
   return (
     <div className="cb-lock" role="dialog" aria-modal="true" aria-label="Session locked">
@@ -283,7 +294,106 @@ function SecRoles() {
   );
 }
 
+function ChangePinModal({ onClose }) {
+  const [step, setStep] = useStateS("current"); // "current" | "new" | "done"
+  const [cur, setCur] = useStateS(["", "", "", ""]);
+  const [newPin, setNewPin] = useStateS(["", "", "", ""]);
+  const [conf, setConf] = useStateS(["", "", "", ""]);
+  const [err, setErr] = useStateS("");
+  const curRefs = [useRefS(null), useRefS(null), useRefS(null), useRefS(null)];
+  const newRefs = [useRefS(null), useRefS(null), useRefS(null), useRefS(null)];
+  const confRefs = [useRefS(null), useRefS(null), useRefS(null), useRefS(null)];
+  useEffectS(() => {
+    if (window.lucide) window.lucide.createIcons();
+    setTimeout(() => { if (curRefs[0].current) curRefs[0].current.focus(); }, 60);
+  }, []);
+
+  const makeSet = (arr, setArr, refArr) => (i, v) => {
+    const digits = (v || "").replace(/[^0-9]/g, "");
+    if (!digits) { const n = arr.slice(); n[i] = ""; setArr(n); setErr(""); return; }
+    const n = arr.slice(); let idx = i;
+    for (let k = 0; k < digits.length && idx < 4; k++, idx++) n[idx] = digits[k];
+    setArr(n); setErr("");
+    const to = Math.min(3, i + digits.length);
+    if (refArr[to] && refArr[to].current) refArr[to].current.focus();
+  };
+
+  const verifyCurrent = async (e) => {
+    e && e.preventDefault();
+    if (!cur.every(d => d !== "")) { setErr("Enter all 4 digits."); return; }
+    const hash = await _hashPin(cur.join(""));
+    if (hash !== getLockPinHash()) { setErr("Incorrect PIN. Try again."); setCur(["","","",""]); if(curRefs[0].current)curRefs[0].current.focus(); return; }
+    setErr(""); setStep("new");
+    setTimeout(() => { if (newRefs[0].current) newRefs[0].current.focus(); }, 60);
+  };
+
+  const saveNew = async (e) => {
+    e && e.preventDefault();
+    if (!newPin.every(d => d !== "") || !conf.every(d => d !== "")) { setErr("Fill in all digits."); return; }
+    if (newPin.join("") !== conf.join("")) { setErr("PINs don't match. Try again."); setConf(["","","",""]); if(confRefs[0].current)confRefs[0].current.focus(); return; }
+    const hash = await _hashPin(newPin.join(""));
+    localStorage.setItem("cb_lock_pin", hash);
+    setStep("done");
+  };
+
+  const pinRow = (arr, setArr, refArr, label) => (
+    <div style={{ marginBottom: 18 }}>
+      <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-muted)", marginBottom: 10 }}>{label}</div>
+      <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
+        {arr.map((d, i) => (
+          <input key={i} ref={refArr[i]} value={d} onChange={e => makeSet(arr, setArr, refArr)(i, e.target.value)}
+            onKeyDown={e => { if (e.key === "Backspace" && !d && i > 0) refArr[i-1].current.focus(); }}
+            inputMode="numeric" maxLength="1" type="password"
+            style={{ width: 52, height: 58, textAlign: "center", fontSize: 22, fontWeight: 700, borderRadius: 12,
+              border: "2px solid " + (err ? "var(--red-400, #f87171)" : "var(--border)"), background: "var(--bg-card)",
+              color: "var(--text-strong)", outline: "none" }} />
+        ))}
+      </div>
+    </div>
+  );
+
+  return (
+    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.55)", display:"grid", placeItems:"center", zIndex:9999 }}>
+      <div style={{ background:"var(--bg-card)", borderRadius:20, padding:32, width:"min(92vw,400px)", boxShadow:"0 24px 64px rgba(0,0,0,0.35)" }}>
+        {step === "done" ? (
+          <>
+            <div style={{ textAlign:"center", marginBottom:24 }}>
+              <div style={{ width:64, height:64, borderRadius:18, background:"var(--teal-50,#f0fdfa)", display:"grid", placeItems:"center", margin:"0 auto 16px" }}><i data-lucide="shield-check" style={{ color:"var(--teal-500,#14b8a6)", width:32, height:32 }} /></div>
+              <div style={{ fontSize:20, fontWeight:800, color:"var(--text-strong)" }}>PIN updated</div>
+              <div style={{ fontSize:14, color:"var(--text-muted)", marginTop:6 }}>Your new PIN is saved. Use it next time the portal locks.</div>
+            </div>
+            <button onClick={onClose} className="auth__btn auth__btn--primary" style={{ width:"100%" }}>Done</button>
+          </>
+        ) : (
+          <>
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:24 }}>
+              <div style={{ fontSize:18, fontWeight:800, color:"var(--text-strong)" }}>{step==="current" ? "Verify current PIN" : "Set new PIN"}</div>
+              <button onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer", color:"var(--text-muted)", fontSize:22, lineHeight:1 }}>&times;</button>
+            </div>
+            {step === "current" ? (
+              <form onSubmit={verifyCurrent}>
+                {pinRow(cur, setCur, curRefs, "Current PIN")}
+                {err && <div style={{ color:"var(--red-500,#ef4444)", fontSize:13, textAlign:"center", marginBottom:12 }}>{err}</div>}
+                <div style={{ fontSize:12, color:"var(--text-muted)", textAlign:"center", marginBottom:18 }}>Default PIN is 0000 if you haven't set one yet.</div>
+                <button type="submit" className="auth__btn auth__btn--primary" style={{ width:"100%" }}>Continue</button>
+              </form>
+            ) : (
+              <form onSubmit={saveNew}>
+                {pinRow(newPin, setNewPin, newRefs, "New PIN")}
+                {pinRow(conf, setConf, confRefs, "Confirm new PIN")}
+                {err && <div style={{ color:"var(--red-500,#ef4444)", fontSize:13, textAlign:"center", marginBottom:12 }}>{err}</div>}
+                <button type="submit" className="auth__btn auth__btn--primary" style={{ width:"100%" }}>Save new PIN</button>
+              </form>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function SecData() {
+  const [showPinModal, setShowPinModal] = useStateS(false);
   const rows = [
     { icon: "eye-off", title: "Privacy mode (PHI masking)", desc: "Hide sensitive patient details until revealed — protects screens from over-the-shoulder viewing.", on: "tweak" },
     { icon: "timer", title: "Auto-lock on inactivity", desc: "Lock the portal automatically after 2 minutes idle. Re-entry requires a PIN.", on: true },
@@ -292,29 +402,45 @@ function SecData() {
     { icon: "globe-lock", title: "Trusted locations only", desc: "Flag and challenge sign-ins from unrecognized regions.", on: false },
   ];
   return (
-    <Card>
-      <CardHead title="Data protection settings" sub="How patient information is safeguarded" />
-      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-        {rows.map((r, i) => (
-          <div key={i} className="cb-row" style={{ gap: 15, padding: "16px 0", borderBottom: i < rows.length - 1 ? "1px solid var(--border-subtle)" : "none", alignItems: "flex-start" }}>
-            <div className="cb-chip cb-chip--navy" style={{ width: 42, height: 42, flex: "none" }}><Icon name={r.icon} size={21} /></div>
+    <>
+      {showPinModal && <ChangePinModal onClose={() => setShowPinModal(false)} />}
+      <Card>
+        <CardHead title="Data protection settings" sub="How patient information is safeguarded" />
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          {/* Change lock PIN */}
+          <div className="cb-row" style={{ gap: 15, padding: "16px 0", borderBottom: "1px solid var(--border-subtle)", alignItems: "center" }}>
+            <div className="cb-chip cb-chip--navy" style={{ width: 42, height: 42, flex: "none" }}><Icon name="key-round" size={21} /></div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-strong)" }}>{r.title}</div>
-              <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 3, maxWidth: "62ch", lineHeight: 1.5 }}>{r.desc}</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-strong)" }}>Screen lock PIN</div>
+              <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 3 }}>Change the 4-digit PIN required to unlock the portal after inactivity.</div>
             </div>
-            {r.on === "tweak"
-              ? <Pill tone="sky" icon="sliders-horizontal">In header</Pill>
-              : <div className={"cb-switch" + (r.on ? " is-on" : "")} role="switch" aria-checked={r.on}><span className="cb-switch__dot" /></div>}
+            <button onClick={() => setShowPinModal(true)}
+              style={{ padding: "8px 18px", borderRadius: 10, border: "1.5px solid var(--border)", background: "var(--bg-page)",
+                color: "var(--text-strong)", fontSize: 13, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>
+              Change PIN
+            </button>
           </div>
-        ))}
-      </div>
-    </Card>
+          {rows.map((r, i) => (
+            <div key={i} className="cb-row" style={{ gap: 15, padding: "16px 0", borderBottom: i < rows.length - 1 ? "1px solid var(--border-subtle)" : "none", alignItems: "flex-start" }}>
+              <div className="cb-chip cb-chip--navy" style={{ width: 42, height: 42, flex: "none" }}><Icon name={r.icon} size={21} /></div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-strong)" }}>{r.title}</div>
+                <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 3, maxWidth: "62ch", lineHeight: 1.5 }}>{r.desc}</div>
+              </div>
+              {r.on === "tweak"
+                ? <Pill tone="sky" icon="sliders-horizontal">In header</Pill>
+                : <div className={"cb-switch" + (r.on ? " is-on" : "")} role="switch" aria-checked={r.on}><span className="cb-switch__dot" /></div>}
+            </div>
+          ))}
+        </div>
+      </Card>
+    </>
   );
 }
 
 /* ---- Staff Accounts ---- */
 const ROLES_LIST = ["admin", "coordinator", "doctor", "finance", "viewer"];
-const INVITE_BASE = "https://ahmedaffey200-max.github.io/carebridge-portal/Carebridge%20Set%20Password.html";
+const INVITE_BASE = "https://portal.carebridgeinternational.ca/join";
 
 function _genToken() {
   var arr = new Uint8Array(32);

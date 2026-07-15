@@ -1,11 +1,1421 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8" />
-<script>
-  // Preserve token and all query params when redirecting to the patient portal
-  location.replace('/Patient%20Portal.html' + location.search + location.hash);
-</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+<title>Carebridge Patient Portal</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --navy: #1B3A6B;
+    --navy-light: #234b8a;
+    --teal: #1CA89C;
+    --teal-light: #22c4b7;
+    --teal-pale: #e6f7f6;
+    --bg: #f4f7fb;
+    --surface: #ffffff;
+    --border: #e2e8f0;
+    --text: #1a202c;
+    --text-sub: #4a5568;
+    --text-faint: #718096;
+    --danger: #e53e3e;
+    --warn: #d69e2e;
+    --ok: #38a169;
+    --radius: 14px;
+    --radius-sm: 8px;
+    --shadow: 0 2px 12px rgba(27,58,107,0.08);
+    --shadow-lg: 0 8px 32px rgba(27,58,107,0.14);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1923;
+      --surface: #1a2535;
+      --border: #2d3748;
+      --text: #f0f4f8;
+      --text-sub: #a0aec0;
+      --text-faint: #718096;
+      --teal-pale: rgba(28,168,156,0.1);
+    }
+  }
+  html, body { min-height: 100%; background: var(--bg); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: var(--text); -webkit-font-smoothing: antialiased; }
+  #root { min-height: 100vh; }
+
+  /* ---- Splash ---- */
+  #pp-splash {
+    position: fixed; inset: 0; display: grid; place-items: center;
+    background: var(--navy); z-index: 9999; transition: opacity .4s ease;
+  }
+  #pp-splash .pp-splash-inner { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+  #pp-splash .pp-logo-box { width: 100px; height: 100px; border-radius: 24px; background: white; display: grid; place-items: center; padding: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.4); }
+  #pp-splash .pp-logo-box img { width: 76px; height: auto; }
+  #pp-splash .pp-splash-text { color: white; font-size: 22px; font-weight: 700; }
+  #pp-splash .pp-spinner { width: 36px; height: 36px; border: 3px solid rgba(255,255,255,0.2); border-top-color: var(--teal); border-radius: 50%; animation: ppspin 0.8s linear infinite; }
+  @keyframes ppspin { to { transform: rotate(360deg); } }
+
+  /* ---- Auth screens ---- */
+  .pp-auth-bg {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    padding: 24px 16px;
+    background: linear-gradient(160deg, var(--navy) 0%, #1CA89C 100%);
+  }
+  .pp-auth-card {
+    background: var(--surface); border-radius: 20px; padding: 36px 28px;
+    width: 100%; max-width: 400px;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.22);
+  }
+  @media (min-width: 480px) { .pp-auth-card { padding: 40px 36px; } }
+  .pp-auth-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 28px; }
+  .pp-auth-logo-box { width: 42px; height: 42px; border-radius: 11px; background: var(--navy); display: grid; place-items: center; flex-shrink: 0; }
+  .pp-auth-logo-box img { width: 30px; height: auto; }
+  .pp-auth-logo-text { font-size: 17px; font-weight: 800; color: var(--navy); line-height: 1.2; }
+  .pp-auth-logo-text span { color: var(--teal); }
+  .pp-auth-logo-sub { font-size: 11px; font-weight: 500; color: var(--text-faint); }
+
+  .pp-auth-title { font-size: 22px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+  .pp-auth-sub { font-size: 14px; color: var(--text-sub); line-height: 1.6; margin-bottom: 24px; }
+
+  .pp-field { margin-bottom: 16px; }
+  .pp-field label { display: block; font-size: 11px; font-weight: 700; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+  .pp-input {
+    width: 100%; padding: 12px 14px; border: 1.5px solid var(--border);
+    border-radius: 10px; font-size: 15px; background: var(--bg); color: var(--text);
+    outline: none; transition: border-color 0.2s, box-shadow 0.2s; font-family: inherit;
+  }
+  .pp-input:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(28,168,156,0.12); }
+  .pp-input[readonly] { background: var(--border); color: var(--text-faint); cursor: default; }
+  .pp-input.pp-input--err { border-color: var(--danger); }
+
+  .pp-btn {
+    width: 100%; padding: 14px; border: none; border-radius: 12px; font-size: 15px;
+    font-weight: 700; cursor: pointer; transition: opacity 0.2s, transform 0.1s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    font-family: inherit;
+  }
+  .pp-btn--primary { background: linear-gradient(135deg, #1CA89C 0%, #1B3A6B 100%); color: white; }
+  .pp-btn--ghost { background: transparent; color: var(--teal); border: 1.5px solid var(--border); }
+  .pp-btn:hover:not(:disabled) { opacity: 0.88; }
+  .pp-btn:active:not(:disabled) { transform: scale(0.98); }
+  .pp-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .pp-btn--sm { padding: 10px 16px; font-size: 13px; width: auto; }
+
+  /* Password requirements */
+  .pp-pw-reqs { background: var(--bg); border-radius: 10px; padding: 12px 14px; margin-top: 10px; display: flex; flex-direction: column; gap: 7px; }
+  .pp-pw-req { display: flex; align-items: center; gap: 9px; }
+  .pp-pw-req-icon {
+    width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border);
+    display: grid; place-items: center; flex-shrink: 0; transition: all 0.25s;
+    font-size: 10px; font-weight: 800; color: transparent;
+  }
+  .pp-pw-req-icon.met { background: var(--ok); border-color: var(--ok); color: white; }
+  .pp-pw-req-text { font-size: 13px; color: var(--text-faint); transition: color 0.25s; }
+  .pp-pw-req-text.met { color: var(--ok); font-weight: 500; }
+
+  .pp-auth-err { background: #fee2e2; color: #991b1b; border-radius: 10px; padding: 11px 14px; font-size: 13px; margin-bottom: 16px; line-height: 1.5; }
+  .pp-auth-ok { background: #dcfce7; color: #166534; border-radius: 10px; padding: 11px 14px; font-size: 13px; margin-bottom: 16px; line-height: 1.5; text-align: center; }
+  .pp-auth-link { background: none; border: none; color: var(--teal); font-size: 14px; cursor: pointer; padding: 0; font-family: inherit; text-decoration: underline; text-underline-offset: 2px; }
+  .pp-auth-divider { text-align: center; margin: 18px 0; font-size: 13px; color: var(--text-faint); }
+  .pp-pw-row { position: relative; }
+  .pp-pw-toggle { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-faint); display: grid; place-items: center; padding: 4px; }
+
+  /* ---- Gate screen ---- */
+  .pp-gate {
+    min-height: 100vh; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; padding: 32px 20px; text-align: center;
+    background: linear-gradient(160deg, var(--navy) 0%, #1CA89C 100%);
+  }
+  .pp-gate-box { background: var(--surface); border-radius: var(--radius); padding: 40px 32px; max-width: 400px; width: 100%; box-shadow: var(--shadow-lg); }
+  .pp-gate-logo { width: 80px; height: 80px; border-radius: 18px; background: var(--navy); display: grid; place-items: center; margin: 0 auto 20px; padding: 10px; }
+  .pp-gate-logo img { width: 60px; height: auto; }
+  .pp-gate-box h2 { font-size: 20px; font-weight: 700; color: var(--navy); margin-bottom: 8px; }
+  .pp-gate-box p { font-size: 15px; color: #4a5568; line-height: 1.6; }
+  .pp-gate-icon { font-size: 48px; margin-bottom: 12px; }
+
+  /* ---- App shell ---- */
+  .pp-app { min-height: 100vh; display: flex; flex-direction: column; max-width: 640px; margin: 0 auto; }
+
+  /* ---- Header ---- */
+  .pp-header {
+    background: linear-gradient(135deg, var(--navy) 0%, #223d72 100%);
+    padding: 20px 20px 24px; position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 2px 16px rgba(27,58,107,0.3);
+  }
+  .pp-header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .pp-header-brand { display: flex; align-items: center; gap: 10px; }
+  .pp-header-brand img { width: 40px; height: 40px; border-radius: 10px; background: white; padding: 4px; }
+  .pp-header-brand-text { color: white; font-size: 16px; font-weight: 700; line-height: 1.2; }
+  .pp-header-brand-text span { display: block; font-size: 11px; font-weight: 400; opacity: 0.7; }
+  .pp-logout-btn { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); color: white; border-radius: 8px; padding: 8px 14px; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: background 0.2s; }
+  .pp-logout-btn:hover { background: rgba(255,255,255,0.25); }
+  .pp-header-patient { color: white; }
+  .pp-header-patient-name { font-size: 22px; font-weight: 700; line-height: 1.2; }
+  .pp-header-patient-meta { font-size: 13px; opacity: 0.75; margin-top: 4px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .pp-loc-badge { display: inline-flex; align-items: center; gap: 4px; background: rgba(28,168,156,0.3); border: 1px solid rgba(28,168,156,0.5); color: #7eeee8; border-radius: 20px; padding: 2px 10px; font-size: 11px; font-weight: 500; }
+
+  /* ---- Nav tabs ---- */
+  .pp-tabs { display: flex; background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 109px; z-index: 99; }
+  .pp-tab { flex: 1; padding: 14px 8px; font-size: 13px; font-weight: 500; color: var(--text-faint); background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; transition: color 0.2s, border-color 0.2s; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .pp-tab svg { width: 18px; height: 18px; }
+  .pp-tab.active { color: var(--teal); border-bottom-color: var(--teal); }
+
+  /* ---- Content ---- */
+  .pp-content { flex: 1; padding: 20px 16px 40px; display: flex; flex-direction: column; gap: 16px; }
+
+  /* ---- Cards ---- */
+  .pp-card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+  .pp-card-header { padding: 16px 18px 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .pp-card-title { font-size: 15px; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 8px; }
+  .pp-card-title svg { width: 17px; height: 17px; color: var(--teal); }
+  .pp-card-body { padding: 16px 18px; }
+
+  /* ---- Info grid ---- */
+  .pp-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .pp-info-item label { font-size: 11px; font-weight: 600; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 3px; }
+  .pp-info-item .pp-info-val { font-size: 14px; color: var(--text); font-weight: 500; }
+
+  /* ---- Status pills ---- */
+  .pp-pill { display: inline-flex; align-items: center; gap: 4px; border-radius: 20px; padding: 3px 10px; font-size: 12px; font-weight: 600; }
+  .pp-pill--teal { background: var(--teal-pale); color: var(--teal); }
+  .pp-pill--navy { background: rgba(27,58,107,0.1); color: var(--navy); }
+  .pp-pill--warn { background: #fef3c7; color: #92400e; }
+  .pp-pill--danger { background: #fee2e2; color: #991b1b; }
+  .pp-pill--ok { background: #dcfce7; color: #166534; }
+  .pp-pill-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  /* ---- Messages ---- */
+  .pp-messages-list { display: flex; flex-direction: column; gap: 12px; max-height: 420px; overflow-y: auto; padding: 16px 18px; }
+  .pp-msg { display: flex; flex-direction: column; gap: 3px; max-width: 80%; }
+  .pp-msg--patient { align-self: flex-end; align-items: flex-end; }
+  .pp-msg--coordinator { align-self: flex-start; align-items: flex-start; }
+  .pp-msg-bubble { padding: 10px 14px; border-radius: 18px; font-size: 14px; line-height: 1.5; }
+  .pp-msg--patient .pp-msg-bubble { background: var(--teal); color: white; border-bottom-right-radius: 4px; }
+  .pp-msg--coordinator .pp-msg-bubble { background: #e8edf5; border: 1px solid var(--border); color: #1a202c; border-bottom-left-radius: 4px; box-shadow: var(--shadow); }
+  @media (prefers-color-scheme: dark) {
+    .pp-msg--coordinator .pp-msg-bubble { background: rgba(255,255,255,0.13); border-color: rgba(255,255,255,0.18); color: #f0f4f8; }
+  }
+  .pp-msg-meta { font-size: 11px; color: var(--text-faint); padding: 0 4px; }
+  .pp-msg-sender { font-size: 11px; font-weight: 600; color: var(--teal); margin-bottom: 2px; }
+  .pp-no-messages { text-align: center; padding: 32px 16px; color: var(--text-faint); font-size: 14px; }
+  .pp-msg-input-row { display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--border); background: var(--surface); }
+  .pp-msg-input { flex: 1; border: 1px solid var(--border); border-radius: 22px; padding: 10px 16px; font-size: 14px; background: var(--bg); color: var(--text); outline: none; resize: none; max-height: 120px; font-family: inherit; transition: border-color 0.2s; }
+  .pp-msg-input:focus { border-color: var(--teal); }
+  .pp-send-btn { width: 42px; height: 42px; border-radius: 50%; background: var(--teal); border: none; color: white; cursor: pointer; display: grid; place-items: center; flex-shrink: 0; transition: background 0.2s, transform 0.1s; }
+  .pp-send-btn:hover { background: var(--teal-light); }
+  .pp-send-btn:active { transform: scale(0.93); }
+  .pp-send-btn svg { width: 18px; height: 18px; }
+  .pp-send-btn:disabled { background: var(--border); cursor: not-allowed; }
+
+  /* ---- Journey ---- */
+  .pp-journey-list { display: flex; flex-direction: column; }
+  .pp-journey-item { display: flex; gap: 14px; padding: 14px 18px; border-bottom: 1px solid var(--border); }
+  .pp-journey-item:last-child { border-bottom: none; }
+  .pp-journey-dot-col { display: flex; flex-direction: column; align-items: center; padding-top: 3px; }
+  .pp-journey-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--teal); flex-shrink: 0; }
+  .pp-journey-line { width: 2px; flex: 1; background: var(--border); margin: 4px 0; }
+  .pp-journey-body { flex: 1; }
+  .pp-journey-title { font-size: 14px; font-weight: 600; color: var(--text); }
+  .pp-journey-sub { font-size: 12px; color: var(--text-faint); margin-top: 3px; }
+  .pp-journey-date { font-size: 12px; font-weight: 600; color: var(--teal); margin-top: 4px; }
+
+  /* ---- Coordinator card ---- */
+  .pp-coord-row { display: flex; align-items: center; gap: 14px; padding: 16px 18px; }
+  .pp-coord-av { width: 50px; height: 50px; border-radius: 50%; background: var(--navy); display: grid; place-items: center; color: white; font-size: 18px; font-weight: 700; flex-shrink: 0; }
+  .pp-coord-name { font-size: 15px; font-weight: 600; color: var(--text); }
+  .pp-coord-sub { font-size: 13px; color: var(--text-faint); margin-top: 2px; }
+  .pp-coord-actions { display: flex; gap: 8px; padding: 0 18px 16px; }
+  .pp-coord-btn { flex: 1; padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--bg); color: var(--text-sub); font-size: 13px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: background 0.2s; }
+  .pp-coord-btn:hover { background: var(--teal-pale); color: var(--teal); border-color: var(--teal); }
+  .pp-coord-btn svg { width: 16px; height: 16px; }
+
+  /* ---- Spinner ---- */
+  .pp-loading { display: flex; align-items: center; justify-content: center; padding: 40px; gap: 12px; color: var(--text-faint); font-size: 14px; }
+  .pp-spin { width: 24px; height: 24px; border: 2.5px solid var(--border); border-top-color: var(--teal); border-radius: 50%; animation: ppspin 0.8s linear infinite; }
+
+  /* ---- Toast ---- */
+  .pp-toast-container { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; display: flex; flex-direction: column; gap: 8px; pointer-events: none; width: calc(100% - 32px); max-width: 400px; }
+  .pp-toast { background: #1a2535; color: white; border-radius: 10px; padding: 12px 16px; font-size: 13px; font-weight: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.3); animation: pptoastin 0.3s ease; }
+  @keyframes pptoastin { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ---- Star rating ---- */
+  .pp-stars-row { display: flex; gap: 10px; justify-content: center; margin: 20px 0; }
+  .pp-star-btn { background: none; border: none; cursor: pointer; padding: 4px; line-height: 1; transition: transform 0.1s; }
+  .pp-star-btn:active { transform: scale(0.88); }
+  .pp-star-btn svg { display: block; transition: fill 0.15s, color 0.15s; }
+  .pp-star-btn.filled svg { color: #F59E0B; fill: #F59E0B; }
+  .pp-star-btn.empty svg { color: #CBD5E0; fill: none; }
+  .pp-rate-label { text-align: center; font-size: 15px; font-weight: 600; color: var(--teal); min-height: 22px; transition: opacity 0.2s; }
+  .pp-rate-success { text-align: center; padding: 36px 20px; }
+  .pp-rate-success-icon { font-size: 52px; margin-bottom: 12px; }
+  .pp-rate-success-title { font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+  .pp-rate-success-sub { font-size: 14px; color: var(--text-sub); line-height: 1.6; }
+
+  /* ---- Notification badge ---- */
+  .pp-tab-wrap { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .pp-badge { position: absolute; top: -4px; right: -8px; background: #e53e3e; color: white; border-radius: 20px; min-width: 16px; height: 16px; padding: 0 4px; font-size: 10px; font-weight: 800; display: flex; align-items: center; justify-content: center; line-height: 1; }
+
+  /* ---- Responsive ---- */
+  @media (min-width: 480px) {
+    .pp-content { padding: 24px 20px 48px; }
+    .pp-header { padding: 24px 24px 28px; }
+    .pp-tabs { top: 120px; }
+  }
+</style>
 </head>
-<body></body>
+<body>
+<div id="pp-splash">
+  <div class="pp-splash-inner">
+    <div class="pp-logo-box"><img src="assets/carebridge-logo.png" alt="Carebridge" /></div>
+    <div class="pp-splash-text">Carebridge Patient Portal</div>
+    <div class="pp-spinner"></div>
+  </div>
+</div>
+<div id="root"></div>
+<div class="pp-toast-container" id="pp-toasts"></div>
+
+<!-- React 18 + Babel -->
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<!-- Supabase -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+/* ---- Supabase client ---- */
+const SUPABASE_URL  = "https://htvjjwfenvittdritjni.supabase.co";
+const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh0dmpqd2ZlbnZpdHRkcml0am5pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2NTQ3OTAsImV4cCI6MjA5OTIzMDc5MH0.AMKUctPj49ahqXAFZbzJ341ZFH5XTckBUQaDmF5ZLj8";
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+const EDGE_URL = "https://htvjjwfenvittdritjni.supabase.co/functions/v1/hyper-service";
+const RESET_REDIRECT = "https://portal.carebridgeinternational.ca/patient-portal?reset=true";
+
+/* ---- Toast ---- */
+function showToast(msg) {
+  const c = document.getElementById("pp-toasts");
+  if (!c) return;
+  const d = document.createElement("div");
+  d.className = "pp-toast";
+  d.textContent = msg;
+  c.appendChild(d);
+  setTimeout(() => d.remove(), 3400);
+}
+
+/* ---- Audio unlock (browsers block audio until user taps) ---- */
+let _audioCtx = null;
+function unlockAudio() {
+  if (!_audioCtx) {
+    try { _audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
+  }
+  if (_audioCtx && _audioCtx.state === "suspended") {
+    _audioCtx.resume().catch(() => {});
+  }
+}
+document.addEventListener("click",      unlockAudio, { once: false });
+document.addEventListener("touchstart", unlockAudio, { once: false });
+
+/* ---- Chime sound via Web Audio API ---- */
+function playChime() {
+  try {
+    unlockAudio();
+    const ctx = _audioCtx;
+    if (!ctx || ctx.state === "suspended") return;
+    [[523.25, 0], [659.25, 0.18], [783.99, 0.36]].forEach(([freq, delay]) => {
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = "sine";
+      osc.frequency.value = freq;
+      const t = ctx.currentTime + delay;
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(0.4, t + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
+      osc.start(t);
+      osc.stop(t + 0.6);
+    });
+  } catch(e) {}
+}
+
+/* ---- Browser push notification ---- */
+function pushNotify(title, body) {
+  playChime();
+  showToast(title + (body ? ": " + body.slice(0, 60) : ""));
+  if (!("Notification" in window)) return;
+  if (Notification.permission === "granted") {
+    try { new Notification(title, { body: body || "", icon: "assets/carebridge-logo.png", tag: "cb-" + Date.now() }); } catch(e) {}
+  } else if (Notification.permission === "default") {
+    Notification.requestPermission().then(p => {
+      if (p === "granted") {
+        try { new Notification(title, { body: body || "", icon: "assets/carebridge-logo.png" }); } catch(e) {}
+      }
+    });
+  }
+}
+
+/* ---- Password validator ---- */
+function validatePassword(pw) {
+  const nums = (pw.match(/\d/g) || []).length;
+  const hasMinNumbers = nums >= 4;
+  const hasUppercase  = /[A-Z]/.test(pw);
+  const hasLowercase  = /[a-z]/.test(pw);
+  return { hasMinNumbers, hasUppercase, hasLowercase, valid: hasMinNumbers && hasUppercase && hasLowercase };
+}
+
+/* ---- SVG Icons ---- */
+const Icon = ({ name, size = 20, style: extraStyle }) => {
+  const paths = {
+    user: <><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></>,
+    "message-square": <><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></>,
+    route: <><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></>,
+    "log-out": <><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></>,
+    send: <><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></>,
+    "map-pin": <><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></>,
+    mail: <><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></>,
+    calendar: <><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></>,
+    hospital: <><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></>,
+    info: <><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></>,
+    "alert-circle": <><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></>,
+    "check-circle": <><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></>,
+    lock: <><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></>,
+    eye: <><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></>,
+    "eye-off": <><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></>,
+    "arrow-left": <><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></>,
+    star: <><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></>,
+  };
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={extraStyle}>
+      {paths[name] || null}
+    </svg>
+  );
+};
+
+/* ---- Shared brand logo for auth cards ---- */
+function AuthLogo() {
+  return (
+    <div className="pp-auth-logo">
+      <div className="pp-auth-logo-box">
+        <img src="assets/carebridge-logo.png" alt="Carebridge" />
+      </div>
+      <div>
+        <div className="pp-auth-logo-text">Care<span>bridge</span></div>
+        <div className="pp-auth-logo-sub">International</div>
+      </div>
+    </div>
+  );
+}
+
+/* ---- Password requirement row ---- */
+function PwReq({ met, children }) {
+  return (
+    <div className="pp-pw-req">
+      <div className={"pp-pw-req-icon" + (met ? " met" : "")}>✓</div>
+      <span className={"pp-pw-req-text" + (met ? " met" : "")}>{children}</span>
+    </div>
+  );
+}
+
+/* ---- Password input with show/hide toggle ---- */
+function PwInput({ value, onChange, placeholder = "Password", id, disabled }) {
+  const [show, setShow] = useState(false);
+  return (
+    <div className="pp-pw-row">
+      <input
+        id={id}
+        type={show ? "text" : "password"}
+        className="pp-input"
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        disabled={disabled}
+        style={{ paddingRight: 44 }}
+      />
+      <button type="button" className="pp-pw-toggle" onClick={() => setShow(s => !s)} tabIndex={-1} aria-label={show ? "Hide password" : "Show password"}>
+        <Icon name={show ? "eye-off" : "eye"} size={18} />
+      </button>
+    </div>
+  );
+}
+
+/* ================================================================
+   Screen 1: Create Account (first visit via invite link)
+   ================================================================ */
+function CreateAccountScreen({ invitation, onSubmit }) {
+  const [pw, setPw]         = useState("");
+  const [pw2, setPw2]       = useState("");
+  const [busy, setBusy]     = useState(false);
+  const [err, setErr]       = useState("");
+  const v = validatePassword(pw);
+  const match = pw === pw2 && pw.length > 0;
+  const canSubmit = v.valid && match && !busy;
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!canSubmit) return;
+    setBusy(true);
+    setErr("");
+    const result = await onSubmit(pw);
+    if (result?.error) {
+      setErr(result.error);
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="pp-auth-bg">
+      <div className="pp-auth-card">
+        <AuthLogo />
+        <div className="pp-auth-title">Create your account</div>
+        <div className="pp-auth-sub">
+          Welcome, <strong>{invitation.patient_name}</strong>! Set a password to access your personal Carebridge portal.
+        </div>
+
+        {err && <div className="pp-auth-err">{err}</div>}
+
+        <form onSubmit={submit}>
+          <div className="pp-field">
+            <label>Email address</label>
+            <input
+              className="pp-input"
+              type="email"
+              value={invitation.patient_email}
+              readOnly
+            />
+          </div>
+
+          <div className="pp-field">
+            <label htmlFor="pw">Create password</label>
+            <PwInput id="pw" value={pw} onChange={e => setPw(e.target.value)} placeholder="Choose a strong password" disabled={busy} />
+            <div className="pp-pw-reqs">
+              <PwReq met={v.hasMinNumbers}>At least 4 numbers (0–9)</PwReq>
+              <PwReq met={v.hasUppercase}>At least 1 uppercase letter (A–Z)</PwReq>
+              <PwReq met={v.hasLowercase}>At least 1 lowercase letter (a–z)</PwReq>
+            </div>
+          </div>
+
+          <div className="pp-field" style={{ marginBottom: 24 }}>
+            <label htmlFor="pw2">Confirm password</label>
+            <PwInput id="pw2" value={pw2} onChange={e => setPw2(e.target.value)} placeholder="Repeat your password" disabled={busy} />
+            {pw2.length > 0 && !match && (
+              <div style={{ fontSize: 12, color: "var(--danger)", marginTop: 6 }}>Passwords do not match</div>
+            )}
+            {pw2.length > 0 && match && (
+              <div style={{ fontSize: 12, color: "var(--ok)", marginTop: 6, display: "flex", alignItems: "center", gap: 4 }}>
+                <Icon name="check-circle" size={13} /> Passwords match
+              </div>
+            )}
+          </div>
+
+          <button type="submit" className="pp-btn pp-btn--primary" disabled={!canSubmit}>
+            {busy ? <><div className="pp-spin" style={{ width: 18, height: 18, borderWidth: 2 }} /> Creating account…</> : <><Icon name="lock" size={16} /> Create My Account</>}
+          </button>
+        </form>
+
+        <div className="pp-auth-divider">
+          This portal is only accessible by invitation. Your invitation expires in 30 days.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ================================================================
+   Screen 2: Login (returning patients)
+   ================================================================ */
+function LoginScreen({ onLogin, onForgotSuccess }) {
+  const [view, setView]   = useState("login"); // "login" | "forgot" | "forgot-sent"
+  const [email, setEmail] = useState("");
+  const [pw, setPw]       = useState("");
+  const [busy, setBusy]   = useState(false);
+  const [err, setErr]     = useState("");
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    if (!email.trim() || !pw || busy) return;
+    setBusy(true);
+    setErr("");
+    const result = await onLogin(email.trim(), pw);
+    if (result?.error) {
+      setErr(result.error);
+      setBusy(false);
+    }
+  };
+
+  const handleForgot = async (e) => {
+    e.preventDefault();
+    if (!email.trim() || busy) return;
+    setBusy(true);
+    setErr("");
+    const { error } = await sb.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: RESET_REDIRECT,
+    });
+    setBusy(false);
+    if (error) { setErr(error.message); return; }
+    setView("forgot-sent");
+  };
+
+  return (
+    <div className="pp-auth-bg">
+      <div className="pp-auth-card">
+        <AuthLogo />
+
+        {view === "login" && (
+          <>
+            <div className="pp-auth-title">Patient Portal</div>
+            <div className="pp-auth-sub">Sign in to access your medical information and messages.</div>
+
+            {err && <div className="pp-auth-err">{err}</div>}
+
+            <form onSubmit={handleLogin}>
+              <div className="pp-field">
+                <label htmlFor="lemail">Email address</label>
+                <input id="lemail" className="pp-input" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="your@email.com" disabled={busy} autoComplete="email" />
+              </div>
+              <div className="pp-field" style={{ marginBottom: 8 }}>
+                <label htmlFor="lpw">Password</label>
+                <PwInput id="lpw" value={pw} onChange={e => setPw(e.target.value)} disabled={busy} />
+              </div>
+              <div style={{ textAlign: "right", marginBottom: 20 }}>
+                <button type="button" className="pp-auth-link" onClick={() => { setView("forgot"); setErr(""); }}>
+                  Forgot password?
+                </button>
+              </div>
+              <button type="submit" className="pp-btn pp-btn--primary" disabled={!email.trim() || !pw || busy}>
+                {busy ? <><div className="pp-spin" style={{ width: 18, height: 18, borderWidth: 2 }} /> Signing in…</> : "Sign In"}
+              </button>
+            </form>
+
+            <div className="pp-auth-divider" style={{ marginTop: 24 }}>
+              This portal is only accessible via an invitation from your Carebridge coordinator.
+            </div>
+          </>
+        )}
+
+        {view === "forgot" && (
+          <>
+            <button type="button" onClick={() => { setView("login"); setErr(""); }} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-faint)", display: "flex", alignItems: "center", gap: 6, fontSize: 13, marginBottom: 20, padding: 0 }}>
+              <Icon name="arrow-left" size={14} /> Back to sign in
+            </button>
+            <div className="pp-auth-title">Reset password</div>
+            <div className="pp-auth-sub">Enter your email address and we'll send you a link to set a new password.</div>
+
+            {err && <div className="pp-auth-err">{err}</div>}
+
+            <form onSubmit={handleForgot}>
+              <div className="pp-field" style={{ marginBottom: 20 }}>
+                <label htmlFor="femail">Email address</label>
+                <input id="femail" className="pp-input" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="your@email.com" disabled={busy} autoComplete="email" />
+              </div>
+              <button type="submit" className="pp-btn pp-btn--primary" disabled={!email.trim() || busy}>
+                {busy ? <><div className="pp-spin" style={{ width: 18, height: 18, borderWidth: 2 }} /> Sending…</> : <><Icon name="mail" size={16} /> Send Reset Link</>}
+              </button>
+            </form>
+          </>
+        )}
+
+        {view === "forgot-sent" && (
+          <>
+            <div style={{ textAlign: "center", marginBottom: 20 }}>
+              <div style={{ width: 60, height: 60, borderRadius: "50%", background: "var(--teal-pale)", display: "grid", placeItems: "center", margin: "0 auto 16px", color: "var(--teal)" }}>
+                <Icon name="mail" size={28} />
+              </div>
+              <div className="pp-auth-title" style={{ textAlign: "center" }}>Check your email</div>
+            </div>
+            <div className="pp-auth-ok">
+              We sent a password reset link to <strong>{email}</strong>. Click the link in that email to set a new password.
+            </div>
+            <p style={{ fontSize: 13, color: "var(--text-faint)", textAlign: "center", lineHeight: 1.6, marginBottom: 20 }}>
+              If you don't see it, check your spam folder. The link expires in 1 hour.
+            </p>
+            <button type="button" className="pp-btn pp-btn--ghost" onClick={() => { setView("login"); setErr(""); }}>
+              Back to sign in
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ================================================================
+   Screen 3: Reset Password (after clicking reset email link)
+   ================================================================ */
+function ResetPasswordScreen({ onSubmit }) {
+  const [pw, setPw]     = useState("");
+  const [pw2, setPw2]   = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr]   = useState("");
+  const v = validatePassword(pw);
+  const match = pw === pw2 && pw.length > 0;
+  const canSubmit = v.valid && match && !busy;
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!canSubmit) return;
+    setBusy(true);
+    setErr("");
+    const result = await onSubmit(pw);
+    if (result?.error) {
+      setErr(result.error);
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="pp-auth-bg">
+      <div className="pp-auth-card">
+        <AuthLogo />
+        <div className="pp-auth-title">Set new password</div>
+        <div className="pp-auth-sub">Choose a new password for your Carebridge Patient Portal account.</div>
+
+        {err && <div className="pp-auth-err">{err}</div>}
+
+        <form onSubmit={submit}>
+          <div className="pp-field">
+            <label htmlFor="rpw">New password</label>
+            <PwInput id="rpw" value={pw} onChange={e => setPw(e.target.value)} placeholder="Choose a strong password" disabled={busy} />
+            <div className="pp-pw-reqs">
+              <PwReq met={v.hasMinNumbers}>At least 4 numbers (0–9)</PwReq>
+              <PwReq met={v.hasUppercase}>At least 1 uppercase letter (A–Z)</PwReq>
+              <PwReq met={v.hasLowercase}>At least 1 lowercase letter (a–z)</PwReq>
+            </div>
+          </div>
+
+          <div className="pp-field" style={{ marginBottom: 24 }}>
+            <label htmlFor="rpw2">Confirm new password</label>
+            <PwInput id="rpw2" value={pw2} onChange={e => setPw2(e.target.value)} placeholder="Repeat your password" disabled={busy} />
+            {pw2.length > 0 && !match && (
+              <div style={{ fontSize: 12, color: "var(--danger)", marginTop: 6 }}>Passwords do not match</div>
+            )}
+          </div>
+
+          <button type="submit" className="pp-btn pp-btn--primary" disabled={!canSubmit}>
+            {busy ? <><div className="pp-spin" style={{ width: 18, height: 18, borderWidth: 2 }} /> Updating…</> : <><Icon name="lock" size={16} /> Set New Password</>}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+/* ================================================================
+   Screen 4: Invalid invitation
+   ================================================================ */
+function InvalidScreen({ message }) {
+  return (
+    <div className="pp-gate">
+      <div className="pp-gate-box">
+        <div className="pp-gate-logo">
+          <img src="assets/carebridge-logo.png" alt="Carebridge International" />
+        </div>
+        <div className="pp-gate-icon">🔒</div>
+        <h2>Access Required</h2>
+        <p style={{ marginTop: 8 }}>{message || "This invitation link is invalid or has expired."}</p>
+        <p style={{ marginTop: 16, fontSize: 13, color: "#718096" }}>
+          Please contact your Carebridge coordinator for a new invitation link.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/* ================================================================
+   Dashboard components (Info, Messages, Journey tabs)
+   ================================================================ */
+function InfoTab({ invitation }) {
+  const priority  = invitation.priority || "Standard";
+  const pillClass = priority === "Attention" ? "pp-pill--danger" : priority === "High" ? "pp-pill--warn" : "pp-pill--teal";
+  const statusPill = invitation.status === "active" ? "pp-pill--ok" : "pp-pill--navy";
+  return (
+    <div className="pp-content">
+      <div className="pp-card">
+        <div className="pp-card-header">
+          <div className="pp-card-title"><Icon name="user" /> My Information</div>
+          <span className={"pp-pill " + statusPill}><span className="pp-pill-dot" />{invitation.status === "active" ? "Active" : "Pending"}</span>
+        </div>
+        <div className="pp-card-body">
+          <div className="pp-info-grid">
+            <div className="pp-info-item"><label>Full name</label><div className="pp-info-val">{invitation.patient_name}</div></div>
+            <div className="pp-info-item"><label>Patient ID</label><div className="pp-info-val" style={{ fontFamily: "monospace", fontSize: 13 }}>{invitation.patient_id}</div></div>
+            {invitation.specialty  && <div className="pp-info-item"><label>Specialty</label><div className="pp-info-val">{invitation.specialty}</div></div>}
+            {invitation.condition  && <div className="pp-info-item"><label>Condition</label><div className="pp-info-val">{invitation.condition}</div></div>}
+            {invitation.hospital   && <div className="pp-info-item"><label>Hospital</label><div className="pp-info-val">{invitation.hospital}</div></div>}
+            {invitation.country    && <div className="pp-info-item"><label>Destination</label><div className="pp-info-val">{invitation.country}</div></div>}
+            <div className="pp-info-item"><label>Priority</label><div className="pp-info-val"><span className={"pp-pill " + pillClass}>{priority}</span></div></div>
+            <div className="pp-info-item">
+              <label>Portal expires</label>
+              <div className="pp-info-val" style={{ fontSize: 13 }}>
+                {new Date(invitation.expires_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {invitation.coordinator_name && (
+        <div className="pp-card">
+          <div className="pp-card-header"><div className="pp-card-title"><Icon name="user" /> Your Coordinator</div></div>
+          <div className="pp-coord-row">
+            <div className="pp-coord-av">{(invitation.coordinator_name || "?").split(" ").map(w => w[0]).join("").slice(0,2).toUpperCase()}</div>
+            <div><div className="pp-coord-name">{invitation.coordinator_name}</div><div className="pp-coord-sub">Carebridge International</div></div>
+          </div>
+          <div className="pp-coord-actions">
+            <button className="pp-coord-btn" onClick={() => showToast("Opening conversation with your coordinator…")}><Icon name="message-square" size={16} /> Message</button>
+            <button className="pp-coord-btn" onClick={() => showToast("Contact your coordinator via your invitation email.")}><Icon name="mail" size={16} /> Email</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MessagesTab({ invitation, newMsgIds = new Set() }) {
+  const [messages, setMessages] = useState([]);
+  const [loading, setLoading]   = useState(true);
+  const [text, setText]         = useState("");
+  const [sending, setSending]   = useState(false);
+  const endRef  = useRef(null);
+  const pollRef = useRef(null);
+
+  const loadMessages = useCallback(async () => {
+    const { data, error } = await sb.from("patient_messages").select("*").eq("patient_id", invitation.patient_id).order("created_at", { ascending: true });
+    if (!error && data) {
+      setMessages(data);
+      const unread = data.filter(m => m.sender_role === "coordinator" && !m.read_at);
+      if (unread.length) await sb.from("patient_messages").update({ read_at: new Date().toISOString() }).in("id", unread.map(m => m.id));
+    }
+    setLoading(false);
+  }, [invitation.patient_id]);
+
+  useEffect(() => { loadMessages(); pollRef.current = setInterval(loadMessages, 30000); return () => clearInterval(pollRef.current); }, [loadMessages]);
+  useEffect(() => { if (endRef.current) endRef.current.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+
+  const send = async () => {
+    const content = text.trim();
+    if (!content || sending) return;
+    setSending(true); setText("");
+    const { error } = await sb.from("patient_messages").insert({ invitation_id: invitation.id, patient_id: invitation.patient_id, sender_role: "patient", sender_name: invitation.patient_name, content });
+    if (error) { showToast("Failed to send. Please try again."); setText(content); }
+    else await loadMessages();
+    setSending(false);
+  };
+
+  const fmtTime = (ts) => {
+    const d = new Date(ts), now = new Date();
+    const today = d.toDateString() === now.toDateString();
+    if (today) return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" }) + " " + d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
+      <div className="pp-content" style={{ paddingBottom: 0, gap: 0 }}>
+        <div className="pp-card">
+          <div className="pp-card-header"><div className="pp-card-title"><Icon name="message-square" /> Messages with {invitation.coordinator_name || "your coordinator"}</div></div>
+          {loading ? <div className="pp-loading"><div className="pp-spin" /> Loading messages…</div> : (
+            <div className="pp-messages-list">
+              {messages.length === 0 ? (
+                <div className="pp-no-messages"><Icon name="message-square" size={32} /><p style={{ marginTop: 12 }}>No messages yet. Send a message to your coordinator below.</p></div>
+              ) : messages.map((m, idx) => {
+                const isNew = newMsgIds.has(m.id);
+                const prev = messages[idx - 1];
+                const isFirstInGroup = !prev || prev.sender_role !== m.sender_role;
+                const showName = m.sender_role === "coordinator" && isFirstInGroup;
+                return (
+                <div key={m.id} className={"pp-msg pp-msg--" + m.sender_role} style={{ marginTop: isFirstInGroup ? 8 : 2 }}>
+                  {showName && <div className="pp-msg-sender">{m.sender_name}{isNew && <span style={{ marginLeft: 6, background: "#e53e3e", color: "white", fontSize: 9, fontWeight: 800, padding: "1px 6px", borderRadius: 10, verticalAlign: "middle" }}>NEW</span>}</div>}
+                  {!showName && isNew && m.sender_role === "coordinator" && <div className="pp-msg-sender"><span style={{ background: "#e53e3e", color: "white", fontSize: 9, fontWeight: 800, padding: "1px 6px", borderRadius: 10 }}>NEW</span></div>}
+                  <div className="pp-msg-bubble" style={isNew ? { outline: "2px solid #e53e3e" } : {}}>
+                    {m.content}
+                  </div>
+                  <div className="pp-msg-meta">{fmtTime(m.created_at)}{m.sender_role === "patient" && m.read_at ? " · Read" : ""}</div>
+                </div>
+                );
+              })}
+              <div ref={endRef} />
+            </div>
+          )}
+          <div className="pp-msg-input-row">
+            <textarea className="pp-msg-input" rows={1} value={text} onChange={e => setText(e.target.value)} placeholder="Type a message to your coordinator…" onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }} />
+            <button className="pp-send-btn" onClick={send} disabled={!text.trim() || sending} aria-label="Send message"><Icon name="send" size={17} /></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function JourneyTab({ invitation, newActIds = new Set() }) {
+  const [activities, setActivities] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const load = useCallback(async () => {
+    const { data } = await sb
+      .from("patient_activities")
+      .select("*")
+      .eq("patient_id", invitation.patient_id)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    setActivities(data || []);
+  }, [invitation.patient_id]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const refresh = async () => {
+    setRefreshing(true);
+    await load();
+    setRefreshing(false);
+  };
+
+  const fmtTime = (ts) => {
+    const d = new Date(ts);
+    const now = new Date();
+    const diffMs = now - d;
+    const diffMin = Math.floor(diffMs / 60000);
+    const diffHr  = Math.floor(diffMin / 60);
+    const diffDay = Math.floor(diffHr / 24);
+    if (diffMin < 1)  return "Just now";
+    if (diffMin < 60) return diffMin + "m ago";
+    if (diffHr  < 24) return diffHr  + "h ago";
+    if (diffDay < 7)  return diffDay + "d ago";
+    return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  };
+
+  const typeConfig = {
+    stage_change:       { icon: "route",          color: "#1CA89C", label: "Stage Update"      },
+    appointment_booked: { icon: "calendar-check",  color: "#2C5089", label: "Appointment"       },
+    appointment_updated:{ icon: "calendar",        color: "#4A6FA5", label: "Appt. Updated"     },
+    specialty_change:   { icon: "stethoscope",     color: "#C8862B", label: "Specialty"         },
+    priority_change:    { icon: "alert-circle",    color: "#B4453C", label: "Priority"          },
+    condition_update:   { icon: "clipboard",       color: "#6B7280", label: "Condition"         },
+    destination_change: { icon: "map-pin",         color: "#7C3AED", label: "Destination"       },
+    document_status:    { icon: "file-check-2",    color: "#0369A1", label: "Document"          },
+    visa_status:        { icon: "stamp",           color: "#B45309", label: "Visa"              },
+  };
+
+  return (
+    <div className="pp-content">
+      <div className="pp-card">
+        <div className="pp-card-header" style={{ justifyContent: "space-between" }}>
+          <div className="pp-card-title"><Icon name="route" /> My Treatment Journey</div>
+          <button onClick={refresh} disabled={refreshing}
+            style={{ background: "var(--teal-pale)", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: "var(--teal)", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
+            <Icon name="refresh-cw" size={13} style={refreshing ? { animation: "ppspin 0.8s linear infinite" } : {}} />
+            {refreshing ? "Refreshing…" : "Refresh"}
+          </button>
+        </div>
+
+        {activities === null ? (
+          <div className="pp-loading"><div className="pp-spin" /> Loading your journey…</div>
+        ) : activities.length === 0 ? (
+          <div className="pp-card-body">
+            <div style={{ textAlign: "center", padding: "32px 0", color: "var(--text-faint)" }}>
+              <Icon name="route" size={40} />
+              <p style={{ marginTop: 14, fontSize: 14, lineHeight: 1.6 }}>
+                Your treatment journey updates will appear here as your coordinator makes progress on your case.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div style={{ padding: "8px 0" }}>
+            {activities.map((act, i) => {
+              const cfg = typeConfig[act.activity_type] || { icon: "circle", color: "#9CA3AF", label: "Update" };
+              const isNew = newActIds.has(act.id);
+              return (
+                <div key={act.id} style={{ display: "flex", gap: 0, padding: "0 20px", background: isNew ? "rgba(229,62,62,0.06)" : "transparent", borderLeft: isNew ? "3px solid #e53e3e" : "3px solid transparent", transition: "background 0.3s" }}>
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 36, flexShrink: 0 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: "50%", background: cfg.color + "18", border: "2px solid " + cfg.color, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color: cfg.color, marginTop: 14 }}>
+                      <Icon name={cfg.icon} size={14} />
+                    </div>
+                    {i < activities.length - 1 && (
+                      <div style={{ width: 2, flex: 1, minHeight: 16, background: "var(--border)", margin: "4px 0" }} />
+                    )}
+                  </div>
+                  <div style={{ flex: 1, padding: "14px 0 14px 14px" }}>
+                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
+                          <span style={{ background: cfg.color + "18", color: cfg.color, fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20, textTransform: "uppercase", letterSpacing: "0.05em" }}>{cfg.label}</span>
+                        </div>
+                        <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", lineHeight: 1.4 }}>
+                          {act.title}
+                          {isNew && <span style={{ marginLeft: 8, background: "#e53e3e", color: "white", fontSize: 9, fontWeight: 800, padding: "1px 6px", borderRadius: 10, verticalAlign: "middle" }}>NEW</span>}
+                        </div>
+                        {act.description && (
+                          <div style={{ fontSize: 12.5, color: "var(--text-sub)", marginTop: 4, lineHeight: 1.5 }}>{act.description}</div>
+                        )}
+                        {act.old_value && act.new_value && act.old_value !== act.new_value && (
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 5, fontSize: 11.5 }}>
+                            <span style={{ color: "var(--text-faint)", textDecoration: "line-through" }}>{act.old_value}</span>
+                            <Icon name="arrow-right" size={11} style={{ color: "var(--text-faint)" }} />
+                            <span style={{ color: cfg.color, fontWeight: 600 }}>{act.new_value}</span>
+                          </div>
+                        )}
+                      </div>
+                      <div style={{ fontSize: 11.5, color: "var(--text-faint)", whiteSpace: "nowrap", marginTop: 2 }}>{fmtTime(act.created_at)}</div>
+                    </div>
+                    {act.created_by && (
+                      <div style={{ marginTop: 6, fontSize: 11, color: "var(--text-faint)", display: "flex", alignItems: "center", gap: 4 }}>
+                        <Icon name="user" size={10} /> {act.created_by}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ================================================================
+   Rate Us tab
+   ================================================================ */
+const STAR_LABELS = ["", "Poor", "Fair", "Good", "Very good", "Excellent"];
+
+function StarPicker({ value, onChange, disabled }) {
+  const [hover, setHover] = useState(0);
+  const display = hover || value;
+  return (
+    <div>
+      <div className="pp-stars-row">
+        {[1,2,3,4,5].map(n => (
+          <button key={n} type="button" className={"pp-star-btn " + (n <= display ? "filled" : "empty")}
+            onClick={() => !disabled && onChange(n)}
+            onMouseEnter={() => !disabled && setHover(n)}
+            onMouseLeave={() => setHover(0)}
+            disabled={disabled}
+            aria-label={n + " star" + (n > 1 ? "s" : "")}>
+            <Icon name="star" size={40} />
+          </button>
+        ))}
+      </div>
+      <div className="pp-rate-label" style={{ opacity: display ? 1 : 0 }}>
+        {STAR_LABELS[display] || ""}
+      </div>
+    </div>
+  );
+}
+
+function RateTab({ invitation }) {
+  const [stars,   setStars]   = useState(0);
+  const [comment, setComment] = useState("");
+  const [busy,    setBusy]    = useState(false);
+  const [done,    setDone]    = useState(null);
+
+  useEffect(() => {
+    sb.from("patient_ratings")
+      .select("*")
+      .eq("invitation_id", invitation.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) setDone(data);
+        else setDone(false);
+      });
+  }, [invitation.id]);
+
+  const submit = async () => {
+    if (!stars || busy) return;
+    setBusy(true);
+    const row = {
+      patient_id:   invitation.patient_id,
+      patient_name: invitation.patient_name,
+      invitation_id: invitation.id,
+      stars,
+      comment: comment.trim(),
+    };
+    const { data, error } = await sb.from("patient_ratings").insert(row).select().single();
+    if (error) {
+      showToast("Could not submit rating. Please try again.");
+      setBusy(false);
+      return;
+    }
+    setDone(data);
+    showToast("Thank you for your feedback!");
+  };
+
+  if (done === null) {
+    return <div className="pp-content"><div className="pp-loading"><div className="pp-spin" /> Loading…</div></div>;
+  }
+
+  return (
+    <div className="pp-content">
+      <div className="pp-card">
+        <div className="pp-card-header">
+          <div className="pp-card-title"><Icon name="star" size={17} /> Rate your experience</div>
+        </div>
+        {done ? (
+          <div className="pp-rate-success">
+            <div className="pp-rate-success-icon">⭐</div>
+            <div className="pp-rate-success-title">Thank you for your feedback!</div>
+            <div className="pp-rate-success-sub">
+              You rated your experience <strong>{done.stars} out of 5 stars</strong>
+              {done.comment ? <><br /><em style={{ marginTop: 8, display: "block", color: "var(--text-faint)" }}>"{done.comment}"</em></> : null}
+            </div>
+            <div style={{ marginTop: 20, display: "flex", justifyContent: "center", gap: 6 }}>
+              {[1,2,3,4,5].map(n => (
+                <Icon key={n} name="star" size={28} style={{ color: n <= done.stars ? "#F59E0B" : "#CBD5E0", fill: n <= done.stars ? "#F59E0B" : "none" }} />
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="pp-card-body" style={{ paddingTop: 24, paddingBottom: 24 }}>
+            <p style={{ textAlign: "center", fontSize: 14, color: "var(--text-sub)", lineHeight: 1.6, marginBottom: 4 }}>
+              How was your experience with Carebridge International?<br />
+              <span style={{ fontSize: 13, color: "var(--text-faint)" }}>Tap a star to rate (0 = not rated, 5 = excellent)</span>
+            </p>
+            <StarPicker value={stars} onChange={setStars} disabled={busy} />
+            <div style={{ marginTop: 20 }}>
+              <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-faint)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>
+                Comment (optional)
+              </label>
+              <textarea
+                className="pp-input"
+                rows={4}
+                value={comment}
+                onChange={e => setComment(e.target.value)}
+                placeholder="Share your experience with us…"
+                disabled={busy}
+                style={{ resize: "vertical", minHeight: 100 }}
+              />
+            </div>
+            <button
+              className="pp-btn pp-btn--primary"
+              style={{ marginTop: 16 }}
+              onClick={submit}
+              disabled={!stars || busy}>
+              {busy
+                ? <><div className="pp-spin" style={{ width: 18, height: 18, borderWidth: 2 }} /> Submitting…</>
+                : <><Icon name="star" size={16} /> Submit Rating</>}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ---- Location tracking hook ---- */
+function useLocation(invitation) {
+  const [label, setLabel] = useState(null);
+  const invRef = useRef(invitation);
+  invRef.current = invitation;
+
+  const save = useCallback(async (pos) => {
+    const inv = invRef.current;
+    if (!inv) return;
+    const { latitude, longitude, accuracy } = pos.coords;
+    let city = null, country = null;
+    try {
+      const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`, { headers: { "Accept-Language": "en" } });
+      const j = await r.json();
+      city    = j.address?.city || j.address?.town || j.address?.village || null;
+      country = j.address?.country || null;
+      if (city || country) setLabel([city, country].filter(Boolean).join(", "));
+    } catch (e) { /* ignore */ }
+    try {
+      await sb.from("patient_locations").insert({ invitation_id: inv.id, patient_id: inv.patient_id, latitude, longitude, accuracy, city, country });
+    } catch (e) { /* ignore */ }
+  }, []);
+
+  useEffect(() => {
+    if (!invitation || !navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(save, () => {});
+    const t = setInterval(() => navigator.geolocation.getCurrentPosition(save, () => {}), 10 * 60 * 1000);
+    return () => clearInterval(t);
+  }, [invitation, save]);
+
+  return label;
+}
+
+/* ================================================================
+   Dashboard shell
+   ================================================================ */
+function Dashboard({ invitation, locationLabel, tab, setTab, onLogout, unreadMsgs, newJourney, clearBadge, newMsgIds, newActIds, bellOn, onToggleBell }) {
+  return (
+    <div className="pp-app">
+      <div className="pp-header">
+        <div className="pp-header-top">
+          <div className="pp-header-brand">
+            <img src="assets/carebridge-logo.png" alt="Carebridge" />
+            <div className="pp-header-brand-text">Carebridge<span>International</span></div>
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button className="pp-logout-btn" onClick={onToggleBell} title={bellOn ? "Mute notifications" : "Unmute notifications"}
+              style={{ background: bellOn ? "rgba(28,168,156,0.25)" : "rgba(255,255,255,0.08)", borderColor: bellOn ? "rgba(28,168,156,0.5)" : "rgba(255,255,255,0.2)", fontSize: 18, padding: "6px 12px" }}>
+              {bellOn ? "🔔" : "🔕"}
+            </button>
+            <button className="pp-logout-btn" onClick={onLogout}><Icon name="log-out" size={14} /> Sign out</button>
+          </div>
+        </div>
+        <div className="pp-header-patient">
+          <div className="pp-header-patient-name">{invitation.patient_name}</div>
+          <div className="pp-header-patient-meta">
+            <span>{invitation.patient_id}</span>
+            {invitation.coordinator_name && <span>· {invitation.coordinator_name}</span>}
+            {locationLabel && <span className="pp-loc-badge"><Icon name="map-pin" size={11} /> {locationLabel}</span>}
+          </div>
+        </div>
+      </div>
+
+      <div className="pp-tabs">
+        {[
+          { id: "info",     label: "My Info",  icon: "user",           badge: 0           },
+          { id: "messages", label: "Messages",  icon: "message-square", badge: unreadMsgs  },
+          { id: "journey",  label: "Journey",   icon: "route",          badge: newJourney  },
+          { id: "rate",     label: "Rate Us",   icon: "star",           badge: 0           },
+        ].map(t => (
+          <button key={t.id} className={"pp-tab" + (tab === t.id ? " active" : "")} onClick={() => { setTab(t.id); clearBadge(t.id); }}>
+            <div className="pp-tab-wrap">
+              <Icon name={t.icon} size={18} />
+              {t.badge > 0 && <span className="pp-badge">{t.badge > 9 ? "9+" : t.badge}</span>}
+            </div>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "info"     && <InfoTab     invitation={invitation} />}
+      {tab === "messages" && <MessagesTab invitation={invitation} newMsgIds={newMsgIds} />}
+      {tab === "journey"  && <JourneyTab  invitation={invitation} newActIds={newActIds} />}
+      {tab === "rate"     && <RateTab     invitation={invitation} />}
+    </div>
+  );
+}
+
+/* ================================================================
+   Main App — auth state machine
+   ================================================================ */
+function App() {
+  const [screen,     setScreen]     = useState("loading");
+  const [invitation, setInvitation] = useState(null);
+  const [tokenInv,   setTokenInv]   = useState(null);
+  const [invalidMsg, setInvalidMsg] = useState("");
+  const [tab,        setTab]        = useState("info");
+  const [unreadMsgs, setUnreadMsgs] = useState(0);
+  const [newJourney, setNewJourney] = useState(0);
+  const [newMsgIds,  setNewMsgIds]  = useState(new Set());
+  const [newActIds,  setNewActIds]  = useState(new Set());
+  const [bellOn,     setBellOn]     = useState(() => localStorage.getItem("cb_bell") !== "off");
+  const bellRef = useRef(bellOn);
+  useEffect(() => { bellRef.current = bellOn; }, [bellOn]);
+  const locationLabel = useLocation(invitation);
+
+  const toggleBell = useCallback(() => {
+    setBellOn(b => { const next = !b; localStorage.setItem("cb_bell", next ? "on" : "off"); return next; });
+  }, []);
+
+  /* ---- Realtime notifications ---- */
+  useEffect(() => {
+    if (screen !== "dashboard" || !invitation) return;
+
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+
+    const msgCh = sb.channel("pp-msg-" + invitation.patient_id)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "patient_messages",
+        filter: "patient_id=eq." + invitation.patient_id }, (payload) => {
+        if (payload.new?.sender_role !== "patient") {
+          setUnreadMsgs(n => n + 1);
+          setNewMsgIds(s => new Set([...s, payload.new.id]));
+          if (bellRef.current) pushNotify("New message from your coordinator", payload.new?.content);
+        }
+      }).subscribe();
+
+    const actCh = sb.channel("pp-act-" + invitation.patient_id)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "patient_activities",
+        filter: "patient_id=eq." + invitation.patient_id }, (payload) => {
+        setNewJourney(n => n + 1);
+        setNewActIds(s => new Set([...s, payload.new.id]));
+        if (bellRef.current) pushNotify("Journey updated", payload.new?.title);
+      }).subscribe();
+
+    const invCh = sb.channel("pp-inv2-" + invitation.id)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "patient_invitations",
+        filter: "id=eq." + invitation.id }, (payload) => {
+        if (payload.new?.stage && payload.new.stage !== invitation.stage) {
+          setNewJourney(n => n + 1);
+          if (bellRef.current) pushNotify("Stage updated", "Your treatment is now: " + payload.new.stage);
+        }
+        if (payload.new?.status && payload.new.status !== invitation.status) {
+          if (bellRef.current) pushNotify("Status updated", "Your status changed to: " + payload.new.status);
+        }
+      }).subscribe();
+
+    return () => {
+      sb.removeChannel(msgCh);
+      sb.removeChannel(actCh);
+      sb.removeChannel(invCh);
+    };
+  }, [screen, invitation?.patient_id, invitation?.id]);
+
+  const clearBadge = useCallback((tabId) => {
+    if (tabId === "messages") { setUnreadMsgs(0); setNewMsgIds(new Set()); }
+    if (tabId === "journey")  { setNewJourney(0); setNewActIds(new Set()); }
+  }, []);
+
+  useEffect(() => {
+    if (screen !== "loading") {
+      const s = document.getElementById("pp-splash");
+      if (s) { s.style.opacity = "0"; setTimeout(() => s.remove(), 420); }
+    }
+  }, [screen]);
+
+  useEffect(() => {
+    if (screen !== "dashboard" || !invitation?.id) return;
+    const channel = sb.channel("inv-coord-" + invitation.id)
+      .on("postgres_changes", {
+        event: "UPDATE",
+        schema: "public",
+        table: "patient_invitations",
+        filter: "id=eq." + invitation.id,
+      }, (payload) => {
+        if (payload.new?.coordinator_name) {
+          setInvitation(prev => ({ ...prev, coordinator_name: payload.new.coordinator_name }));
+        }
+      })
+      .subscribe();
+    return () => sb.removeChannel(channel);
+  }, [screen, invitation?.id]);
+
+  const enrichInvitation = useCallback(async (data) => {
+    const bad = !data.coordinator_name || data.coordinator_name === "—" || data.coordinator_name === "-";
+    if (!bad) return data;
+    const cid = data.coordinator_id || data.coordinator_name || "";
+    if (cid && cid !== "—" && cid !== "-") {
+      const { data: users } = await sb.from("portal_users")
+        .select("name").or(`name.eq.${cid},id.eq.${cid}`).limit(1);
+      if (users && users[0]) return { ...data, coordinator_name: users[0].name };
+    }
+    const { data: coords } = await sb.from("portal_users")
+      .select("name").eq("active", true).in("role", ["coordinator", "admin"]).limit(1);
+    if (coords && coords[0]) return { ...data, coordinator_name: coords[0].name };
+    return { ...data, coordinator_name: "Carebridge Coordinator" };
+  }, []);
+
+  const loadDashboard = useCallback(async (user) => {
+    const metaToken = user?.user_metadata?.token;
+    if (metaToken) {
+      const { data } = await sb.from("patient_invitations").select("*").eq("token", metaToken).single();
+      if (data) { setInvitation(await enrichInvitation(data)); setScreen("dashboard"); return; }
+    }
+    if (user?.id) {
+      const { data } = await sb.from("patient_invitations").select("*").eq("auth_user_id", user.id).single();
+      if (data) { setInvitation(await enrichInvitation(data)); setScreen("dashboard"); return; }
+    }
+    await sb.auth.signOut();
+    setScreen("login");
+  }, [enrichInvitation]);
+
+  const validateToken = useCallback(async (token) => {
+    const { data, error } = await sb.from("patient_invitations").select("*").eq("token", token).single();
+    if (error || !data) { setInvalidMsg("This invitation link is invalid or has already been used."); setScreen("invalid"); return; }
+    if (data.status === "expired" || (data.expires_at && new Date(data.expires_at) < new Date())) {
+      setInvalidMsg("This invitation link has expired. Please contact your Carebridge coordinator for a new link.");
+      setScreen("invalid"); return;
+    }
+    if (!data.patient_email) {
+      setInvalidMsg("Your invitation is missing an email address. Please ask your coordinator to resend the invitation.");
+      setScreen("invalid"); return;
+    }
+    if (data.password_set) {
+      setScreen("login"); return;
+    }
+    setTokenInv(data);
+    setScreen("create-account");
+  }, []);
+
+  useEffect(() => {
+    const init = async () => {
+      const hash   = new URLSearchParams(window.location.hash.slice(1));
+      const search = new URLSearchParams(window.location.search);
+      const urlToken = search.get("token");
+
+      if (hash.get("type") === "recovery") {
+        await sb.auth.getSession();
+        setScreen("reset-password");
+        return;
+      }
+
+      const { data: { session } } = await sb.auth.getSession();
+      if (session?.user) {
+        await loadDashboard(session.user);
+        return;
+      }
+
+      if (urlToken) {
+        await validateToken(urlToken);
+        return;
+      }
+
+      setScreen("login");
+    };
+    init();
+  }, [loadDashboard, validateToken]);
+
+  const handleSignup = async (password) => {
+    const inv = tokenInv;
+    const { data, error } = await sb.auth.signUp({
+      email: inv.patient_email,
+      password,
+      options: { data: { patient_id: inv.patient_id, invitation_id: inv.id, token: inv.token } }
+    });
+    if (error) return { error: error.message };
+
+    const user = data.user;
+
+    try {
+      await fetch(EDGE_URL, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${SUPABASE_ANON}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "complete-signup", token: inv.token, authUserId: user.id }),
+      });
+    } catch (e) { /* non-fatal */ }
+
+    const updatedInv = { ...inv, password_set: true, auth_user_id: user.id, status: "active" };
+    setInvitation(updatedInv);
+    setScreen("dashboard");
+    showToast("Welcome to your Carebridge portal, " + inv.patient_name.split(" ")[0] + "!");
+    return { error: null };
+  };
+
+  const handleLogin = async (email, password) => {
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
+    if (error) return { error: error.message };
+    await loadDashboard(data.user);
+    return { error: null };
+  };
+
+  const handlePasswordReset = async (newPassword) => {
+    const { error } = await sb.auth.updateUser({ password: newPassword });
+    if (error) return { error: error.message };
+    const { data: { user } } = await sb.auth.getUser();
+    if (user) {
+      showToast("Password updated successfully!");
+      await loadDashboard(user);
+    }
+    return { error: null };
+  };
+
+  const handleLogout = async () => {
+    await sb.auth.signOut();
+    setInvitation(null);
+    setTab("info");
+    setScreen("login");
+  };
+
+  if (screen === "loading")        return null;
+  if (screen === "invalid")        return <InvalidScreen message={invalidMsg} />;
+  if (screen === "create-account") return <CreateAccountScreen invitation={tokenInv} onSubmit={handleSignup} />;
+  if (screen === "login")          return <LoginScreen onLogin={handleLogin} />;
+  if (screen === "reset-password") return <ResetPasswordScreen onSubmit={handlePasswordReset} />;
+  if (screen === "dashboard")      return <Dashboard invitation={invitation} locationLabel={locationLabel} tab={tab} setTab={setTab} onLogout={handleLogout} unreadMsgs={unreadMsgs} newJourney={newJourney} clearBadge={clearBadge} newMsgIds={newMsgIds} newActIds={newActIds} bellOn={bellOn} onToggleBell={toggleBell} />;
+  return null;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
 </html>

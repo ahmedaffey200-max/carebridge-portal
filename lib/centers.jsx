@@ -4,6 +4,71 @@
 const { useState } = React;
 const CD = window.CB_DATA;
 
+/* ---- Admin-side audio + red alert ---- */
+var _cbACtx = null;
+function cbUnlockAudio() {
+  if (!_cbACtx) try { _cbACtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
+  if (_cbACtx && _cbACtx.state === "suspended") _cbACtx.resume().catch(function(){});
+}
+document.addEventListener("click",      cbUnlockAudio, { once: false });
+document.addEventListener("touchstart", cbUnlockAudio, { once: false });
+
+function cbChime() {
+  try {
+    cbUnlockAudio();
+    var ctx = _cbACtx;
+    if (!ctx || ctx.state === "suspended") return;
+    [[587.33, 0], [739.99, 0.16], [880, 0.32]].forEach(function(p) {
+      var osc = ctx.createOscillator(), g = ctx.createGain();
+      osc.connect(g); g.connect(ctx.destination);
+      osc.type = "sine"; osc.frequency.value = p[0];
+      var t = ctx.currentTime + p[1];
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(0.32, t + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.55);
+      osc.start(t); osc.stop(t + 0.55);
+    });
+  } catch(e) {}
+}
+
+function cbRedAlert(patientName, preview) {
+  cbChime();
+  var el = document.createElement("div");
+  el.style.cssText = [
+    "position:fixed;top:20px;right:20px;z-index:99999",
+    "background:linear-gradient(135deg,#dc2626,#b91c1c)",
+    "color:white;padding:16px 20px;border-radius:14px",
+    "font-size:13.5px;font-weight:600",
+    "box-shadow:0 6px 24px rgba(185,28,28,0.45)",
+    "display:flex;align-items:flex-start;gap:12px",
+    "max-width:340px;cursor:pointer",
+    "animation:cbPopIn 0.3s cubic-bezier(.34,1.56,.64,1)"
+  ].join(";");
+  el.innerHTML = '<div style="font-size:22px;line-height:1;margin-top:2px">💬</div>'
+    + '<div><div style="font-size:13px;opacity:0.85;font-weight:500;margin-bottom:2px">New message from patient</div>'
+    + '<div style="font-size:15px;font-weight:700">' + patientName + '</div>'
+    + (preview ? '<div style="font-size:12.5px;opacity:0.85;margin-top:3px;font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px">' + preview + '</div>' : '')
+    + '</div>';
+  el.onclick = function() { el.remove(); };
+  document.body.appendChild(el);
+  if (!document.getElementById("cb-popin-style")) {
+    var s = document.createElement("style");
+    s.id = "cb-popin-style";
+    s.textContent = "@keyframes cbPopIn{from{opacity:0;transform:translateX(60px) scale(0.85)}to{opacity:1;transform:translateX(0) scale(1)}}";
+    document.head.appendChild(s);
+  }
+  setTimeout(function() {
+    el.style.transition = "opacity 0.4s,transform 0.4s";
+    el.style.opacity = "0"; el.style.transform = "translateX(30px)";
+    setTimeout(function() { if (el.parentNode) el.remove(); }, 430);
+  }, 5000);
+  if ("Notification" in window && Notification.permission === "granted") {
+    try { new Notification("New message — " + patientName, { body: preview || "", icon: "assets/carebridge-logo.png" }); } catch(e) {}
+  } else if ("Notification" in window && Notification.permission === "default") {
+    Notification.requestPermission();
+  }
+}
+
 /* ---------------- Communication Hub (real Supabase messages) ---------------- */
 function CommsView() {
   var [threads, setThreads] = React.useState([]);
@@ -55,12 +120,33 @@ function CommsView() {
 
   React.useEffect(function() {
     var attempts = 0;
+    var realtimeCh = null;
     function tryLoad() {
-      if (window.CB_SB) { load(); } else if (++attempts < 20) { setTimeout(tryLoad, 300); return; } else { setLoading(false); return; }
+      var sb = window.CB_SB;
+      if (!sb) { if (++attempts < 20) { setTimeout(tryLoad, 300); return; } else { setLoading(false); return; } }
+      load();
       pollRef.current = setInterval(load, 12000);
+      // Realtime: red alert on new patient message
+      realtimeCh = sb.channel("admin-msgs-rt")
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: "patient_messages" }, function(payload) {
+          var m = payload.new;
+          if (!m || m.sender_role === "coordinator" || m.sender_role === "admin") return;
+          // Find patient name from current threads
+          setThreads(function(prev) {
+            var th = prev.find(function(t) { return t.patient_id === m.patient_id; });
+            var name = (th && th.patient_name) || m.sender_name || "Patient";
+            cbRedAlert(name, m.content);
+            return prev;
+          });
+          load(); // refresh thread list
+        })
+        .subscribe();
     }
     tryLoad();
-    return function() { if (pollRef.current) clearInterval(pollRef.current); };
+    return function() {
+      if (pollRef.current) clearInterval(pollRef.current);
+      if (realtimeCh) { try { window.CB_SB && window.CB_SB.removeChannel(realtimeCh); } catch(e) {} }
+    };
   }, []);
 
   // Scroll to bottom when thread changes or messages arrive
@@ -174,18 +260,36 @@ function CommsView() {
                 </div>
               </div>
             </div>
-            <div ref={endRef} style={{ flex: 1, overflowY: "auto", padding: "var(--space-5)", display: "flex", flexDirection: "column", gap: 12, background: "var(--bg-page)" }}>
+            <div ref={endRef} style={{ flex: 1, overflowY: "auto", padding: "16px 20px", display: "flex", flexDirection: "column", gap: 4, background: "#f4f7fb" }}>
               {msgs.map(function(m, i) {
                 var isMe = m.sender_role !== "patient";
+                var prev = msgs[i - 1];
+                var sameSender = prev && prev.sender_role === m.sender_role;
+                var showName = !isMe && !sameSender;
                 return (
-                  <div key={m.id || i} style={{ alignSelf: isMe ? "flex-end" : "flex-start", maxWidth: "76%" }}>
-                    {!isMe ? <div style={{ fontSize: 11, color: "var(--text-faint)", marginBottom: 3 }}>{m.sender_name || "Patient"}</div> : null}
-                    <div style={{ padding: "11px 15px", borderRadius: isMe ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
-                      background: isMe ? "var(--navy-600)" : "#fff", color: isMe ? "#fff" : "var(--text-body)",
-                      fontSize: 14, lineHeight: 1.5, border: isMe ? "none" : "1px solid var(--border-subtle)", boxShadow: "var(--shadow-xs)" }}>
+                  <div key={m.id || i} style={{ display: "flex", flexDirection: "column", alignItems: isMe ? "flex-end" : "flex-start", marginTop: sameSender ? 2 : 10 }}>
+                    {showName && (
+                      <div style={{ fontSize: 11, fontWeight: 600, color: "#1CA89C", marginBottom: 3, paddingLeft: 4 }}>{m.sender_name || thread.patient_name}</div>
+                    )}
+                    <div style={{
+                      maxWidth: "68%",
+                      padding: "10px 15px",
+                      borderRadius: isMe
+                        ? (sameSender ? "18px 4px 4px 18px" : "18px 4px 18px 18px")
+                        : (sameSender ? "4px 18px 18px 4px" : "4px 18px 18px 18px"),
+                      background: isMe ? "linear-gradient(135deg,#1B3A6B,#1CA89C)" : "#ffffff",
+                      color: isMe ? "#ffffff" : "#1a202c",
+                      fontSize: 14, lineHeight: 1.55, fontWeight: 400,
+                      boxShadow: isMe ? "0 2px 8px rgba(27,58,107,0.25)" : "0 1px 4px rgba(0,0,0,0.08)",
+                      border: isMe ? "none" : "1px solid #e2e8f0",
+                      wordBreak: "break-word"
+                    }}>
                       {m.content}
                     </div>
-                    <div style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 4, textAlign: isMe ? "right" : "left" }}>{fmtTime(m.created_at)}</div>
+                    <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 3, paddingLeft: isMe ? 0 : 4, paddingRight: isMe ? 4 : 0, display: "flex", alignItems: "center", gap: 4 }}>
+                      {fmtTime(m.created_at)}
+                      {isMe && <span style={{ color: "#1CA89C", fontSize: 12 }}>{m.read_at ? "✓✓" : "✓"}</span>}
+                    </div>
                   </div>
                 );
               })}
@@ -233,16 +337,18 @@ function AnalyticsView() {
   // Patient satisfaction from ratings
   var [avgRating, setAvgRating] = React.useState(null);
   var [ratingCount, setRatingCount] = React.useState(0);
+  var [allRatings, setAllRatings] = React.useState([]);
   React.useEffect(function() {
     var attempts = 0;
     function tryLoad() {
       var sb = window.CB_SB;
       if (!sb) { if (++attempts < 20) setTimeout(tryLoad, 300); return; }
-      sb.from("patient_ratings").select("stars").then(function(res) {
+      sb.from("patient_ratings").select("*").order("created_at", { ascending: false }).then(function(res) {
         if (!res.error && res.data && res.data.length) {
           var sum = res.data.reduce(function(s,r){ return s+(r.stars||0); }, 0);
           setAvgRating((sum/res.data.length).toFixed(1));
           setRatingCount(res.data.length);
+          setAllRatings(res.data);
         }
       });
     }
@@ -319,6 +425,42 @@ function AnalyticsView() {
           </div>
         </Card>
       </div>
+
+      <Card>
+        <CardHead title="Patient Reviews" sub={allRatings.length ? allRatings.length + " review" + (allRatings.length !== 1 ? "s" : "") + " · avg " + (avgRating || "—") + " / 5" : "No reviews yet"} />
+        {allRatings.length === 0 ? (
+          <div className="cb-empty" style={{ padding: "24px 0" }}>No patient reviews submitted yet. Reviews appear once patients rate their experience in the patient portal.</div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 4 }}>
+            {allRatings.map(function(r, i) {
+              var stars = r.stars || 0;
+              var date = r.created_at ? new Date(r.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "";
+              return (
+                <div key={r.id || i} style={{ padding: "14px 16px", borderRadius: "var(--radius-md)", border: "1.5px solid var(--border-default)", background: "var(--bg-page)" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div style={{ width: 34, height: 34, borderRadius: "50%", background: "var(--navy-600)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13, flexShrink: 0 }}>
+                        {(r.patient_name || "?").split(" ").map(function(w){ return w[0] || ""; }).slice(0,2).join("").toUpperCase()}
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: 14, color: "var(--text-strong)" }}>{r.patient_name || "Patient"}</div>
+                        <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{date}</div>
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", gap: 2 }}>
+                      {[1,2,3,4,5].map(function(n) {
+                        return <span key={n} style={{ fontSize: 18, color: n <= stars ? "#F59E0B" : "var(--border-default)" }}>★</span>;
+                      })}
+                    </div>
+                  </div>
+                  {r.comment && <div style={{ fontSize: 14, color: "var(--text-body)", lineHeight: 1.55, marginTop: 8, paddingTop: 10, borderTop: "1px solid var(--border-default)" }}>{r.comment}</div>}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </Card>
+
     </div>
   );
 }
