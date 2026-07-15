@@ -288,6 +288,7 @@ const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
 const EDGE_URL = "https://htvjjwfenvittdritjni.supabase.co/functions/v1/hyper-service";
+const PATIENT_AI_URL = "https://htvjjwfenvittdritjni.supabase.co/functions/v1/patient-ai";
 const RESET_REDIRECT = "https://portal.carebridgeinternational.ca/patient-portal?reset=true";
 
 /* ---- Toast ---- */
@@ -382,6 +383,7 @@ const Icon = ({ name, size = 20, style: extraStyle }) => {
     "eye-off": <><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></>,
     "arrow-left": <><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></>,
     star: <><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></>,
+    cpu: <><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 1v3M15 1v3M9 20v3M15 20v3M1 9h3M1 15h3M20 9h3M20 15h3"/></>,
   };
   return (
     <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={extraStyle}>
@@ -1130,6 +1132,201 @@ function useLocation(invitation) {
 }
 
 /* ================================================================
+   AI Help Tab — bilingual English / Somali (Af-Soomaali)
+   ================================================================ */
+const AI_STRINGS = {
+  en: {
+    title:       "Carebridge AI Assistant",
+    welcome:     "Hello! I'm your Carebridge AI assistant 🤝\n\nI can help you with questions about:\n• Your treatment journey & what to expect\n• What to bring for your trip\n• Hospital & destination information\n• Travel documents & visa\n• How to stay in touch with your coordinator\n\nHow can I help you today?",
+    placeholder: "Type your question…",
+    send:        "Send",
+    thinking:    "Thinking…",
+    error:       "Connection error — please try again.",
+    you:         "You",
+    ai:          "Carebridge AI",
+    langBtn:     "🇸🇴 Soomaali",
+    hint:        "Press Enter to send · Shift+Enter for new line",
+  },
+  so: {
+    title:       "Kaaliyaha AI ee Carebridge",
+    welcome:     "Salaan! Waxaan ahay kaaliyahaaga AI ee Carebridge 🤝\n\nWaxaan kaa caawin karaa su'aalaha ku saabsan:\n• Safarka daawayntaada iyo waxa aad filayso\n• Waxa aad u baahan tahay inaad la qaadato\n• Macluumaadka isbitaalka iyo degenaanshaha\n• Dukumiintiyada safarka iyo fiisada\n• Sida aad ula xiriiri karto xarrigtaada\n\nMaxaan kaa caawin karaa maanta?",
+    placeholder: "Geli su'aashaada…",
+    send:        "Dir",
+    thinking:    "Waxaan ka fikirayaa…",
+    error:       "Khalad xiriir — fadlan isku day mar kale.",
+    you:         "Adiga",
+    ai:          "Carebridge AI",
+    langBtn:     "🇬🇧 English",
+    hint:        "Enter si aad u dirto · Shift+Enter xariiq cusub",
+  },
+};
+
+function AiTab({ invitation }) {
+  const [lang, setLang] = useState("en");
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
+  const [busy, setBusy] = useState(false);
+  const bottomRef = useRef(null);
+  const inputRef  = useRef(null);
+
+  const t = AI_STRINGS[lang];
+
+  const patientContext = {
+    name:            invitation.patient_name     || "",
+    patientId:       invitation.patient_id       || "",
+    specialty:       invitation.specialty        || "",
+    condition:       invitation.condition        || "",
+    hospital:        invitation.hospital         || "",
+    country:         invitation.country          || invitation.destination || "",
+    coordinatorName: invitation.coordinator_name || "",
+    priority:        invitation.priority         || "Standard",
+  };
+
+  // Reset chat with welcome message when language switches
+  useEffect(() => {
+    setMessages([{ role: "assistant", content: t.welcome }]);
+    setInput("");
+  }, [lang]);
+
+  // Auto-scroll to bottom
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, busy]);
+
+  const send = async () => {
+    const text = input.trim();
+    if (!text || busy) return;
+    setInput("");
+    inputRef.current?.focus();
+    const history = [...messages, { role: "user", content: text }];
+    setMessages(history);
+    setBusy(true);
+    try {
+      const res = await fetch(PATIENT_AI_URL, {
+        method:  "POST",
+        headers: { "Authorization": `Bearer ${SUPABASE_ANON}`, "Content-Type": "application/json" },
+        body:    JSON.stringify({ messages: history, lang, patientContext }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "HTTP " + res.status);
+      setMessages(prev => [...prev, {
+        role:    "assistant",
+        content: data.text || (lang === "so" ? "Waan ka xumahay, jawaab ma helin. Fadlan isku day mar kale." : "Sorry, I could not get a response."),
+      }]);
+    } catch (err) {
+      setMessages(prev => [...prev, { role: "assistant", content: t.error }]);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const switchLang = () => setLang(l => l === "en" ? "so" : "en");
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 158px)" }}>
+
+      {/* ── Top bar ── */}
+      <div style={{
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        padding: "10px 16px", borderBottom: "1px solid var(--border)",
+        background: "var(--surface)", flexShrink: 0,
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{
+            width: 34, height: 34, borderRadius: 10,
+            background: "linear-gradient(135deg,#1CA89C,#1B3A6B)",
+            display: "grid", placeItems: "center", flexShrink: 0,
+          }}>
+            <Icon name="cpu" size={18} style={{ color: "#fff" }} />
+          </div>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 14, color: "var(--text)", lineHeight: 1.2 }}>{t.title}</div>
+            <div style={{ fontSize: 11, color: "var(--text-faint)" }}>Carebridge International</div>
+          </div>
+        </div>
+        <button onClick={switchLang} style={{
+          background: "var(--teal-pale)", border: "1.5px solid var(--teal)", borderRadius: 8,
+          padding: "5px 13px", fontSize: 12, fontWeight: 700, color: "var(--teal)",
+          cursor: "pointer", whiteSpace: "nowrap",
+        }}>{t.langBtn}</button>
+      </div>
+
+      {/* ── Messages ── */}
+      <div style={{
+        flex: 1, overflowY: "auto", padding: "14px 14px 6px",
+        display: "flex", flexDirection: "column", gap: 10,
+      }}>
+        {messages.map((m, i) => (
+          <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: m.role === "user" ? "flex-end" : "flex-start" }}>
+            <div style={{
+              maxWidth: "84%",
+              padding: "10px 14px",
+              borderRadius: m.role === "user" ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
+              background: m.role === "user"
+                ? "linear-gradient(135deg,#1CA89C 0%,#1B3A6B 100%)"
+                : "var(--surface)",
+              color:   m.role === "user" ? "#fff" : "var(--text)",
+              fontSize: 14, lineHeight: 1.65,
+              boxShadow: "var(--shadow)",
+              border: m.role === "assistant" ? "1px solid var(--border)" : "none",
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-word",
+            }}>
+              {m.content}
+            </div>
+            <span style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 3, padding: "0 4px" }}>
+              {m.role === "user" ? t.you : t.ai}
+            </span>
+          </div>
+        ))}
+
+        {busy && (
+          <div style={{ display: "flex", alignItems: "flex-start" }}>
+            <div style={{
+              padding: "10px 16px", borderRadius: "16px 16px 16px 4px",
+              background: "var(--surface)", border: "1px solid var(--border)",
+              boxShadow: "var(--shadow)", display: "flex", alignItems: "center", gap: 8,
+            }}>
+              <div className="pp-spin" style={{ width: 14, height: 14, borderWidth: 2, borderColor: "var(--border)", borderTopColor: "var(--teal)" }} />
+              <span style={{ fontSize: 13, color: "var(--text-faint)" }}>{t.thinking}</span>
+            </div>
+          </div>
+        )}
+        <div ref={bottomRef} />
+      </div>
+
+      {/* ── Input ── */}
+      <div style={{
+        borderTop: "1px solid var(--border)", padding: "8px 10px 10px",
+        background: "var(--surface)", flexShrink: 0,
+      }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
+          <textarea
+            ref={inputRef}
+            className="pp-input"
+            rows={2}
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
+            placeholder={t.placeholder}
+            disabled={busy}
+            style={{ flex: 1, resize: "none", fontSize: 14, padding: "10px 12px", minHeight: 48, maxHeight: 120 }}
+          />
+          <button
+            className="pp-btn pp-btn--primary"
+            style={{ width: 48, height: 48, padding: 0, flexShrink: 0, borderRadius: 12 }}
+            onClick={send}
+            disabled={!input.trim() || busy}>
+            <Icon name="send" size={17} />
+          </button>
+        </div>
+        <div style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 5, textAlign: "center" }}>{t.hint}</div>
+      </div>
+    </div>
+  );
+}
+
+/* ================================================================
    Dashboard shell
    ================================================================ */
 function Dashboard({ invitation, locationLabel, tab, setTab, onLogout, unreadMsgs, newJourney, clearBadge, newMsgIds, newActIds, bellOn, onToggleBell }) {
@@ -1164,6 +1361,7 @@ function Dashboard({ invitation, locationLabel, tab, setTab, onLogout, unreadMsg
           { id: "info",     label: "My Info",  icon: "user",           badge: 0           },
           { id: "messages", label: "Messages",  icon: "message-square", badge: unreadMsgs  },
           { id: "journey",  label: "Journey",   icon: "route",          badge: newJourney  },
+          { id: "ai",       label: "AI Help",   icon: "cpu",            badge: 0           },
           { id: "rate",     label: "Rate Us",   icon: "star",           badge: 0           },
         ].map(t => (
           <button key={t.id} className={"pp-tab" + (tab === t.id ? " active" : "")} onClick={() => { setTab(t.id); clearBadge(t.id); }}>
@@ -1179,6 +1377,7 @@ function Dashboard({ invitation, locationLabel, tab, setTab, onLogout, unreadMsg
       {tab === "info"     && <InfoTab     invitation={invitation} />}
       {tab === "messages" && <MessagesTab invitation={invitation} newMsgIds={newMsgIds} />}
       {tab === "journey"  && <JourneyTab  invitation={invitation} newActIds={newActIds} />}
+      {tab === "ai"       && <AiTab       invitation={invitation} />}
       {tab === "rate"     && <RateTab     invitation={invitation} />}
     </div>
   );
