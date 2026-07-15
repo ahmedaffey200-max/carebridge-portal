@@ -993,7 +993,7 @@ function AddPatientModal({ onClose, go, patient }) {
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, []);
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
     setTouched(true);
     if (!valid) return;
@@ -1025,7 +1025,8 @@ function AddPatientModal({ onClose, go, patient }) {
       window.cbToast("Changes saved — " + payload.name, { icon: "check-circle-2", sub: "Patient record updated" });
       onClose();
     } else {
-      const p = window.CBStore.addPatient(payload);
+      const reservedId = await window.CBStore.fetchNextPatientId();
+      const p = window.CBStore.addPatient({ ...payload, _reservedId: reservedId });
       window.cbToast("Patient added — " + p.name, { icon: "user-check", sub: "Saved to your patient list (" + p.id + ")" });
       onClose();
       go("patient", p.id);
