@@ -739,6 +739,26 @@ function InvalidScreen({ message }) {
   );
 }
 
+function RevokedScreen() {
+  return (
+    <div className="pp-gate">
+      <div className="pp-gate-box">
+        <div className="pp-gate-logo">
+          <img src="assets/carebridge-logo.png" alt="Carebridge International" />
+        </div>
+        <div className="pp-gate-icon" style={{ fontSize: 48 }}>🚫</div>
+        <h2 style={{ color: "var(--danger)" }}>Access Revoked</h2>
+        <p style={{ marginTop: 8, lineHeight: 1.6 }}>
+          Your portal access has been revoked by your Carebridge coordinator.
+        </p>
+        <p style={{ marginTop: 12, fontSize: 13, color: "#718096", lineHeight: 1.6 }}>
+          If you believe this is a mistake, please contact your coordinator directly.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 /* ================================================================
    Dashboard components (Info, Messages, Journey tabs)
    ================================================================ */
@@ -1451,13 +1471,21 @@ function App() {
 
     const invCh = sb.channel("pp-inv2-" + invitation.id)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "patient_invitations",
-        filter: "id=eq." + invitation.id }, (payload) => {
+        filter: "id=eq." + invitation.id }, async (payload) => {
+        const newStatus = payload.new?.status;
+        // Immediately revoke access if coordinator expired/revoked the invitation
+        if (newStatus === "expired" || newStatus === "revoked") {
+          await sb.auth.signOut();
+          setInvitation(null);
+          setScreen("revoked");
+          return;
+        }
         if (payload.new?.stage && payload.new.stage !== invitation.stage) {
           setNewJourney(n => n + 1);
           if (bellRef.current) pushNotify("Stage updated", "Your treatment is now: " + payload.new.stage);
         }
-        if (payload.new?.status && payload.new.status !== invitation.status) {
-          if (bellRef.current) pushNotify("Status updated", "Your status changed to: " + payload.new.status);
+        if (newStatus && newStatus !== invitation.status) {
+          if (bellRef.current) pushNotify("Status updated", "Your status changed to: " + newStatus);
         }
       }).subscribe();
 
@@ -1670,6 +1698,7 @@ function App() {
   };
 
   if (screen === "loading")        return null;
+  if (screen === "revoked")        return <RevokedScreen />;
   if (screen === "invalid")        return <InvalidScreen message={invalidMsg} />;
   if (screen === "create-account") return <CreateAccountScreen invitation={tokenInv} onSubmit={handleSignup} />;
   if (screen === "login")          return <LoginScreen onLogin={handleLogin} />;
