@@ -249,8 +249,26 @@
   .pp-rate-success-sub { font-size: 14px; color: var(--text-sub); line-height: 1.6; }
 
   /* ---- Notification badge ---- */
-  .pp-tab-wrap { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; }
-  .pp-badge { position: absolute; top: -4px; right: -8px; background: #e53e3e; color: white; border-radius: 20px; min-width: 16px; height: 16px; padding: 0 4px; font-size: 10px; font-weight: 800; display: flex; align-items: center; justify-content: center; line-height: 1; }
+  .pp-tab-wrap { position: relative; display: inline-flex; align-items: center; justify-content: center; }
+  @keyframes ppbadgepop {
+    0%   { transform: scale(0.5); opacity: 0; }
+    60%  { transform: scale(1.25); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  @keyframes ppbadgepulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(229,62,62,0.7); }
+    50%       { box-shadow: 0 0 0 5px rgba(229,62,62,0); }
+  }
+  .pp-badge {
+    position: absolute; top: -6px; right: -10px;
+    background: #e53e3e; color: white; border-radius: 20px;
+    min-width: 18px; height: 18px; padding: 0 5px;
+    font-size: 10px; font-weight: 900;
+    display: flex; align-items: center; justify-content: center; line-height: 1;
+    border: 2px solid var(--surface);
+    animation: ppbadgepop 0.35s cubic-bezier(.4,1.6,.6,1) both, ppbadgepulse 1.8s ease-in-out 0.35s infinite;
+    z-index: 2;
+  }
 
   /* ---- Responsive ---- */
   @media (min-width: 480px) {
@@ -1451,9 +1469,15 @@ function App() {
   }, [screen, invitation?.patient_id, invitation?.id]);
 
   const clearBadge = useCallback((tabId) => {
-    if (tabId === "messages") { setUnreadMsgs(0); setNewMsgIds(new Set()); }
-    if (tabId === "journey")  { setNewJourney(0); setNewActIds(new Set()); }
-  }, []);
+    if (tabId === "messages") {
+      setUnreadMsgs(0); setNewMsgIds(new Set());
+      if (invitation?.patient_id) localStorage.setItem("cb_msg_seen_" + invitation.patient_id, Date.now().toString());
+    }
+    if (tabId === "journey") {
+      setNewJourney(0); setNewActIds(new Set());
+      if (invitation?.patient_id) localStorage.setItem("cb_act_seen_" + invitation.patient_id, Date.now().toString());
+    }
+  }, [invitation?.patient_id]);
 
   useEffect(() => {
     if (screen !== "loading") {
@@ -1494,19 +1518,59 @@ function App() {
     return { ...data, coordinator_name: "Carebridge Coordinator" };
   }, []);
 
+  const countInitialUnread = useCallback(async (patientId) => {
+    const msgKey = "cb_msg_seen_" + patientId;
+    const actKey = "cb_act_seen_" + patientId;
+    const lastMsgSeen = parseInt(localStorage.getItem(msgKey) || "0");
+    const lastActSeen = parseInt(localStorage.getItem(actKey) || "0");
+
+    const [msgRes, actRes] = await Promise.all([
+      sb.from("patient_messages")
+        .select("id")
+        .eq("patient_id", patientId)
+        .neq("sender_role", "patient")
+        .gt("created_at", new Date(lastMsgSeen).toISOString()),
+      sb.from("patient_activities")
+        .select("id")
+        .eq("patient_id", patientId)
+        .gt("created_at", new Date(lastActSeen).toISOString()),
+    ]);
+
+    if (msgRes.data && msgRes.data.length > 0) {
+      setUnreadMsgs(msgRes.data.length);
+      setNewMsgIds(new Set(msgRes.data.map(m => m.id)));
+    }
+    if (actRes.data && actRes.data.length > 0) {
+      setNewJourney(actRes.data.length);
+      setNewActIds(new Set(actRes.data.map(a => a.id)));
+    }
+  }, []);
+
   const loadDashboard = useCallback(async (user) => {
     const metaToken = user?.user_metadata?.token;
     if (metaToken) {
       const { data } = await sb.from("patient_invitations").select("*").eq("token", metaToken).single();
-      if (data) { setInvitation(await enrichInvitation(data)); setScreen("dashboard"); return; }
+      if (data) {
+        const inv = await enrichInvitation(data);
+        setInvitation(inv);
+        setScreen("dashboard");
+        countInitialUnread(inv.patient_id);
+        return;
+      }
     }
     if (user?.id) {
       const { data } = await sb.from("patient_invitations").select("*").eq("auth_user_id", user.id).single();
-      if (data) { setInvitation(await enrichInvitation(data)); setScreen("dashboard"); return; }
+      if (data) {
+        const inv = await enrichInvitation(data);
+        setInvitation(inv);
+        setScreen("dashboard");
+        countInitialUnread(inv.patient_id);
+        return;
+      }
     }
     await sb.auth.signOut();
     setScreen("login");
-  }, [enrichInvitation]);
+  }, [enrichInvitation, countInitialUnread]);
 
   const validateToken = useCallback(async (token) => {
     const { data, error } = await sb.from("patient_invitations").select("*").eq("token", token).single();
