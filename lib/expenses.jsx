@@ -14,7 +14,7 @@ const exMonth = (d) => { try { return new Date(d).toLocaleDateString("en-US", { 
 function CompanyExpensesView() {
   const expenses = useCompanyExpenses();
   const audit = useAudit();
-  const canEdit = window.CBStore.can("financial");
+  const canEdit = window.CBStore.can("financial") || window.CBStore.can("expenses");
   const [tab, setTab] = useStateEX("Dashboard");
   const [modal, setModal] = useStateEX(null);
   const [del, setDel] = useStateEX(null);
