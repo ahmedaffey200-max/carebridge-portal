@@ -59,7 +59,7 @@ function PatientsView({ go, onAdd, onEdit }) {
                   </td>
                   <td style={{ fontWeight: 500, color: "var(--text-strong)", maxWidth: 200 }}><span className="phi">{p.condition}</span></td>
                   <td className="cb-muted" style={{ fontSize: 13 }}>{co.name}</td>
-                  <td className="cb-muted">{PD.destShort(p)}</td>
+                  <td className="cb-muted">{p.dest === "OT" ? ("🌍 " + (p.destOther || "Other")) : (PD.destByCode(p.dest).flag + " " + (p.destCity || PD.destByCode(p.dest).city || PD.destByCode(p.dest).country))}</td>
                   <td><Pill tone="navy">{PD.STAGES[p.stage]}</Pill></td>
                   <td style={{ minWidth: 110 }}>
                     <div className="cb-row" style={{ gap: 9 }}><ProgressBar value={p.progress} /><span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)", width: 32 }}>{p.progress}%</span></div>
@@ -119,7 +119,7 @@ function PatientDetail({ id, go, onEdit }) {
                 <span><b style={{ color: "var(--text-strong)" }}>{p.id}</b></span>
                 <span>{p.age} yrs · {p.gender}</span>
                 <span className="cb-row" style={{ gap: 5 }}><Icon name="stethoscope" size={15} style={{ color: "var(--teal-600)" }} />{p.specialty}</span>
-                <span className="cb-row" style={{ gap: 5 }}><Icon name="map-pin" size={15} style={{ color: "var(--teal-600)" }} />{PD.destCountry(p)}{dest.city ? ", " + dest.city : ""}</span>
+                <span className="cb-row" style={{ gap: 5 }}><Icon name="map-pin" size={15} style={{ color: "var(--teal-600)" }} />{PD.destCountry(p)}{p.destCity ? ", " + p.destCity : ""}</span>
               </div>
             </div>
           </div>
@@ -132,9 +132,9 @@ function PatientDetail({ id, go, onEdit }) {
         <div className="cb-divider" />
         <div className="cb-between" style={{ marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
           <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Treatment journey</span>
-          {window.CBStore.can("patients") ? <span style={{ fontSize: 12, color: "var(--text-faint)" }}>Tap a stage to update</span> : null}
+          {(window.CBStore.can("patients") || localStorage.getItem("cb_role") === "admin") ? <span style={{ fontSize: 12, color: "var(--text-faint)" }}>Tap a stage to update</span> : null}
         </div>
-        <StageTrack current={p.stage} onSet={window.CBStore.can("patients") ? (i) => {
+        <StageTrack current={p.stage} onSet={(window.CBStore.can("patients") || localStorage.getItem("cb_role") === "admin") ? (i) => {
           const oldStage = PD.STAGES[p.stage];
           const newStage = PD.STAGES[i];
           window.CBStore.setStage(p.id, i);
@@ -237,8 +237,9 @@ function formatDateTime(v) {
 }
 
 function PatientLocation({ patientId }) {
-  const [loc, setLoc] = useState(null);
+  const [locs, setLocs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [now, setNow] = useState(Date.now());
 
   const reload = React.useCallback(async () => {
     var sb = window.CB_SB;
@@ -247,91 +248,144 @@ function PatientLocation({ patientId }) {
       .select("*")
       .eq("patient_id", patientId)
       .order("recorded_at", { ascending: false })
-      .limit(1)
-      .single();
-    setLoc(res.data || null);
+      .limit(100);
+    setLocs(res.data || []);
     setLoading(false);
+    setNow(Date.now());
   }, [patientId]);
 
   React.useEffect(() => {
     reload();
     var t = setInterval(reload, 60000);
-    return function() { clearInterval(t); };
+    var tick = setInterval(() => setNow(Date.now()), 30000);
+    return function() { clearInterval(t); clearInterval(tick); };
   }, [reload]);
 
+  // Group consecutive pings at the same city into one stay
+  const groups = React.useMemo(() => {
+    if (!locs.length) return [];
+    const asc = [...locs].reverse(); // oldest first
+    const g = [];
+    let cur = null;
+    asc.forEach(function(l) {
+      var key = [l.city, l.country].filter(Boolean).join(", ") || "Unknown";
+      if (!cur || cur.key !== key) {
+        cur = { key, city: l.city, country: l.country, latitude: l.latitude, longitude: l.longitude, accuracy: l.accuracy, firstSeen: l.recorded_at, lastSeen: l.recorded_at };
+        g.push(cur);
+      } else {
+        cur.lastSeen = l.recorded_at;
+        cur.latitude = l.latitude;
+        cur.longitude = l.longitude;
+      }
+    });
+    return g.reverse(); // most recent first
+  }, [locs]);
+
+  const durMs = (from, to) => Math.max(0, new Date(to).getTime() - new Date(from).getTime());
+  const fmtDur = (ms) => {
+    var m = Math.floor(ms / 60000);
+    if (m < 1) return "< 1 min";
+    if (m < 60) return m + " min";
+    var h = Math.floor(m / 60); var rm = m % 60;
+    if (h < 24) return h + "h" + (rm ? " " + rm + "m" : "");
+    return Math.floor(h / 24) + "d " + (h % 24) + "h";
+  };
   const ago = (ts) => {
     if (!ts) return "";
-    var diff = Date.now() - new Date(ts).getTime();
-    var m = Math.floor(diff / 60000);
+    var m = Math.floor((now - new Date(ts).getTime()) / 60000);
     if (m < 1) return "just now";
     if (m < 60) return m + "m ago";
     var h = Math.floor(m / 60);
     if (h < 24) return h + "h ago";
     return Math.floor(h / 24) + "d ago";
   };
-
   const mapsUrl = (lat, lon) => "https://www.google.com/maps?q=" + lat + "," + lon;
   const osmUrl  = (lat, lon) => "https://www.openstreetmap.org/?mlat=" + lat + "&mlon=" + lon + "&zoom=14";
 
+  const current = groups[0] || null;
+  const history = groups.slice(1);
+
   return (
     <Card>
-      <CardHead title="Patient location" sub="GPS ping from patient portal · updates on login" />
+      <CardHead title="Patient location" sub={"GPS ping from patient portal · updates on login" + (locs.length ? " · " + locs.length + " pings" : "")} />
       {loading ? (
         <div style={{ fontSize: 13, color: "var(--text-faint)", padding: "8px 0" }}>Checking…</div>
-      ) : !loc ? (
+      ) : !current ? (
         <div className="cb-row" style={{ gap: 10, color: "var(--text-muted)", fontSize: 13.5, padding: "6px 0" }}>
           <Icon name="map-pin-off" size={16} style={{ color: "var(--text-faint)" }} />
           Location not shared yet — patient must log in to the portal to share.
         </div>
       ) : (
         <div>
-          <div className="cb-row" style={{ gap: 10, marginBottom: 12 }}>
+          {/* Current location */}
+          <div className="cb-row" style={{ gap: 10, marginBottom: 10 }}>
             <div style={{ width: 36, height: 36, borderRadius: "50%", background: "var(--teal-50, #f0fdfa)", display: "grid", placeItems: "center", flexShrink: 0 }}>
               <Icon name="map-pin" size={18} style={{ color: "var(--teal-600, #0d9488)" }} />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-strong)" }}>
-                {[loc.city, loc.country].filter(Boolean).join(", ") || "Location recorded"}
+              <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-strong)" }}>{current.key}</div>
+              <div style={{ fontSize: 12, color: "var(--text-faint)", marginTop: 2 }}>
+                Last ping {ago(current.lastSeen)} · <b style={{ color: "var(--teal-600, #0d9488)" }}>here for {fmtDur(durMs(current.firstSeen, now))}</b>
               </div>
-              <div style={{ fontSize: 12, color: "var(--text-faint)", marginTop: 2 }}>Last seen {ago(loc.recorded_at)}</div>
             </div>
           </div>
-          <div className="cb-soft-panel" style={{ marginBottom: 14 }}>
-            <InfoRow label="Latitude">{Number(loc.latitude).toFixed(6)}°</InfoRow>
-            <InfoRow label="Longitude">{Number(loc.longitude).toFixed(6)}°</InfoRow>
-            {loc.accuracy ? <InfoRow label="Accuracy">±{Math.round(loc.accuracy)}m</InfoRow> : null}
+          <div className="cb-soft-panel" style={{ marginBottom: 12 }}>
+            <InfoRow label="Latitude">{Number(current.latitude).toFixed(6)}°</InfoRow>
+            <InfoRow label="Longitude">{Number(current.longitude).toFixed(6)}°</InfoRow>
+            {current.accuracy ? <InfoRow label="Accuracy">±{Math.round(current.accuracy)}m</InfoRow> : null}
+            <InfoRow label="Arrived">{formatDateTime(current.firstSeen)}</InfoRow>
           </div>
-          {/* Embedded map preview via OpenStreetMap tile */}
+
+          {/* Map */}
           <div style={{ borderRadius: 10, overflow: "hidden", border: "1px solid var(--border-subtle)", marginBottom: 12, lineHeight: 0 }}>
-            <iframe
-              title="Patient location map"
-              width="100%"
-              height="180"
-              style={{ border: "none", display: "block" }}
+            <iframe title="Patient location map" width="100%" height="180" style={{ border: "none", display: "block" }}
               src={"https://www.openstreetmap.org/export/embed.html?bbox=" +
-                (loc.longitude - 0.01) + "%2C" + (loc.latitude - 0.008) + "%2C" +
-                (loc.longitude + 0.01) + "%2C" + (loc.latitude + 0.008) +
-                "&layer=mapnik&marker=" + loc.latitude + "%2C" + loc.longitude}
-              loading="lazy"
-            />
+                (current.longitude - 0.01) + "%2C" + (current.latitude - 0.008) + "%2C" +
+                (current.longitude + 0.01) + "%2C" + (current.latitude + 0.008) +
+                "&layer=mapnik&marker=" + current.latitude + "%2C" + current.longitude}
+              loading="lazy" />
           </div>
-          <div className="cb-row" style={{ gap: 8 }}>
-            <a href={mapsUrl(loc.latitude, loc.longitude)} target="_blank" rel="noreferrer"
-              className="cb-btn-primary" data-real
-              style={{ flex: 1, textAlign: "center", textDecoration: "none", fontSize: 13, padding: "8px 0", borderRadius: 8 }}>
-              <Icon name="map" size={14} style={{ marginRight: 5, verticalAlign: "middle" }} />
-              Google Maps
+          <div className="cb-row" style={{ gap: 8, marginBottom: history.length ? 20 : 0 }}>
+            <a href={mapsUrl(current.latitude, current.longitude)} target="_blank" rel="noreferrer"
+              className="cb-btn-primary" data-real style={{ flex: 1, textAlign: "center", textDecoration: "none", fontSize: 13, padding: "8px 0", borderRadius: 8 }}>
+              <Icon name="map" size={14} style={{ marginRight: 5, verticalAlign: "middle" }} />Google Maps
             </a>
-            <a href={osmUrl(loc.latitude, loc.longitude)} target="_blank" rel="noreferrer"
-              className="cb-btn-ghost" data-real
-              style={{ flex: 1, textAlign: "center", textDecoration: "none", fontSize: 13, padding: "8px 0", borderRadius: 8 }}>
-              <Icon name="external-link" size={14} style={{ marginRight: 5, verticalAlign: "middle" }} />
-              OpenStreetMap
+            <a href={osmUrl(current.latitude, current.longitude)} target="_blank" rel="noreferrer"
+              className="cb-btn-ghost" data-real style={{ flex: 1, textAlign: "center", textDecoration: "none", fontSize: 13, padding: "8px 0", borderRadius: 8 }}>
+              <Icon name="external-link" size={14} style={{ marginRight: 5, verticalAlign: "middle" }} />OpenStreetMap
             </a>
             <button className="cb-icon-pill" data-real title="Refresh location" style={{ width: 36, height: 36 }} onClick={reload}>
               <Icon name="refresh-cw" size={15} />
             </button>
           </div>
+
+          {/* Location history */}
+          {history.length > 0 && (
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 10 }}>Previous locations</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {history.map(function(g, i) {
+                  var dur = durMs(g.firstSeen, g.lastSeen);
+                  return (
+                    <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 12px", borderRadius: 8, background: "var(--bg-subtle, var(--surface-2, #f8fafc))", border: "1px solid var(--border-default)" }}>
+                      <div style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--border-default)", display: "grid", placeItems: "center", flexShrink: 0, marginTop: 1 }}>
+                        <Icon name="map-pin" size={13} style={{ color: "var(--text-muted)" }} />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 600, fontSize: 13, color: "var(--text-strong)" }}>{g.key}</div>
+                        <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>
+                          <span>{fmtDur(dur > 0 ? dur : 600000)}</span>
+                          <span style={{ margin: "0 6px", opacity: 0.4 }}>·</span>
+                          <span>{formatDateTime(g.firstSeen)}</span>
+                        </div>
+                      </div>
+                      <a href={mapsUrl(g.latitude, g.longitude)} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: "var(--teal-600, #0d9488)", textDecoration: "none", marginTop: 2, whiteSpace: "nowrap" }}>View ↗</a>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </Card>
@@ -353,7 +407,7 @@ function PatientOverview({ p, dest, co, hosp }) {
         <Card>
           <CardHead title="Case summary" />
           <p style={{ fontSize: 15, lineHeight: 1.6, color: "var(--text-body)" }}>
-            {p.name} is a {p.age}-year-old {p.gender.toLowerCase()} patient referred for <b style={{ color: "var(--text-strong)" }}>{p.condition.toLowerCase()}</b>. Carebridge has coordinated a {p.specialty.toLowerCase()} pathway at {hosp.name} in {dest.city}. The case is currently at the <b style={{ color: "var(--text-strong)" }}>{PD.STAGES[p.stage].toLowerCase()}</b> stage, managed by {co.name}.
+            {p.name} is a {p.age}-year-old {p.gender.toLowerCase()} patient referred for <b style={{ color: "var(--text-strong)" }}>{p.condition.toLowerCase()}</b>. Carebridge has coordinated a {p.specialty.toLowerCase()} pathway at {hosp.name} in {p.destCity || dest.city || PD.destCountry(p)}. The case is currently at the <b style={{ color: "var(--text-strong)" }}>{PD.STAGES[p.stage].toLowerCase()}</b> stage, managed by {co.name}.
           </p>
           <div className="cb-soft-panel" style={{ marginTop: 18, display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16 }}>
             {[["Treatment progress", p.progress + "%"], ["Care start", p.started], ["Last update", p.updated]].map((k, i) => (
