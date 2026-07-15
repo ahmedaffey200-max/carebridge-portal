@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Set your password &middot; Carebridge International</title>
+<link rel="stylesheet" href="_ds/carebridge-design-system-1211a801-6b8c-4eac-9f98-9ed53e456f1c/styles.css" />
+<link rel="stylesheet" href="lib/login.css" />
+<style>
+  @keyframes cbShake {
+    0%,100% { transform: translateX(0); }
+    20% { transform: translateX(-7px); }
+    40% { transform: translateX(7px); }
+    60% { transform: translateX(-5px); }
+    80% { transform: translateX(4px); }
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .sp-spinner {
+    width: 40px; height: 40px;
+    border: 3px solid #e0f2f1;
+    border-top-color: #0d9488;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 16px;
+  }
+  .pw-strength { height: 4px; border-radius: 4px; margin-top: 8px; transition: all 0.3s; }
+</style>
+</head>
+<body>
+<div class="auth">
+
+  <!-- ===== Brand panel ===== -->
+  <section class="auth__brand">
+    <svg class="auth__arc" viewBox="0 0 600 200" fill="none" preserveAspectRatio="none" aria-hidden="true">
+      <path d="M-20 180 C 120 60, 200 60, 300 110 S 480 140, 620 40" stroke="rgba(255,255,255,0.22)" stroke-width="2" />
+      <path d="M-20 200 C 140 90, 220 90, 300 130 S 470 160, 620 70" stroke="rgba(28,168,156,0.4)" stroke-width="2" />
+    </svg>
+    <div class="auth__brandhead">
+      <div class="auth__logobox"><img src="assets/carebridge-logo.png" alt="Carebridge International" /></div>
+    </div>
+    <div class="auth__brandbody">
+      <div class="auth__eyebrow">Account setup</div>
+      <h1>Welcome to the Carebridge team.</h1>
+      <p>Create your personal password to access the Carebridge staff portal. Your account has been prepared by an administrator — only you will know your password.</p>
+    </div>
+    <div class="auth__trust">
+      <div class="auth__trustrow"><i data-lucide="shield-check"></i><span>Your password is encrypted before being stored</span></div>
+      <div class="auth__trustrow"><i data-lucide="lock"></i><span>Only you will ever know your password</span></div>
+      <div class="auth__trustrow"><i data-lucide="timer"></i><span>Invite links expire after 7 days for security</span></div>
+    </div>
+  </section>
+
+  <!-- ===== Auth panel ===== -->
+  <section class="auth__panel">
+    <div class="auth__card" id="auth-card">
+
+      <div class="auth__mobilebrand">
+        <img src="assets/carebridge-logo.png" alt="Carebridge International" />
+      </div>
+
+      <!-- Loading -->
+      <div id="state-loading">
+        <div class="sp-spinner"></div>
+        <p style="text-align:center;color:#6b7280;font-size:14px">Verifying your invite link&hellip;</p>
+      </div>
+
+      <!-- Invalid / expired -->
+      <div id="state-invalid" style="display:none">
+        <div style="text-align:center;padding:10px 0 20px">
+          <div style="width:64px;height:64px;border-radius:50%;background:#fff1f2;display:grid;place-items:center;margin:0 auto 18px">
+            <i data-lucide="link-2-off" style="color:#e11d48"></i>
+          </div>
+          <h2 class="auth__title" style="margin-bottom:8px">Link invalid or expired</h2>
+          <p style="color:#6b7280;font-size:14px;line-height:1.6;margin-bottom:28px">This invite link is no longer valid. It may have already been used or it expired after 7 days.<br>Contact your administrator to receive a new invite link.</p>
+          <a href="Carebridge Login.html" class="auth__btn auth__btn--primary" style="display:flex;justify-content:center;gap:8px;text-decoration:none">
+            <i data-lucide="arrow-left"></i> Back to sign in
+          </a>
+        </div>
+      </div>
+
+      <!-- Success -->
+      <div id="state-success" style="display:none">
+        <div style="text-align:center;padding:10px 0 20px">
+          <div style="width:64px;height:64px;border-radius:50%;background:#f0fdf4;display:grid;place-items:center;margin:0 auto 18px">
+            <i data-lucide="check-circle-2" style="color:#16a34a"></i>
+          </div>
+          <h2 class="auth__title" style="margin-bottom:8px">Password set!</h2>
+          <p style="color:#6b7280;font-size:14px;line-height:1.6;margin-bottom:28px">Your account is active. Sign in now with your username and the password you just created.</p>
+          <a href="Carebridge Login.html" class="auth__btn auth__btn--primary" style="display:flex;justify-content:center;gap:8px;text-decoration:none">
+            Sign in to staff portal <i data-lucide="arrow-right"></i>
+          </a>
+        </div>
+      </div>
+
+      <!-- Form -->
+      <div id="state-form" style="display:none">
+        <h2 class="auth__title">Create your password</h2>
+        <p class="auth__sub" id="welcome-msg">Welcome to Carebridge.</p>
+
+        <div class="auth__hint" id="set-error" style="display:none;background:#fff1f2;border-color:#fda4af;margin-bottom:0">
+          <i data-lucide="alert-circle" style="color:#e11d48;flex:none;margin-top:1px"></i>
+          <span id="set-error-msg" style="color:#be123c"></span>
+        </div>
+
+        <form id="set-form" novalidate style="margin-top:4px">
+          <div class="auth__field">
+            <label class="auth__label">Your username (set by administrator)</label>
+            <div class="auth__inputwrap">
+              <i data-lucide="shield"></i>
+              <input class="auth__input" type="text" id="display-username" disabled
+                style="opacity:0.65;cursor:default;background:var(--sky-50,#f0f9ff)" />
+            </div>
+          </div>
+
+          <div class="auth__field">
+            <label class="auth__label" for="new-password">New password</label>
+            <div class="auth__inputwrap">
+              <i data-lucide="lock"></i>
+              <input class="auth__input" type="password" id="new-password" placeholder="Minimum 8 characters" autocomplete="new-password" />
+              <button type="button" class="auth__reveal" id="reveal1" aria-label="Show password"><i data-lucide="eye"></i></button>
+            </div>
+            <div class="pw-strength" id="pw-bar" style="background:#e5e7eb;width:0%"></div>
+            <div id="pw-hint" style="font-size:12px;color:#9ca3af;margin-top:4px"></div>
+          </div>
+
+          <div class="auth__field">
+            <label class="auth__label" for="confirm-password">Confirm password</label>
+            <div class="auth__inputwrap">
+              <i data-lucide="lock-keyhole"></i>
+              <input class="auth__input" type="password" id="confirm-password" placeholder="Type your password again" autocomplete="new-password" />
+              <button type="button" class="auth__reveal" id="reveal2" aria-label="Show password"><i data-lucide="eye"></i></button>
+            </div>
+          </div>
+
+          <button type="submit" class="auth__btn auth__btn--primary" id="set-btn">
+            <span id="set-label">Set password &amp; activate account</span>
+            <i data-lucide="arrow-right"></i>
+          </button>
+        </form>
+      </div>
+
+      <div class="auth__secnote" style="margin-top:24px"><i data-lucide="shield-check"></i> Secured &amp; encrypted connection</div>
+    </div>
+  </section>
+</div>
+
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"
+  onload="if(window.CB_InitSupabase)window.CB_InitSupabase()"></script>
+<script src="lib/supabase-client.js"></script>
+<script>
+(function () {
+  var SB_URL = "https://htvjjwfenvittdritjni.supabase.co";
+  var SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh0dmpqd2ZlbnZpdHRkcml0am5pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2NTQ3OTAsImV4cCI6MjA5OTIzMDc5MH0.AMKUctPj49ahqXAFZbzJ341ZFH5XTckBUQaDmF5ZLj8";
+
+  function getSB() {
+    if (window.CB_SB) return window.CB_SB;
+    if (window.supabase && window.supabase.createClient) return window.supabase.createClient(SB_URL, SB_KEY);
+    return null;
+  }
+
+  async function sha256(str) {
+    var buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
+    return Array.from(new Uint8Array(buf)).map(function(b){ return b.toString(16).padStart(2,"0"); }).join("");
+  }
+
+  if (window.lucide) window.lucide.createIcons();
+
+  var states = ["state-loading","state-invalid","state-form","state-success"];
+  function show(id) {
+    states.forEach(function(s) { document.getElementById(s).style.display = s === id ? "" : "none"; });
+    if (window.lucide) window.lucide.createIcons();
+  }
+
+  var token = new URLSearchParams(window.location.search).get("token");
+  var userId = null;
+
+  function init() {
+    if (!token) { show("state-invalid"); return; }
+    var sb = getSB();
+    if (!sb) { setTimeout(init, 300); return; }
+    sb.from("portal_users")
+      .select("id, username, name, role, invite_expires_at")
+      .eq("invite_token", token)
+      .single()
+      .then(function(res) {
+        if (!res.data) { show("state-invalid"); return; }
+        if (new Date(res.data.invite_expires_at) < new Date()) { show("state-invalid"); return; }
+        userId = res.data.id;
+        document.getElementById("display-username").value = res.data.username;
+        var first = res.data.name.split(" ")[0];
+        var role = res.data.role.charAt(0).toUpperCase() + res.data.role.slice(1);
+        document.getElementById("welcome-msg").textContent =
+          "Hi " + first + "! Set a password for your " + role + " account.";
+        show("state-form");
+        document.getElementById("new-password").focus();
+      }).catch(function() { show("state-invalid"); });
+  }
+
+  function setupReveal(btnId, inputId) {
+    document.getElementById(btnId).addEventListener("click", function() {
+      var inp = document.getElementById(inputId);
+      var showing = inp.type === "password";
+      inp.type = showing ? "text" : "password";
+      this.innerHTML = '<i data-lucide="' + (showing ? "eye-off" : "eye") + '"></i>';
+      if (window.lucide) window.lucide.createIcons();
+    });
+  }
+  setupReveal("reveal1", "new-password");
+  setupReveal("reveal2", "confirm-password");
+
+  document.getElementById("new-password").addEventListener("input", function() {
+    var v = this.value;
+    var score = 0;
+    var hint = "";
+    if (v.length >= 8) score++;
+    if (v.length >= 12) score++;
+    if (/[A-Z]/.test(v)) score++;
+    if (/[0-9]/.test(v)) score++;
+    if (/[^A-Za-z0-9]/.test(v)) score++;
+    var bar = document.getElementById("pw-bar");
+    var hintEl = document.getElementById("pw-hint");
+    if (!v) { bar.style.width = "0"; bar.style.background = "#e5e7eb"; hintEl.textContent = ""; return; }
+    if (score <= 1) { bar.style.width = "25%"; bar.style.background = "#ef4444"; hint = "Too weak — add more characters"; }
+    else if (score === 2) { bar.style.width = "50%"; bar.style.background = "#f59e0b"; hint = "Fair — try adding numbers or symbols"; }
+    else if (score === 3) { bar.style.width = "75%"; bar.style.background = "#22c55e"; hint = "Good password"; }
+    else { bar.style.width = "100%"; bar.style.background = "#0d9488"; hint = "Strong password"; }
+    hintEl.textContent = hint;
+    hintEl.style.color = bar.style.background;
+  });
+
+  function showError(msg) {
+    document.getElementById("set-error-msg").textContent = msg;
+    var el = document.getElementById("set-error");
+    el.style.display = "flex";
+    var card = document.getElementById("auth-card");
+    card.style.animation = "none";
+    void card.offsetHeight;
+    card.style.animation = "cbShake 0.38s ease";
+    if (window.lucide) window.lucide.createIcons();
+  }
+  function hideError() { document.getElementById("set-error").style.display = "none"; }
+
+  document.getElementById("set-form").addEventListener("submit", async function(e) {
+    e.preventDefault();
+    hideError();
+    var pw   = document.getElementById("new-password").value;
+    var conf = document.getElementById("confirm-password").value;
+    if (pw.length < 8) { showError("Password must be at least 8 characters."); return; }
+    if (pw !== conf)   { showError("Passwords do not match — please re-enter."); return; }
+
+    var btn = document.getElementById("set-btn");
+    btn.disabled = true;
+    document.getElementById("set-label").textContent = "Saving…";
+
+    try {
+      var hash = await sha256(pw);
+      var sb = getSB();
+      var res = await sb.from("portal_users").update({
+        password_hash: hash,
+        invite_token: null,
+        invite_expires_at: null,
+        password_set: true,
+        active: true,
+      }).eq("id", userId);
+      if (res.error) {
+        showError("Error: " + res.error.message);
+        btn.disabled = false;
+        document.getElementById("set-label").textContent = "Set password & activate account";
+        return;
+      }
+      show("state-success");
+    } catch(err) {
+      showError("Unexpected error. Please try again.");
+      btn.disabled = false;
+      document.getElementById("set-label").textContent = "Set password & activate account";
+    }
+  });
+
+  ["new-password","confirm-password"].forEach(function(id) {
+    document.getElementById(id).addEventListener("input", hideError);
+  });
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", function() { setTimeout(init, 200); });
+  } else {
+    setTimeout(init, 200);
+  }
+})();
+</script>
+</body>
+</html>
