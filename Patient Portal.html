@@ -1136,9 +1136,10 @@ function AiTab({ invitation }) {
         body: JSON.stringify({ messages: updated, lang, patientContext }),
       });
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "HTTP " + res.status);
       setMessages(prev => [...prev, { role:"assistant", content: data.text || "Sorry, I could not get a response." }]);
-    } catch {
-      setMessages(prev => [...prev, { role:"assistant", content: "Connection error. Please try again." }]);
+    } catch (err) {
+      setMessages(prev => [...prev, { role:"assistant", content: "Connection error: " + (err.message || "Please try again.") }]);
     }
     setThinking(false);
   };
