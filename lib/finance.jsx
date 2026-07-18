@@ -147,77 +147,126 @@ function MonthDetailModal({ month, income, expenses, onClose }) {
   const totalExp = mExp.reduce((s, e) => s + fnToUSD(e), 0);
   const net = totalInc - totalExp;
   const year = month.key.split("-")[1];
-  const title = month.label + " " + year;
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.52)", zIndex: 1200, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={onClose}>
-      <div style={{ background: "var(--bg-card)", borderRadius: 16, maxWidth: 660, width: "100%", maxHeight: "82vh", overflowY: "auto", padding: "var(--pad-card)", boxShadow: "0 24px 60px -12px rgba(0,0,0,0.35)" }} onClick={(e) => e.stopPropagation()}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
-          <div>
-            <h3 style={{ margin: 0, color: "var(--text-strong)", fontSize: 20 }}>{title}</h3>
-            <div className="cb-sub">Income vs. expenses breakdown</div>
+    <div style={{ position: "fixed", inset: 0, background: "rgba(11,22,44,0.65)", zIndex: 1200, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px 16px", backdropFilter: "blur(2px)" }} onClick={onClose}>
+      <div style={{ background: "var(--bg-card)", borderRadius: 20, maxWidth: 700, width: "100%", maxHeight: "88vh", display: "flex", flexDirection: "column", boxShadow: "0 32px 80px -16px rgba(0,0,0,0.45)" }} onClick={(e) => e.stopPropagation()}>
+
+        {/* Header */}
+        <div style={{ padding: "24px 28px 20px", borderBottom: "1px solid var(--border-light,#e5e7eb)", display: "flex", alignItems: "center", gap: 16, flexShrink: 0 }}>
+          <div className="cb-chip cb-chip--navy" style={{ width: 44, height: 44, borderRadius: 12, flexShrink: 0 }}>
+            <Icon name="calendar" size={20} />
           </div>
-          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", padding: 6, color: "var(--text-muted)", lineHeight: 1 }} aria-label="Close">
-            <Icon name="x" size={20} />
+          <div style={{ flex: 1 }}>
+            <h3 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: "var(--text-strong)", fontFamily: "var(--font-display)", lineHeight: 1.2 }}>{month.label} {year}</h3>
+            <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 3 }}>Monthly income &amp; expense breakdown</div>
+          </div>
+          <button onClick={onClose} aria-label="Close"
+            style={{ background: "var(--bg-page,#f8fafc)", border: "1px solid var(--border-light,#e5e7eb)", borderRadius: 10, width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "var(--text-muted)", flexShrink: 0 }}>
+            <Icon name="x" size={18} />
           </button>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 24 }}>
-          <div style={{ background: "var(--teal-50,#f0fdfa)", borderRadius: 10, padding: "12px 16px" }}>
-            <div style={{ fontSize: 12, color: "var(--teal-700,#0f766e)", fontWeight: 600, marginBottom: 4 }}>Income</div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: "var(--teal-700,#0f766e)", fontFamily: "var(--font-display)" }}>{fnMoney(totalInc)}</div>
-            <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{mInc.length} record{mInc.length !== 1 ? "s" : ""}</div>
+
+        {/* Scrollable body */}
+        <div style={{ overflowY: "auto", padding: "24px 28px 28px", flex: 1 }}>
+
+          {/* Summary cards */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14, marginBottom: 28 }}>
+            <div style={{ background: "var(--teal-50,#f0fdfa)", border: "1px solid var(--teal-100,#ccfbf1)", borderRadius: 14, padding: "16px 18px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                <div style={{ width: 28, height: 28, borderRadius: 8, background: "var(--teal-100,#ccfbf1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Icon name="trending-up" size={15} style={{ color: "var(--teal-700,#0f766e)" }} />
+                </div>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "var(--teal-700,#0f766e)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Income</span>
+              </div>
+              <div style={{ fontSize: 26, fontWeight: 900, color: "var(--teal-700,#0f766e)", fontFamily: "var(--font-display)", lineHeight: 1 }}>{fnMoney(totalInc)}</div>
+              <div style={{ fontSize: 12, color: "var(--teal-600,#0d9488)", marginTop: 6 }}>{mInc.length} {mInc.length === 1 ? "record" : "records"}</div>
+            </div>
+            <div style={{ background: "var(--sky-50,#f0f9ff)", border: "1px solid var(--sky-100,#e0f2fe)", borderRadius: 14, padding: "16px 18px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                <div style={{ width: 28, height: 28, borderRadius: 8, background: "var(--sky-100,#e0f2fe)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Icon name="trending-down" size={15} style={{ color: "var(--navy-600,#1e3a5f)" }} />
+                </div>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "var(--navy-600,#1e3a5f)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Expenses</span>
+              </div>
+              <div style={{ fontSize: 26, fontWeight: 900, color: "var(--navy-600,#1e3a5f)", fontFamily: "var(--font-display)", lineHeight: 1 }}>{fnMoney(totalExp)}</div>
+              <div style={{ fontSize: 12, color: "var(--navy-500,#2a4a7f)", marginTop: 6 }}>{mExp.length} {mExp.length === 1 ? "record" : "records"}</div>
+            </div>
+            <div style={{ background: net >= 0 ? "var(--teal-50,#f0fdfa)" : "#fef2f2", border: net >= 0 ? "1px solid var(--teal-100,#ccfbf1)" : "1px solid #fecaca", borderRadius: 14, padding: "16px 18px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                <div style={{ width: 28, height: 28, borderRadius: 8, background: net >= 0 ? "var(--teal-100,#ccfbf1)" : "#fee2e2", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Icon name={net >= 0 ? "wallet" : "alert-triangle"} size={15} style={{ color: net >= 0 ? "var(--teal-700,#0f766e)" : "#b91c1c" }} />
+                </div>
+                <span style={{ fontSize: 12, fontWeight: 700, color: net >= 0 ? "var(--teal-700,#0f766e)" : "#b91c1c", textTransform: "uppercase", letterSpacing: "0.05em" }}>Net {net >= 0 ? "Profit" : "Loss"}</span>
+              </div>
+              <div style={{ fontSize: 26, fontWeight: 900, color: net >= 0 ? "var(--teal-700,#0f766e)" : "#b91c1c", fontFamily: "var(--font-display)", lineHeight: 1 }}>{fnMoney(net)}</div>
+              <div style={{ fontSize: 12, color: net >= 0 ? "var(--teal-600,#0d9488)" : "#dc2626", marginTop: 6 }}>{net >= 0 ? "Positive month" : "Expenses exceed income"}</div>
+            </div>
           </div>
-          <div style={{ background: "var(--sky-50,#f0f9ff)", borderRadius: 10, padding: "12px 16px" }}>
-            <div style={{ fontSize: 12, color: "var(--navy-700,#1e3a5f)", fontWeight: 600, marginBottom: 4 }}>Expenses</div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: "var(--navy-700,#1e3a5f)", fontFamily: "var(--font-display)" }}>{fnMoney(totalExp)}</div>
-            <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{mExp.length} record{mExp.length !== 1 ? "s" : ""}</div>
+
+          {/* Income records */}
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+              <span style={{ width: 4, height: 18, borderRadius: 2, background: "var(--teal-500,#14b8a6)", flexShrink: 0 }} />
+              <span style={{ fontWeight: 700, fontSize: 14, color: "var(--text-strong)" }}>Income</span>
+              <Pill tone="teal">{mInc.length}</Pill>
+            </div>
+            {mInc.length > 0 ? (
+              <div style={{ border: "1px solid var(--border-light,#e5e7eb)", borderRadius: 12, overflow: "hidden" }}>
+                <div style={{ overflowX: "auto" }}>
+                  <table className="cb-table" style={{ margin: 0 }}>
+                    <thead><tr><th>Date</th><th>Source / Description</th><th>Category</th><th style={{ textAlign: "right" }}>Amount</th></tr></thead>
+                    <tbody>
+                      {mInc.map((e) => (
+                        <tr key={e.id}>
+                          <td className="cb-muted" style={{ whiteSpace: "nowrap", fontSize: 13 }}>{e.date}</td>
+                          <td style={{ fontWeight: 600, color: "var(--text-strong)" }}>{e.source || e.description || e.category || "—"}</td>
+                          <td><Pill tone="teal">{e.category || "—"}</Pill></td>
+                          <td style={{ textAlign: "right", fontWeight: 700, color: "var(--teal-700,#0f766e)", fontFamily: "var(--font-display)", whiteSpace: "nowrap" }}>+{fnMoney(fnToUSD(e))}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ) : (
+              <div style={{ background: "var(--bg-page,#f8fafc)", border: "1px dashed var(--border-light,#e5e7eb)", borderRadius: 12, padding: "20px", textAlign: "center", color: "var(--text-muted)", fontSize: 14 }}>
+                No income recorded for {month.label} {year}
+              </div>
+            )}
           </div>
-          <div style={{ background: net >= 0 ? "var(--teal-50,#f0fdfa)" : "#fef2f2", borderRadius: 10, padding: "12px 16px" }}>
-            <div style={{ fontSize: 12, color: net >= 0 ? "var(--teal-700,#0f766e)" : "#b91c1c", fontWeight: 600, marginBottom: 4 }}>Net {net >= 0 ? "profit" : "loss"}</div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: net >= 0 ? "var(--teal-700,#0f766e)" : "#b91c1c", fontFamily: "var(--font-display)" }}>{fnMoney(net)}</div>
+
+          {/* Expense records */}
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+              <span style={{ width: 4, height: 18, borderRadius: 2, background: "var(--navy-400,#3b5a8a)", flexShrink: 0 }} />
+              <span style={{ fontWeight: 700, fontSize: 14, color: "var(--text-strong)" }}>Expenses</span>
+              <Pill tone="warn">{mExp.length}</Pill>
+            </div>
+            {mExp.length > 0 ? (
+              <div style={{ border: "1px solid var(--border-light,#e5e7eb)", borderRadius: 12, overflow: "hidden" }}>
+                <div style={{ overflowX: "auto" }}>
+                  <table className="cb-table" style={{ margin: 0 }}>
+                    <thead><tr><th>Date</th><th>Description</th><th>Category</th><th style={{ textAlign: "right" }}>Amount</th></tr></thead>
+                    <tbody>
+                      {mExp.map((e) => (
+                        <tr key={e.id}>
+                          <td className="cb-muted" style={{ whiteSpace: "nowrap", fontSize: 13 }}>{e.date}</td>
+                          <td style={{ fontWeight: 600, color: "var(--text-strong)" }}>{e.description || e.category || "—"}</td>
+                          <td><Pill tone="muted">{e.category || "—"}</Pill></td>
+                          <td style={{ textAlign: "right", fontWeight: 700, color: "var(--text-strong)", fontFamily: "var(--font-display)", whiteSpace: "nowrap" }}>−{fnMoney(fnToUSD(e))}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ) : (
+              <div style={{ background: "var(--bg-page,#f8fafc)", border: "1px dashed var(--border-light,#e5e7eb)", borderRadius: 12, padding: "20px", textAlign: "center", color: "var(--text-muted)", fontSize: 14 }}>
+                No expenses recorded for {month.label} {year}
+              </div>
+            )}
           </div>
         </div>
-        {mInc.length > 0 && (
-          <div style={{ marginBottom: 20 }}>
-            <div style={{ fontWeight: 700, fontSize: 13, color: "var(--teal-700,#0f766e)", marginBottom: 8 }}>Income · {mInc.length} record{mInc.length !== 1 ? "s" : ""}</div>
-            <div style={{ overflowX: "auto" }}>
-              <table className="cb-table">
-                <thead><tr><th>Date</th><th>Source / Description</th><th>Category</th><th>Amount</th></tr></thead>
-                <tbody>
-                  {mInc.map((e) => (
-                    <tr key={e.id}>
-                      <td className="cb-muted" style={{ whiteSpace: "nowrap" }}>{e.date}</td>
-                      <td style={{ fontWeight: 600, color: "var(--text-strong)" }}>{e.source || e.description || e.category || "—"}</td>
-                      <td className="cb-muted">{e.category || "—"}</td>
-                      <td style={{ fontWeight: 700, color: "var(--teal-700,#0f766e)", fontFamily: "var(--font-display)", whiteSpace: "nowrap" }}>+{fnMoney(fnToUSD(e))}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-        {mInc.length === 0 && <div className="cb-empty" style={{ paddingBottom: 16 }}>No income recorded for this month</div>}
-        {mExp.length > 0 && (
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 13, color: "var(--navy-700,#1e3a5f)", marginBottom: 8 }}>Expenses · {mExp.length} record{mExp.length !== 1 ? "s" : ""}</div>
-            <div style={{ overflowX: "auto" }}>
-              <table className="cb-table">
-                <thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Amount</th></tr></thead>
-                <tbody>
-                  {mExp.map((e) => (
-                    <tr key={e.id}>
-                      <td className="cb-muted" style={{ whiteSpace: "nowrap" }}>{e.date}</td>
-                      <td style={{ fontWeight: 600, color: "var(--text-strong)" }}>{e.description || e.category || "—"}</td>
-                      <td className="cb-muted">{e.category || "—"}</td>
-                      <td style={{ fontWeight: 700, color: "var(--text-strong)", fontFamily: "var(--font-display)", whiteSpace: "nowrap" }}>−{fnMoney(fnToUSD(e))}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-        {mExp.length === 0 && <div className="cb-empty">No expenses recorded for this month</div>}
       </div>
     </div>
   );
