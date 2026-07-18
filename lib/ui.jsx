@@ -112,14 +112,19 @@ function StageTrack({ current, stages, compact, onSet }) {
 }
 
 /* Stacked bars chart — data: [{label, a, b}] with maxBy */
-function BarsChart({ data, keys, colors, max }) {
+function BarsChart({ data, keys, colors, max, onBarClick }) {
   const m = max || Math.max(...data.map((d) => keys.reduce((s, k) => s + d[k], 0)));
   return (
     <div className="cb-bars">
       {data.map((d, i) => {
         const total = keys.reduce((s, k) => s + d[k], 0);
         return (
-          <div className="cb-bar" key={i} title={d.label + ": " + total}>
+          <div className="cb-bar" key={i} title={d.label + ": " + total}
+            onClick={onBarClick ? () => onBarClick(d, i) : undefined}
+            style={onBarClick ? { cursor: "pointer" } : undefined}
+            role={onBarClick ? "button" : undefined}
+            tabIndex={onBarClick ? 0 : undefined}
+            onKeyDown={onBarClick ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onBarClick(d, i); } } : undefined}>
             <div className="cb-bar__stack">
               {keys.map((k, ki) => (
                 <div key={k} className="cb-bar__seg" style={{ height: ((d[k] / m) * 100) + "%", background: colors[ki], minHeight: d[k] > 0 ? 4 : 0 }} />

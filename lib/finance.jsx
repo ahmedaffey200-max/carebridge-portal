@@ -68,6 +68,7 @@ function mergedTx(income, expenses) {
 /* ---------------- Dashboard ---------------- */
 function FinanceDashboard({ income, expenses, totalIncome, totalExpense, net, receivables, payables, onGo }) {
   const now = new Date();
+  const [selMonth, setSelMonth] = useStateFN(null);
   const mInc = income.filter((e) => sameMonth(e.date, now)).reduce((s, e) => s + fnToUSD(e), 0);
   const mExp = expenses.filter((e) => sameMonth(e.date, now)).reduce((s, e) => s + fnToUSD(e), 0);
   const yInc = income.filter((e) => sameYear(e.date, now)).reduce((s, e) => s + fnToUSD(e), 0);
@@ -101,7 +102,7 @@ function FinanceDashboard({ income, expenses, totalIncome, totalExpense, net, re
       <div className="cb-grid" style={{ gridTemplateColumns: "1.4fr 1fr" }}>
         <Card>
           <CardHead title="Income vs. expenses" sub="Last 6 months (USD)" />
-          <BarsChart data={months.map((m) => ({ label: m.label, income: Math.round(m.income), expense: Math.round(m.expense) }))} keys={["income", "expense"]} colors={["var(--teal-500)", "var(--navy-400)"]} />
+          <BarsChart data={months.map((m) => ({ label: m.label, income: Math.round(m.income), expense: Math.round(m.expense) }))} keys={["income", "expense"]} colors={["var(--teal-500)", "var(--navy-400)"]} onBarClick={(d, i) => setSelMonth(months[i])} />
           <div className="cb-row" style={{ gap: 18, marginTop: 14, justifyContent: "center" }}>
             <span className="cb-row" style={{ gap: 7, fontSize: 12.5, color: "var(--text-muted)" }}><span style={{ width: 11, height: 11, borderRadius: 3, background: "var(--teal-500)" }} />Income</span>
             <span className="cb-row" style={{ gap: 7, fontSize: 12.5, color: "var(--text-muted)" }}><span style={{ width: 11, height: 11, borderRadius: 3, background: "var(--navy-400)" }} />Expenses</span>
@@ -113,6 +114,7 @@ function FinanceDashboard({ income, expenses, totalIncome, totalExpense, net, re
         </Card>
       </div>
 
+      {selMonth ? <MonthDetailModal month={selMonth} income={income} expenses={expenses} onClose={() => setSelMonth(null)} /> : null}
       <Card pad0>
         <div style={{ padding: "var(--pad-card) var(--pad-card) 0" }}><CardHead title="Recent transactions" sub="Latest income & expense activity" action="All transactions" actionReal onAction={() => onGo("Transactions")} icon={false} /></div>
         <div style={{ overflowX: "auto" }}>
@@ -133,6 +135,90 @@ function FinanceDashboard({ income, expenses, totalIncome, totalExpense, net, re
           </table>
         </div>
       </Card>
+    </div>
+  );
+}
+
+/* ---------------- Month detail modal ---------------- */
+function MonthDetailModal({ month, income, expenses, onClose }) {
+  const mInc = income.filter((e) => { const d = new Date(e.date); return d.getMonth() + "-" + d.getFullYear() === month.key; });
+  const mExp = expenses.filter((e) => { const d = new Date(e.date); return d.getMonth() + "-" + d.getFullYear() === month.key; });
+  const totalInc = mInc.reduce((s, e) => s + fnToUSD(e), 0);
+  const totalExp = mExp.reduce((s, e) => s + fnToUSD(e), 0);
+  const net = totalInc - totalExp;
+  const year = month.key.split("-")[1];
+  const title = month.label + " " + year;
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.52)", zIndex: 1200, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={onClose}>
+      <div style={{ background: "var(--bg-card)", borderRadius: 16, maxWidth: 660, width: "100%", maxHeight: "82vh", overflowY: "auto", padding: "var(--pad-card)", boxShadow: "0 24px 60px -12px rgba(0,0,0,0.35)" }} onClick={(e) => e.stopPropagation()}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+          <div>
+            <h3 style={{ margin: 0, color: "var(--text-strong)", fontSize: 20 }}>{title}</h3>
+            <div className="cb-sub">Income vs. expenses breakdown</div>
+          </div>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", padding: 6, color: "var(--text-muted)", lineHeight: 1 }} aria-label="Close">
+            <Icon name="x" size={20} />
+          </button>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 24 }}>
+          <div style={{ background: "var(--teal-50,#f0fdfa)", borderRadius: 10, padding: "12px 16px" }}>
+            <div style={{ fontSize: 12, color: "var(--teal-700,#0f766e)", fontWeight: 600, marginBottom: 4 }}>Income</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: "var(--teal-700,#0f766e)", fontFamily: "var(--font-display)" }}>{fnMoney(totalInc)}</div>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{mInc.length} record{mInc.length !== 1 ? "s" : ""}</div>
+          </div>
+          <div style={{ background: "var(--sky-50,#f0f9ff)", borderRadius: 10, padding: "12px 16px" }}>
+            <div style={{ fontSize: 12, color: "var(--navy-700,#1e3a5f)", fontWeight: 600, marginBottom: 4 }}>Expenses</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: "var(--navy-700,#1e3a5f)", fontFamily: "var(--font-display)" }}>{fnMoney(totalExp)}</div>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{mExp.length} record{mExp.length !== 1 ? "s" : ""}</div>
+          </div>
+          <div style={{ background: net >= 0 ? "var(--teal-50,#f0fdfa)" : "#fef2f2", borderRadius: 10, padding: "12px 16px" }}>
+            <div style={{ fontSize: 12, color: net >= 0 ? "var(--teal-700,#0f766e)" : "#b91c1c", fontWeight: 600, marginBottom: 4 }}>Net {net >= 0 ? "profit" : "loss"}</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: net >= 0 ? "var(--teal-700,#0f766e)" : "#b91c1c", fontFamily: "var(--font-display)" }}>{fnMoney(net)}</div>
+          </div>
+        </div>
+        {mInc.length > 0 && (
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ fontWeight: 700, fontSize: 13, color: "var(--teal-700,#0f766e)", marginBottom: 8 }}>Income · {mInc.length} record{mInc.length !== 1 ? "s" : ""}</div>
+            <div style={{ overflowX: "auto" }}>
+              <table className="cb-table">
+                <thead><tr><th>Date</th><th>Source / Description</th><th>Category</th><th>Amount</th></tr></thead>
+                <tbody>
+                  {mInc.map((e) => (
+                    <tr key={e.id}>
+                      <td className="cb-muted" style={{ whiteSpace: "nowrap" }}>{e.date}</td>
+                      <td style={{ fontWeight: 600, color: "var(--text-strong)" }}>{e.source || e.description || e.category || "—"}</td>
+                      <td className="cb-muted">{e.category || "—"}</td>
+                      <td style={{ fontWeight: 700, color: "var(--teal-700,#0f766e)", fontFamily: "var(--font-display)", whiteSpace: "nowrap" }}>+{fnMoney(fnToUSD(e))}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+        {mInc.length === 0 && <div className="cb-empty" style={{ paddingBottom: 16 }}>No income recorded for this month</div>}
+        {mExp.length > 0 && (
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 13, color: "var(--navy-700,#1e3a5f)", marginBottom: 8 }}>Expenses · {mExp.length} record{mExp.length !== 1 ? "s" : ""}</div>
+            <div style={{ overflowX: "auto" }}>
+              <table className="cb-table">
+                <thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Amount</th></tr></thead>
+                <tbody>
+                  {mExp.map((e) => (
+                    <tr key={e.id}>
+                      <td className="cb-muted" style={{ whiteSpace: "nowrap" }}>{e.date}</td>
+                      <td style={{ fontWeight: 600, color: "var(--text-strong)" }}>{e.description || e.category || "—"}</td>
+                      <td className="cb-muted">{e.category || "—"}</td>
+                      <td style={{ fontWeight: 700, color: "var(--text-strong)", fontFamily: "var(--font-display)", whiteSpace: "nowrap" }}>−{fnMoney(fnToUSD(e))}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+        {mExp.length === 0 && <div className="cb-empty">No expenses recorded for this month</div>}
+      </div>
     </div>
   );
 }
