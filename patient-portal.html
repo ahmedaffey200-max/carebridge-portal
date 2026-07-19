@@ -762,7 +762,106 @@ function RevokedScreen() {
 /* ================================================================
    Dashboard components (Info, Messages, Journey tabs)
    ================================================================ */
-function InfoTab({ invitation }) {
+/* ================================================================
+   Language / Internationalisation (English ↔ Somali)
+   ================================================================ */
+const STAGE_SO = {
+  "Initial Inquiry":"Su'aasha Hore","Consultation":"La-tashasho",
+  "Pre-departure":"Diyaarinta Safarka","Arrival":"Yimaadda",
+  "Diagnosis":"Ogaanshaha Cudurka","Treatment":"Daaweynta",
+  "Treatment & Recovery":"Daaweynta iyo Bogsashada","Recovery":"Bogsashada",
+  "Follow-up":"Raacitaanka","Completed":"La Dhammeeyay",
+  "Documentation":"Dukumeentiyada","Planning":"Qorshaha",
+  "Discharge":"Bixitaanka Isbitaalka","Post-treatment":"Ka Dib Daaweynta",
+  "Pre Treatment":"Ka Hor Daaweynta","Assessment":"Qiimaynta",
+};
+const APPT_SO = {
+  "Check-up":"Hubinta Caafimaadka","Surgery":"Qalliin",
+  "Lab test":"Tijaabada Shaybaarka","Scan":"Sawir-qaadis (Iskaan)",
+  "X-ray":"Raajo","MRI":"MRI","CT scan":"CT Iskaan",
+  "Blood test":"Tijaabada Dhiigga","Consultation":"La-tashasho",
+  "Follow-up":"Raacitaanka","Ultrasound":"Ultrasound",
+  "Physiotherapy":"Daawada Jirka",
+};
+const UI_SO = {
+  "My Info":"Macluumaadkayga","Messages":"Fariimaha","Journey":"Safarka",
+  "AI Help":"Gargaarka AI","Rate Us":"Naga Qiimee","Sign out":"Ka Bax",
+  "My Information":"Macluumaadkayga","Active":"Firfircoon","Pending":"Sugitaanka",
+  "Full name":"Magaca Buuxa","Patient ID":"Aqoonsiga Bukaan","Specialty":"Takhasusyaha",
+  "Condition":"Xaaladda Caafimaad","Hospital":"Isbitaalka","Destination":"Dalka La Socdo",
+  "Priority":"Muhiimadda","Standard":"Caadi","High":"Sarreeya","Attention":"Baahi Degdeg ah",
+  "Portal expires":"Waqtiga Dhamaadka","Your Coordinator":"Xiriiriyahaaga",
+  "Carebridge International":"Carebridge International",
+  "Message":"Fariin","Email":"Iimeyl",
+  "My Treatment Journey":"Safarka Daaweyntayda","Refresh":"Cusboonaysii",
+  "Refreshing…":"La cusboonaysiinayaa…","Loading your journey…":"Safarka la rarayo…",
+  "journey_empty":"Cusboonaysiinta safarka daaweyntaada ayaa halkan ka muuqan doonta markay xiriiriyahaagu socodsiiyaan kiiskaaga.",
+  "Stage Update":"Cusboonaysiinta Marxaladda","Appointment":"Ballan",
+  "Appt. Updated":"Ballan la Cusboonaysiiyay","Document":"Dukumeenti","Visa":"Fiiso","Update":"Cusboonaysi",
+  "Loading messages…":"Fariimaha la rarayo…",
+  "No messages yet. Send a message to your coordinator below.":"Wali fariin ma jirto. U dir fariin xiriiriyahaaga hoos.",
+  "Type a message to your coordinator…":"Ku qor fariin xiriiriyahaaga…",
+  "Request Call":"Codsiga Wicitaanka","Request Video":"Codsiga Muuqaalka",
+  "Coming soon":"Dhawaan La Heli Doonaa","Read":"La akhriyay","NEW":"CUSUB",
+  "Poor":"Xun","Fair":"Dhexdhexaad","Good":"Wanaagsan","Very good":"Aad u Wanaagsan","Excellent":"Heer Sare",
+};
+
+function t(lang, key) { return lang === "so" ? (UI_SO[key] || key) : key; }
+
+function trStage(lang, s) {
+  if (!s) return s;
+  return lang === "so" ? (STAGE_SO[s.trim()] || s) : s;
+}
+
+function trTitle(lang, title) {
+  if (lang !== "so" || !title) return title;
+  const m1 = title.match(/^Appointment booked:\s*(.+)$/i);
+  if (m1) return "Ballan la qabsaday: " + (APPT_SO[m1[1].trim()] || m1[1].trim());
+  const m2 = title.match(/^Journey stage updated to:\s*(.+)$/i);
+  if (m2) return "Marxaladda waxaa loo beddelay: " + (STAGE_SO[m2[1].trim()] || m2[1].trim());
+  const m3 = title.match(/^Appointment updated:\s*(.+)$/i);
+  if (m3) return "Ballan la cusboonaysiiyay: " + (APPT_SO[m3[1].trim()] || m3[1].trim());
+  const m4 = title.match(/^Specialty changed to\s*(.+)$/i);
+  if (m4) return "Takhasusyaha waxaa loo beddelay " + m4[1].trim();
+  const m5 = title.match(/^Priority changed to\s*(.+)$/i);
+  if (m5) return "Muhiimadda waxaa loo beddelay " + (UI_SO[m5[1].trim()] || m5[1].trim());
+  const m6 = title.match(/^Condition updated:\s*(.+)$/i);
+  if (m6) return "Xaaladda waxaa la cusboonaysiiyay: " + m6[1].trim();
+  if (STAGE_SO[title.trim()]) return STAGE_SO[title.trim()];
+  return title;
+}
+
+function trDesc(lang, desc) {
+  if (lang !== "so" || !desc) return desc;
+  return desc
+    .replace(/\bDoctor:/g, "Dhakhtarka:")
+    .replace(/\bLocation:/g, "Goobta:")
+    .replace(/\bDate:/g, "Taariikhda:")
+    .replace(/\bTime:/g, "Waqtiga:")
+    .replace(/\bPrevious stage:/g, "Marxaladdii hore:")
+    .replace(/\bCarebridge Coordinator\b/g, "Xiriiriyaha Carebridge");
+}
+
+function fmtTimeI18n(lang, ts) {
+  const d = new Date(ts), now = new Date();
+  const diffMin = Math.floor((now - d) / 60000);
+  const diffHr  = Math.floor(diffMin / 60);
+  const diffDay = Math.floor(diffHr / 24);
+  if (lang === "so") {
+    if (diffMin < 1)  return "Hadda uun";
+    if (diffMin < 60) return diffMin + " daqiiqadood ka hor";
+    if (diffHr  < 24) return diffHr  + " saacadood ka hor";
+    if (diffDay < 7)  return diffDay + " maalmood ka hor";
+    return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  }
+  if (diffMin < 1)  return "Just now";
+  if (diffMin < 60) return diffMin + "m ago";
+  if (diffHr  < 24) return diffHr  + "h ago";
+  if (diffDay < 7)  return diffDay + "d ago";
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
+
+function InfoTab({ invitation, lang = "en" }) {
   const priority  = invitation.priority || "Standard";
   const pillClass = priority === "Attention" ? "pp-pill--danger" : priority === "High" ? "pp-pill--warn" : "pp-pill--teal";
   const statusPill = invitation.status === "active" ? "pp-pill--ok" : "pp-pill--navy";
@@ -770,20 +869,20 @@ function InfoTab({ invitation }) {
     <div className="pp-content">
       <div className="pp-card">
         <div className="pp-card-header">
-          <div className="pp-card-title"><Icon name="user" /> My Information</div>
-          <span className={"pp-pill " + statusPill}><span className="pp-pill-dot" />{invitation.status === "active" ? "Active" : "Pending"}</span>
+          <div className="pp-card-title"><Icon name="user" /> {t(lang, "My Information")}</div>
+          <span className={"pp-pill " + statusPill}><span className="pp-pill-dot" />{t(lang, invitation.status === "active" ? "Active" : "Pending")}</span>
         </div>
         <div className="pp-card-body">
           <div className="pp-info-grid">
-            <div className="pp-info-item"><label>Full name</label><div className="pp-info-val">{invitation.patient_name}</div></div>
-            <div className="pp-info-item"><label>Patient ID</label><div className="pp-info-val" style={{ fontFamily: "monospace", fontSize: 13 }}>{invitation.patient_id}</div></div>
-            {invitation.specialty  && <div className="pp-info-item"><label>Specialty</label><div className="pp-info-val">{invitation.specialty}</div></div>}
-            {invitation.condition  && <div className="pp-info-item"><label>Condition</label><div className="pp-info-val">{invitation.condition}</div></div>}
-            {invitation.hospital   && <div className="pp-info-item"><label>Hospital</label><div className="pp-info-val">{invitation.hospital}</div></div>}
-            {invitation.country    && <div className="pp-info-item"><label>Destination</label><div className="pp-info-val">{invitation.country}</div></div>}
-            <div className="pp-info-item"><label>Priority</label><div className="pp-info-val"><span className={"pp-pill " + pillClass}>{priority}</span></div></div>
+            <div className="pp-info-item"><label>{t(lang, "Full name")}</label><div className="pp-info-val">{invitation.patient_name}</div></div>
+            <div className="pp-info-item"><label>{t(lang, "Patient ID")}</label><div className="pp-info-val" style={{ fontFamily: "monospace", fontSize: 13 }}>{invitation.patient_id}</div></div>
+            {invitation.specialty  && <div className="pp-info-item"><label>{t(lang, "Specialty")}</label><div className="pp-info-val">{invitation.specialty}</div></div>}
+            {invitation.condition  && <div className="pp-info-item"><label>{t(lang, "Condition")}</label><div className="pp-info-val">{invitation.condition}</div></div>}
+            {invitation.hospital   && <div className="pp-info-item"><label>{t(lang, "Hospital")}</label><div className="pp-info-val">{invitation.hospital}</div></div>}
+            {invitation.country    && <div className="pp-info-item"><label>{t(lang, "Destination")}</label><div className="pp-info-val">{invitation.country}</div></div>}
+            <div className="pp-info-item"><label>{t(lang, "Priority")}</label><div className="pp-info-val"><span className={"pp-pill " + pillClass}>{t(lang, priority)}</span></div></div>
             <div className="pp-info-item">
-              <label>Portal expires</label>
+              <label>{t(lang, "Portal expires")}</label>
               <div className="pp-info-val" style={{ fontSize: 13 }}>
                 {new Date(invitation.expires_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
               </div>
@@ -793,14 +892,14 @@ function InfoTab({ invitation }) {
       </div>
       {invitation.coordinator_name && (
         <div className="pp-card">
-          <div className="pp-card-header"><div className="pp-card-title"><Icon name="user" /> Your Coordinator</div></div>
+          <div className="pp-card-header"><div className="pp-card-title"><Icon name="user" /> {t(lang, "Your Coordinator")}</div></div>
           <div className="pp-coord-row">
             <div className="pp-coord-av">{(invitation.coordinator_name || "?").split(" ").map(w => w[0]).join("").slice(0,2).toUpperCase()}</div>
-            <div><div className="pp-coord-name">{invitation.coordinator_name}</div><div className="pp-coord-sub">Carebridge International</div></div>
+            <div><div className="pp-coord-name">{invitation.coordinator_name}</div><div className="pp-coord-sub">{t(lang, "Carebridge International")}</div></div>
           </div>
           <div className="pp-coord-actions">
-            <button className="pp-coord-btn" onClick={() => showToast("Opening conversation with your coordinator…")}><Icon name="message-square" size={16} /> Message</button>
-            <button className="pp-coord-btn" onClick={() => showToast("Contact your coordinator via your invitation email.")}><Icon name="mail" size={16} /> Email</button>
+            <button className="pp-coord-btn" onClick={() => showToast("Opening conversation with your coordinator…")}><Icon name="message-square" size={16} /> {t(lang, "Message")}</button>
+            <button className="pp-coord-btn" onClick={() => showToast("Contact your coordinator via your invitation email.")}><Icon name="mail" size={16} /> {t(lang, "Email")}</button>
           </div>
         </div>
       )}
@@ -808,7 +907,7 @@ function InfoTab({ invitation }) {
   );
 }
 
-function MessagesTab({ invitation, newMsgIds = new Set() }) {
+function MessagesTab({ invitation, newMsgIds = new Set(), lang = "en" }) {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading]   = useState(true);
   const [text, setText]         = useState("");
@@ -856,10 +955,10 @@ function MessagesTab({ invitation, newMsgIds = new Set() }) {
     const showName = m.sender_role === "coordinator" && isFirstInGroup;
     return (
       <div key={m.id} className={"pp-msg pp-msg--" + m.sender_role} style={{ marginTop: isFirstInGroup ? 8 : 2 }}>
-        {showName && <div className="pp-msg-sender">{m.sender_name}{isNew && <span style={{ marginLeft: 6, background: "#e53e3e", color: "white", fontSize: 9, fontWeight: 800, padding: "1px 6px", borderRadius: 10, verticalAlign: "middle" }}>NEW</span>}</div>}
-        {!showName && isNew && m.sender_role === "coordinator" && <div className="pp-msg-sender"><span style={{ background: "#e53e3e", color: "white", fontSize: 9, fontWeight: 800, padding: "1px 6px", borderRadius: 10 }}>NEW</span></div>}
+        {showName && <div className="pp-msg-sender">{m.sender_name}{isNew && <span style={{ marginLeft: 6, background: "#e53e3e", color: "white", fontSize: 9, fontWeight: 800, padding: "1px 6px", borderRadius: 10, verticalAlign: "middle" }}>{t(lang,"NEW")}</span>}</div>}
+        {!showName && isNew && m.sender_role === "coordinator" && <div className="pp-msg-sender"><span style={{ background: "#e53e3e", color: "white", fontSize: 9, fontWeight: 800, padding: "1px 6px", borderRadius: 10 }}>{t(lang,"NEW")}</span></div>}
         <div className="pp-msg-bubble" style={isNew ? { outline: "2px solid #e53e3e" } : {}}>{content}</div>
-        <div className="pp-msg-meta">{fmtTime(m.created_at)}{m.sender_role === "patient" && m.read_at ? " · Read" : ""}</div>
+        <div className="pp-msg-meta">{fmtTime(m.created_at)}{m.sender_role === "patient" && m.read_at ? " · " + t(lang,"Read") : ""}</div>
       </div>
     );
   };
@@ -869,28 +968,28 @@ function MessagesTab({ invitation, newMsgIds = new Set() }) {
       <div className="pp-content" style={{ paddingBottom: 0, gap: 0 }}>
         <div className="pp-card">
           <div className="pp-card-header" style={{ justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
-            <div className="pp-card-title"><Icon name="message-square" /> Messages with {invitation.coordinator_name || "your coordinator"}</div>
+            <div className="pp-card-title"><Icon name="message-square" /> {t(lang, "Messages with")} {invitation.coordinator_name || "your coordinator"}</div>
             <div style={{ display: "flex", gap: 8 }}>
-              <button disabled title="Coming soon"
+              <button disabled title={t(lang, "Coming soon")}
                 style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 13px", background: "var(--teal-pale)", color: "var(--teal)", border: "1.5px solid var(--teal)", borderRadius: 10, fontWeight: 700, fontSize: 12, opacity: 0.4, cursor: "not-allowed" }}>
-                <Icon name="phone" size={14} style={{ color: "var(--teal)" }} /> Request Call
+                <Icon name="phone" size={14} style={{ color: "var(--teal)" }} /> {t(lang, "Request Call")}
               </button>
-              <button disabled title="Coming soon"
+              <button disabled title={t(lang, "Coming soon")}
                 style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 13px", background: "var(--navy)", color: "#fff", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 12, opacity: 0.4, cursor: "not-allowed" }}>
-                <Icon name="video" size={14} style={{ color: "#fff" }} /> Request Video
+                <Icon name="video" size={14} style={{ color: "#fff" }} /> {t(lang, "Request Video")}
               </button>
             </div>
           </div>
-          {loading ? <div className="pp-loading"><div className="pp-spin" /> Loading messages…</div> : (
+          {loading ? <div className="pp-loading"><div className="pp-spin" /> {t(lang, "Loading messages…")}</div> : (
             <div className="pp-messages-list">
               {messages.length === 0 ? (
-                <div className="pp-no-messages"><Icon name="message-square" size={32} /><p style={{ marginTop: 12 }}>No messages yet. Send a message to your coordinator below.</p></div>
+                <div className="pp-no-messages"><Icon name="message-square" size={32} /><p style={{ marginTop: 12 }}>{t(lang, "No messages yet. Send a message to your coordinator below.")}</p></div>
               ) : messages.map((m, idx) => renderMsg(m, idx))}
               <div ref={endRef} />
             </div>
           )}
           <div className="pp-msg-input-row">
-            <textarea className="pp-msg-input" rows={1} value={text} onChange={e => setText(e.target.value)} placeholder="Type a message to your coordinator…" onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }} />
+            <textarea className="pp-msg-input" rows={1} value={text} onChange={e => setText(e.target.value)} placeholder={t(lang, "Type a message to your coordinator…")} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }} />
             <button className="pp-send-btn" onClick={send} disabled={!text.trim() || sending} aria-label="Send message"><Icon name="send" size={17} /></button>
           </div>
         </div>
@@ -899,7 +998,7 @@ function MessagesTab({ invitation, newMsgIds = new Set() }) {
   );
 }
 
-function JourneyTab({ invitation, newActIds = new Set() }) {
+function JourneyTab({ invitation, newActIds = new Set(), lang = "en" }) {
   const [activities, setActivities] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -921,53 +1020,37 @@ function JourneyTab({ invitation, newActIds = new Set() }) {
     setRefreshing(false);
   };
 
-  const fmtTime = (ts) => {
-    const d = new Date(ts);
-    const now = new Date();
-    const diffMs = now - d;
-    const diffMin = Math.floor(diffMs / 60000);
-    const diffHr  = Math.floor(diffMin / 60);
-    const diffDay = Math.floor(diffHr / 24);
-    if (diffMin < 1)  return "Just now";
-    if (diffMin < 60) return diffMin + "m ago";
-    if (diffHr  < 24) return diffHr  + "h ago";
-    if (diffDay < 7)  return diffDay + "d ago";
-    return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-  };
-
   const typeConfig = {
-    stage_change:       { icon: "route",          color: "#1CA89C", label: "Stage Update"      },
-    appointment_booked: { icon: "calendar-check",  color: "#2C5089", label: "Appointment"       },
-    appointment_updated:{ icon: "calendar",        color: "#4A6FA5", label: "Appt. Updated"     },
-    specialty_change:   { icon: "stethoscope",     color: "#C8862B", label: "Specialty"         },
-    priority_change:    { icon: "alert-circle",    color: "#B4453C", label: "Priority"          },
-    condition_update:   { icon: "clipboard",       color: "#6B7280", label: "Condition"         },
-    destination_change: { icon: "map-pin",         color: "#7C3AED", label: "Destination"       },
-    document_status:    { icon: "file-check-2",    color: "#0369A1", label: "Document"          },
-    visa_status:        { icon: "stamp",           color: "#B45309", label: "Visa"              },
+    stage_change:       { icon: "route",         color: "#1CA89C", label: "Stage Update"   },
+    appointment_booked: { icon: "calendar-check", color: "#2C5089", label: "Appointment"    },
+    appointment_updated:{ icon: "calendar",       color: "#4A6FA5", label: "Appt. Updated"  },
+    specialty_change:   { icon: "stethoscope",    color: "#C8862B", label: "Specialty"      },
+    priority_change:    { icon: "alert-circle",   color: "#B4453C", label: "Priority"       },
+    condition_update:   { icon: "clipboard",      color: "#6B7280", label: "Condition"      },
+    destination_change: { icon: "map-pin",        color: "#7C3AED", label: "Destination"    },
+    document_status:    { icon: "file-check-2",   color: "#0369A1", label: "Document"       },
+    visa_status:        { icon: "stamp",          color: "#B45309", label: "Visa"           },
   };
 
   return (
     <div className="pp-content">
       <div className="pp-card">
         <div className="pp-card-header" style={{ justifyContent: "space-between" }}>
-          <div className="pp-card-title"><Icon name="route" /> My Treatment Journey</div>
+          <div className="pp-card-title"><Icon name="route" /> {t(lang, "My Treatment Journey")}</div>
           <button onClick={refresh} disabled={refreshing}
             style={{ background: "var(--teal-pale)", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: "var(--teal)", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
             <Icon name="refresh-cw" size={13} style={refreshing ? { animation: "ppspin 0.8s linear infinite" } : {}} />
-            {refreshing ? "Refreshing…" : "Refresh"}
+            {refreshing ? t(lang, "Refreshing…") : t(lang, "Refresh")}
           </button>
         </div>
 
         {activities === null ? (
-          <div className="pp-loading"><div className="pp-spin" /> Loading your journey…</div>
+          <div className="pp-loading"><div className="pp-spin" /> {t(lang, "Loading your journey…")}</div>
         ) : activities.length === 0 ? (
           <div className="pp-card-body">
             <div style={{ textAlign: "center", padding: "32px 0", color: "var(--text-faint)" }}>
               <Icon name="route" size={40} />
-              <p style={{ marginTop: 14, fontSize: 14, lineHeight: 1.6 }}>
-                Your treatment journey updates will appear here as your coordinator makes progress on your case.
-              </p>
+              <p style={{ marginTop: 14, fontSize: 14, lineHeight: 1.6 }}>{t(lang, "journey_empty")}</p>
             </div>
           </div>
         ) : (
@@ -975,6 +1058,12 @@ function JourneyTab({ invitation, newActIds = new Set() }) {
             {activities.map((act, i) => {
               const cfg = typeConfig[act.activity_type] || { icon: "circle", color: "#9CA3AF", label: "Update" };
               const isNew = newActIds.has(act.id);
+              const displayLabel   = t(lang, cfg.label);
+              const displayTitle   = trTitle(lang, act.title);
+              const displayDesc    = trDesc(lang, act.description);
+              const displayOld     = trStage(lang, act.old_value);
+              const displayNew     = trStage(lang, act.new_value);
+              const displayCreator = lang === "so" && act.created_by ? act.created_by.replace("Carebridge Coordinator", "Xiriiriyaha Carebridge") : act.created_by;
               return (
                 <div key={act.id} style={{ display: "flex", gap: 0, padding: "0 20px", background: isNew ? "rgba(229,62,62,0.06)" : "transparent", borderLeft: isNew ? "3px solid #e53e3e" : "3px solid transparent", transition: "background 0.3s" }}>
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 36, flexShrink: 0 }}>
@@ -989,28 +1078,28 @@ function JourneyTab({ invitation, newActIds = new Set() }) {
                     <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
                       <div style={{ flex: 1 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
-                          <span style={{ background: cfg.color + "18", color: cfg.color, fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20, textTransform: "uppercase", letterSpacing: "0.05em" }}>{cfg.label}</span>
+                          <span style={{ background: cfg.color + "18", color: cfg.color, fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20, textTransform: "uppercase", letterSpacing: "0.05em" }}>{displayLabel}</span>
                         </div>
                         <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", lineHeight: 1.4 }}>
-                          {act.title}
-                          {isNew && <span style={{ marginLeft: 8, background: "#e53e3e", color: "white", fontSize: 9, fontWeight: 800, padding: "1px 6px", borderRadius: 10, verticalAlign: "middle" }}>NEW</span>}
+                          {displayTitle}
+                          {isNew && <span style={{ marginLeft: 8, background: "#e53e3e", color: "white", fontSize: 9, fontWeight: 800, padding: "1px 6px", borderRadius: 10, verticalAlign: "middle" }}>{t(lang,"NEW")}</span>}
                         </div>
-                        {act.description && (
-                          <div style={{ fontSize: 12.5, color: "var(--text-sub)", marginTop: 4, lineHeight: 1.5 }}>{act.description}</div>
+                        {displayDesc && (
+                          <div style={{ fontSize: 12.5, color: "var(--text-sub)", marginTop: 4, lineHeight: 1.5 }}>{displayDesc}</div>
                         )}
-                        {act.old_value && act.new_value && act.old_value !== act.new_value && (
+                        {displayOld && displayNew && displayOld !== displayNew && (
                           <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 5, fontSize: 11.5 }}>
-                            <span style={{ color: "var(--text-faint)", textDecoration: "line-through" }}>{act.old_value}</span>
+                            <span style={{ color: "var(--text-faint)", textDecoration: "line-through" }}>{displayOld}</span>
                             <Icon name="arrow-right" size={11} style={{ color: "var(--text-faint)" }} />
-                            <span style={{ color: cfg.color, fontWeight: 600 }}>{act.new_value}</span>
+                            <span style={{ color: cfg.color, fontWeight: 600 }}>{displayNew}</span>
                           </div>
                         )}
                       </div>
-                      <div style={{ fontSize: 11.5, color: "var(--text-faint)", whiteSpace: "nowrap", marginTop: 2 }}>{fmtTime(act.created_at)}</div>
+                      <div style={{ fontSize: 11.5, color: "var(--text-faint)", whiteSpace: "nowrap", marginTop: 2 }}>{fmtTimeI18n(lang, act.created_at)}</div>
                     </div>
-                    {act.created_by && (
+                    {displayCreator && (
                       <div style={{ marginTop: 6, fontSize: 11, color: "var(--text-faint)", display: "flex", alignItems: "center", gap: 4 }}>
-                        <Icon name="user" size={10} /> {act.created_by}
+                        <Icon name="user" size={10} /> {displayCreator}
                       </div>
                     )}
                   </div>
@@ -1479,6 +1568,19 @@ function VideoTab({ invitation }) {
    Dashboard shell
    ================================================================ */
 function Dashboard({ invitation, locationLabel, tab, setTab, onLogout, unreadMsgs, newJourney, clearBadge, newMsgIds, newActIds, bellOn, onToggleBell }) {
+  const [lang, setLang] = useState(() => localStorage.getItem("pp_lang") || "en");
+  const toggleLang = () => {
+    const next = lang === "en" ? "so" : "en";
+    setLang(next);
+    localStorage.setItem("pp_lang", next);
+  };
+  const tabs = [
+    { id: "info",     label: t(lang, "My Info"),   icon: "user",           badge: 0          },
+    { id: "messages", label: t(lang, "Messages"),  icon: "message-square", badge: unreadMsgs },
+    { id: "journey",  label: t(lang, "Journey"),   icon: "route",          badge: newJourney },
+    { id: "ai",       label: t(lang, "AI Help"),   icon: "cpu",            badge: 0          },
+    { id: "rate",     label: t(lang, "Rate Us"),   icon: "star",           badge: 0          },
+  ];
   return (
     <div className="pp-app">
       <div className="pp-header">
@@ -1488,11 +1590,11 @@ function Dashboard({ invitation, locationLabel, tab, setTab, onLogout, unreadMsg
             <div className="pp-header-brand-text">Carebridge<span>International</span></div>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
-            <button className="pp-logout-btn" onClick={onToggleBell} title={bellOn ? "Mute notifications" : "Unmute notifications"}
+            <button className="pp-logout-btn" onClick={onToggleBell} title={t(lang, bellOn ? "Mute notifications" : "Unmute notifications")}
               style={{ background: bellOn ? "rgba(28,168,156,0.25)" : "rgba(255,255,255,0.08)", borderColor: bellOn ? "rgba(28,168,156,0.5)" : "rgba(255,255,255,0.2)", fontSize: 18, padding: "6px 12px" }}>
               {bellOn ? "🔔" : "🔕"}
             </button>
-            <button className="pp-logout-btn" onClick={onLogout}><Icon name="log-out" size={14} /> Sign out</button>
+            <button className="pp-logout-btn" onClick={onLogout}><Icon name="log-out" size={14} /> {t(lang, "Sign out")}</button>
           </div>
         </div>
         <div className="pp-header-patient">
@@ -1502,30 +1604,28 @@ function Dashboard({ invitation, locationLabel, tab, setTab, onLogout, unreadMsg
             {invitation.coordinator_name && <span>· {invitation.coordinator_name}</span>}
             {locationLabel && <span className="pp-loc-badge"><Icon name="map-pin" size={11} /> {locationLabel}</span>}
           </div>
+          <button onClick={toggleLang} title={lang === "en" ? "Switch to Somali" : "Switch to English"}
+            style={{ marginTop: 6, alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "rgba(255,255,255,0.12)", border: "1.5px solid rgba(255,255,255,0.22)", borderRadius: 20, padding: "4px 12px", cursor: "pointer", color: "#fff", fontSize: 12, fontWeight: 700, letterSpacing: "0.03em" }}>
+            {lang === "en" ? <><span style={{ opacity: 0.55 }}>🇬🇧 EN</span><span style={{ margin: "0 4px", opacity: 0.4 }}>·</span><span style={{ color: "#1CA89C" }}>🇸🇴 SO</span></> : <><span style={{ color: "#1CA89C" }}>🇬🇧 EN</span><span style={{ margin: "0 4px", opacity: 0.4 }}>·</span><span style={{ opacity: 0.55 }}>🇸🇴 SO</span></>}
+          </button>
         </div>
       </div>
 
       <div className="pp-tabs">
-        {[
-          { id: "info",     label: "My Info",  icon: "user",           badge: 0           },
-          { id: "messages", label: "Messages",  icon: "message-square", badge: unreadMsgs  },
-          { id: "journey",  label: "Journey",   icon: "route",          badge: newJourney  },
-          { id: "ai",       label: "AI Help",   icon: "cpu",            badge: 0           },
-          { id: "rate",     label: "Rate Us",   icon: "star",           badge: 0           },
-        ].map(t => (
-          <button key={t.id} className={"pp-tab" + (tab === t.id ? " active" : "")} onClick={() => { setTab(t.id); clearBadge(t.id); }}>
+        {tabs.map(tb => (
+          <button key={tb.id} className={"pp-tab" + (tab === tb.id ? " active" : "")} onClick={() => { setTab(tb.id); clearBadge(tb.id); }}>
             <div className="pp-tab-wrap">
-              <Icon name={t.icon} size={18} />
-              {t.badge > 0 && <span className="pp-badge">{t.badge > 9 ? "9+" : t.badge}</span>}
+              <Icon name={tb.icon} size={18} />
+              {tb.badge > 0 && <span className="pp-badge">{tb.badge > 9 ? "9+" : tb.badge}</span>}
             </div>
-            {t.label}
+            {tb.label}
           </button>
         ))}
       </div>
 
-      {tab === "info"     && <InfoTab     invitation={invitation} />}
-      {tab === "messages" && <MessagesTab invitation={invitation} newMsgIds={newMsgIds} />}
-      {tab === "journey"  && <JourneyTab  invitation={invitation} newActIds={newActIds} />}
+      {tab === "info"     && <InfoTab     invitation={invitation} lang={lang} />}
+      {tab === "messages" && <MessagesTab invitation={invitation} newMsgIds={newMsgIds} lang={lang} />}
+      {tab === "journey"  && <JourneyTab  invitation={invitation} newActIds={newActIds} lang={lang} />}
       {tab === "ai"       && <AiTab       invitation={invitation} />}
       {tab === "rate"     && <RateTab     invitation={invitation} />}
     </div>
