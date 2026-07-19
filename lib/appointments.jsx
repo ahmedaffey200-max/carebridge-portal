@@ -118,7 +118,7 @@ function VideoCallModal({ appt, onClose }) {
   );
 }
 
-function ApptCard({ appt, onEdit, onCall }) {
+function ApptCard({ appt, onEdit, onCall, onDelete }) {
   const st = STATUS_STYLE[appt.status] || STATUS_STYLE["Scheduled"];
   const tzLabel = tzShortName(appt.timezone);
   const canCall = appt.video && appt.status !== "Cancelled" && appt.date >= todayISO();
@@ -146,6 +146,44 @@ function ApptCard({ appt, onEdit, onCall }) {
             <i data-lucide="video" style={{ width: 13, height: 13 }} /> Start call
           </button>
         )}
+        <button onClick={e => { e.stopPropagation(); onDelete(appt); }} title="Delete appointment"
+          style={{ background: "var(--danger-soft,#fff0f0)", color: "var(--danger,#dc2626)", border: "1.5px solid var(--danger-soft,#fecaca)", borderRadius: 8, padding: "5px 10px", fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 5, whiteSpace: "nowrap" }}>
+          <i data-lucide="trash-2" style={{ width: 13, height: 13 }} /> Delete
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ---- Delete Confirm Dialog ---- */
+function DeleteConfirmDialog({ appt, onCancel, onConfirm }) {
+  useApptEffect(() => {
+    if (window.lucide) window.lucide.createIcons();
+    const onKey = e => { if (e.key === "Escape") onCancel(); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
+  return (
+    <div className="cb-modal" role="dialog" aria-modal="true" onMouseDown={e => { if (e.target === e.currentTarget) onCancel(); }}>
+      <div className="cb-modal__card" style={{ maxWidth: 420 }}>
+        <div className="cb-modal__body" style={{ textAlign: "center", alignItems: "center" }}>
+          <div className="cb-chip" style={{ width: 52, height: 52, background: "var(--danger-soft,#fff0f0)", color: "var(--danger,#dc2626)" }}>
+            <i data-lucide="trash-2" style={{ width: 26, height: 26 }} />
+          </div>
+          <h3 style={{ fontSize: 19, fontWeight: 800, lineHeight: 1.2 }}>Delete this appointment?</h3>
+          <p style={{ fontSize: 14, color: "var(--text-muted)", lineHeight: 1.55, maxWidth: "38ch" }}>
+            <b>{appt.patient}</b> · {appt.type}<br />
+            {appt.date} at {appt.time}<br /><br />
+            This will permanently remove the appointment. This cannot be undone.
+          </p>
+          <div className="cb-modal__foot" style={{ justifyContent: "center", width: "100%", marginTop: 4 }}>
+            <button className="cb-btn-ghost" data-real onClick={onCancel}>No, keep it</button>
+            <button className="cb-btn-primary" data-real onClick={onConfirm}
+              style={{ background: "var(--danger,#dc2626)" }}>
+              <i data-lucide="trash-2" style={{ width: 15, height: 15 }} /> Yes, delete
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -296,7 +334,7 @@ function BookModal({ onClose, onSave }) {
 }
 
 /* ---- Edit Modal ---- */
-function EditModal({ appt, onClose, onSave, onCancel }) {
+function EditModal({ appt, onClose, onSave, onCancel, onDelete }) {
   const patients = window.CBStore.getPatients();
   const hospitals = window.CBStore.getHospitals().filter(h => h.active);
   const [form, setForm] = useApptState({ ...appt });
@@ -387,9 +425,14 @@ function EditModal({ appt, onClose, onSave, onCancel }) {
           </label>
         </div>
         <div className="cb-modal__foot" style={{ justifyContent: "space-between" }}>
-          <button className="cb-btn-ghost" data-real style={{ color: "var(--danger)", borderColor: "var(--danger-soft)" }} onClick={() => onCancel(appt.id)}>
-            <i data-lucide="x-circle" style={{width:15,height:15}} /> Cancel appointment
-          </button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button className="cb-btn-ghost" data-real style={{ color: "var(--danger)", borderColor: "var(--danger-soft)" }} onClick={() => onCancel(appt.id)}>
+              <i data-lucide="x-circle" style={{width:15,height:15}} /> Cancel
+            </button>
+            <button className="cb-btn-ghost" data-real style={{ color: "var(--danger)", borderColor: "var(--danger-soft)" }} onClick={() => onDelete(appt)}>
+              <i data-lucide="trash-2" style={{width:15,height:15}} /> Delete
+            </button>
+          </div>
           <div style={{ display: "flex", gap: 8 }}>
             <button className="cb-btn-ghost" data-real onClick={onClose}>Close</button>
             <button className="cb-btn-primary" data-real onClick={() => onSave(form)}>Save changes</button>
@@ -431,6 +474,7 @@ function AppointmentsView() {
   const [bookOpen, setBookOpen] = useApptState(false);
   const [editAppt, setEditAppt] = useApptState(null);
   const [callAppt, setCallAppt] = useApptState(null);
+  const [delTarget, setDelTarget] = useApptState(null);
   const [view, setView] = useApptState("list");
 
   /* Load from Supabase on mount + subscribe to realtime changes */
@@ -512,6 +556,15 @@ function AppointmentsView() {
     window.cbToast("Appointment cancelled", { icon: "x-circle" });
   };
 
+  const deleteAppt = async (id) => {
+    const next = appts.filter(a => a.id !== id);
+    setAppts(next);
+    setDelTarget(null);
+    setEditAppt(null);
+    await saveApptsToDB(next);
+    window.cbToast("Appointment deleted", { icon: "trash-2" });
+  };
+
   /* ---- Group upcoming by date ---- */
   const upcomingByDate = [];
   upcoming.forEach(a => {
@@ -552,7 +605,7 @@ function AppointmentsView() {
             <span style={{ fontWeight: 700, fontSize: 15, color: "var(--text-strong)" }}>Today — {todayLabel}</span>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {todayAppts.map(a => <ApptCard key={a.id} appt={a} onEdit={setEditAppt} onCall={setCallAppt} />)}
+            {todayAppts.map(a => <ApptCard key={a.id} appt={a} onEdit={setEditAppt} onCall={setCallAppt} onDelete={setDelTarget} />)}
           </div>
         </div>
       )}
@@ -570,7 +623,7 @@ function AppointmentsView() {
                 {isoLabel(group.date)}
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {group.items.map(a => <ApptCard key={a.id} appt={a} onEdit={setEditAppt} onCall={setCallAppt} />)}
+                {group.items.map(a => <ApptCard key={a.id} appt={a} onEdit={setEditAppt} onCall={setCallAppt} onDelete={setDelTarget} />)}
               </div>
             </div>
           ))}
@@ -585,7 +638,7 @@ function AppointmentsView() {
             Past appointments ({past.length})
           </summary>
           <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8, opacity: 0.75 }}>
-            {past.slice(0, 10).map(a => <ApptCard key={a.id} appt={a} onEdit={setEditAppt} onCall={setCallAppt} />)}
+            {past.slice(0, 10).map(a => <ApptCard key={a.id} appt={a} onEdit={setEditAppt} onCall={setCallAppt} onDelete={setDelTarget} />)}
           </div>
         </details>
       )}
@@ -605,8 +658,15 @@ function AppointmentsView() {
       )}
 
       {bookOpen && <BookModal onClose={() => setBookOpen(false)} onSave={addAppt} />}
-      {editAppt && <EditModal appt={editAppt} onClose={() => setEditAppt(null)} onSave={saveAppt} onCancel={cancelAppt} />}
+      {editAppt && <EditModal appt={editAppt} onClose={() => setEditAppt(null)} onSave={saveAppt} onCancel={cancelAppt} onDelete={(a) => { setEditAppt(null); setDelTarget(a); }} />}
       {callAppt && <VideoCallModal appt={callAppt} onClose={() => setCallAppt(null)} />}
+      {delTarget && (
+        <DeleteConfirmDialog
+          appt={delTarget}
+          onCancel={() => setDelTarget(null)}
+          onConfirm={() => deleteAppt(delTarget.id)}
+        />
+      )}
     </div>
   );
 }
