@@ -63,14 +63,6 @@ function isoLabel(iso) {
   return d.toLocaleDateString("en-US", { weekday: "short", month: "long", day: "numeric", year: "numeric" });
 }
 
-/* ---- Seed data (uses ISO dates now) ---- */
-const DEMO_APPOINTMENTS = [
-  { id: "a1", date: todayISO(), time: "09:00", duration: 60, patientId: null, patient: "Mohammed Al-Rashidi", type: "Consultation", doctor: "Dr. James Smith", hospitalId: "h1", location: "Bosphorus International Medical Center", status: "Confirmed", video: false, color: "#2C5089", timezone: "Europe/Istanbul" },
-  { id: "a2", date: todayISO(), time: "10:30", duration: 30, patientId: null, patient: "Amira Hassan", type: "Post-op Follow-up", doctor: "Dr. Sarah Johnson", hospitalId: null, location: "", status: "Scheduled", video: true, color: "#C8862B", timezone: "Europe/Istanbul" },
-  { id: "a3", date: todayISO(), time: "14:00", duration: 90, patientId: null, patient: "Yuki Tanaka", type: "Pre-surgery Assessment", doctor: "Dr. Michael Brown", hospitalId: "h3", location: "Yamuna Super-Speciality Institute", status: "Scheduled", video: false, color: "#C8862B", timezone: "Asia/Kolkata" },
-  { id: "a4", date: (() => { const d = new Date(); d.setDate(d.getDate() + 1); return d.toISOString().slice(0, 10); })(), time: "09:30", duration: 30, patientId: null, patient: "Fatima Nour", type: "Video Consultation", doctor: "Dr. Robert Lee", hospitalId: null, location: "", status: "Confirmed", video: true, color: "#2C5089", timezone: "Asia/Dubai" },
-  { id: "a5", date: (() => { const d = new Date(); d.setDate(d.getDate() + 1); return d.toISOString().slice(0, 10); })(), time: "11:00", duration: 120, patientId: null, patient: "David Chen", type: "Surgery", doctor: "Dr. James Smith", hospitalId: "h1", location: "Bosphorus International Medical Center", status: "Confirmed", video: false, color: "#1CA89C", timezone: "Europe/Istanbul" },
-];
 
 const STATUS_STYLE = {
   "Confirmed": { bg: "#E8F5E9", color: "#2E7D32" },
@@ -359,19 +351,67 @@ function EditModal({ appt, onClose, onSave, onCancel }) {
   );
 }
 
+/* ---- Supabase persistence helpers ---- */
+const APPT_ROW_ID = "appointments";
+
+async function loadApptsFromDB() {
+  const sb = window.CBSupabase;
+  if (!sb) return null;
+  try {
+    const { data } = await sb.from("portal_state").select("state").eq("id", APPT_ROW_ID).single();
+    if (data?.state && Array.isArray(data.state)) return data.state;
+  } catch (e) {}
+  return null;
+}
+
+async function saveApptsToDB(list) {
+  const sb = window.CBSupabase;
+  if (!sb) return;
+  try {
+    await sb.from("portal_state").upsert(
+      { id: APPT_ROW_ID, state: list, updated_at: new Date().toISOString() },
+      { onConflict: "id" }
+    );
+  } catch (e) {}
+}
+
 /* ---- Main View ---- */
 function AppointmentsView() {
-  const [appts, setAppts] = useApptState(() => {
-    try { const s = localStorage.getItem("cb_appointments_v2"); if (s) return JSON.parse(s); } catch (e) {}
-    return DEMO_APPOINTMENTS;
-  });
+  const [appts, setAppts] = useApptState([]);
+  const [loading, setLoading] = useApptState(true);
   const [bookOpen, setBookOpen] = useApptState(false);
   const [editAppt, setEditAppt] = useApptState(null);
   const [view, setView] = useApptState("list");
 
+  /* Load from Supabase on mount + subscribe to realtime changes */
   useApptEffect(() => {
-    try { localStorage.setItem("cb_appointments_v2", JSON.stringify(appts)); } catch (e) {}
-  }, [appts]);
+    let cancelled = false;
+    let channel = null;
+
+    function subscribe(sb) {
+      channel = sb.channel("cb-appts-sync")
+        .on("postgres_changes", { event: "*", schema: "public", table: "portal_state", filter: "id=eq." + APPT_ROW_ID }, (payload) => {
+          if (cancelled) return;
+          try { if (payload.new?.state && Array.isArray(payload.new.state)) setAppts(payload.new.state); } catch (e) {}
+        }).subscribe();
+    }
+
+    async function init() {
+      /* Wait for CBSupabase to be initialised (injected async) */
+      let tries = 0;
+      while (!window.CBSupabase && tries++ < 30) await new Promise(r => setTimeout(r, 200));
+      if (cancelled) return;
+      const list = await loadApptsFromDB();
+      if (!cancelled) { setAppts(list || []); setLoading(false); }
+      if (window.CBSupabase) subscribe(window.CBSupabase);
+    }
+
+    init();
+    return () => {
+      cancelled = true;
+      if (channel && window.CBSupabase) window.CBSupabase.removeChannel(channel);
+    };
+  }, []);
 
   useApptEffect(() => {
     if (window.lucide) window.lucide.createIcons();
@@ -382,10 +422,12 @@ function AppointmentsView() {
   const upcoming = appts.filter(a => a.date > today).sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
   const past = appts.filter(a => a.date < today).sort((a, b) => b.date.localeCompare(a.date) || a.time.localeCompare(b.time));
 
-  const addAppt = (form) => {
+  const addAppt = async (form) => {
     const newAppt = { ...form, id: "a" + Date.now(), color: COLORS[Math.floor(Math.random() * COLORS.length)] };
-    setAppts(prev => [...prev, newAppt]);
+    const next = [...appts, newAppt];
+    setAppts(next);
     setBookOpen(false);
+    await saveApptsToDB(next);
     window.cbToast("Appointment booked", { icon: "calendar-check" });
     if (window.cbTrackActivity && form.patientId) {
       const dateLabel = form.date ? new Date(form.date + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "long", year: "numeric" }) : "";
@@ -394,10 +436,12 @@ function AppointmentsView() {
     }
   };
 
-  const saveAppt = (form) => {
+  const saveAppt = async (form) => {
     const prev = appts.find(a => a.id === form.id) || {};
-    setAppts(prev2 => prev2.map(a => a.id === form.id ? form : a));
+    const next = appts.map(a => a.id === form.id ? form : a);
+    setAppts(next);
     setEditAppt(null);
+    await saveApptsToDB(next);
     window.cbToast("Appointment updated", { icon: "check-circle-2" });
     if (window.cbTrackActivity && form.patientId) {
       const changes = [];
@@ -410,9 +454,11 @@ function AppointmentsView() {
     }
   };
 
-  const cancelAppt = (id) => {
-    setAppts(prev => prev.map(a => a.id === id ? { ...a, status: "Cancelled" } : a));
+  const cancelAppt = async (id) => {
+    const next = appts.map(a => a.id === id ? { ...a, status: "Cancelled" } : a);
+    setAppts(next);
     setEditAppt(null);
+    await saveApptsToDB(next);
     window.cbToast("Appointment cancelled", { icon: "x-circle" });
   };
 
@@ -494,7 +540,13 @@ function AppointmentsView() {
         </details>
       )}
 
-      {todayAppts.length === 0 && upcomingByDate.length === 0 && past.length === 0 && (
+      {loading && (
+        <div className="cb-empty" style={{ marginTop: 60 }}>
+          <i data-lucide="loader" style={{ width: 32, height: 32, marginBottom: 12, opacity: 0.4 }} />
+          <div style={{ color: "var(--text-muted)" }}>Loading appointments…</div>
+        </div>
+      )}
+      {!loading && todayAppts.length === 0 && upcomingByDate.length === 0 && past.length === 0 && (
         <div className="cb-empty" style={{ marginTop: 60 }}>
           <i data-lucide="calendar-x" style={{ width: 40, height: 40, marginBottom: 12, opacity: 0.3 }} />
           <div>No appointments scheduled</div>
