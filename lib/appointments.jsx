@@ -65,10 +65,11 @@ function isoLabel(iso) {
 
 
 const STATUS_STYLE = {
-  "Confirmed": { bg: "#E8F5E9", color: "#2E7D32" },
-  "Scheduled": { bg: "#E3F2FD", color: "#1565C0" },
-  "Cancelled": { bg: "#FFEBEE", color: "#C62828" },
-  "Completed": { bg: "#F3E5F5", color: "#6A1B9A" },
+  "Confirmed":    { bg: "#E8F5E9", color: "#2E7D32" },
+  "Scheduled":    { bg: "#E3F2FD", color: "#1565C0" },
+  "Cancelled":    { bg: "#FFEBEE", color: "#C62828" },
+  "Completed":    { bg: "#F3E5F5", color: "#6A1B9A" },
+  "Rescheduled":  { bg: "#FFF8E1", color: "#E65100" },
 };
 const COLORS = ["#2C5089", "#1CA89C", "#C8862B", "#4A6FA5", "#B4453C"];
 
@@ -169,7 +170,7 @@ function BookModal({ onClose, onSave }) {
             <div>
               <label className="cb-label">Status</label>
               <select className="cb-input" value={form.status} onChange={e => set("status", e.target.value)}>
-                {["Scheduled","Confirmed","Completed","Cancelled"].map(s => <option key={s}>{s}</option>)}
+                {["Scheduled","Confirmed","Rescheduled","Completed","Cancelled"].map(s => <option key={s}>{s}</option>)}
               </select>
             </div>
           </div>
@@ -286,7 +287,7 @@ function EditModal({ appt, onClose, onSave, onCancel }) {
             <div>
               <label className="cb-label">Status</label>
               <select className="cb-input" value={form.status} onChange={e => set("status", e.target.value)}>
-                {["Scheduled","Confirmed","Completed","Cancelled"].map(s => <option key={s}>{s}</option>)}
+                {["Scheduled","Confirmed","Rescheduled","Completed","Cancelled"].map(s => <option key={s}>{s}</option>)}
               </select>
             </div>
           </div>
