@@ -1365,6 +1365,102 @@ function AiTab({ invitation }) {
 }
 
 /* ================================================================
+   Video Call Tab
+   ================================================================ */
+function VideoTab({ invitation }) {
+  const [appts, setAppts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  function parseAppts(state) {
+    if (!state || !Array.isArray(state)) return [];
+    const today = new Date().toISOString().slice(0, 10);
+    return state
+      .filter(a => a.video && a.patientId === invitation.patient_id && a.date >= today && a.status !== "Cancelled")
+      .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
+  }
+
+  useEffect(() => {
+    let ch = null;
+    sb.from("portal_state").select("state").eq("id", "appointments").single()
+      .then(({ data }) => { setAppts(parseAppts(data?.state)); setLoading(false); })
+      .catch(() => setLoading(false));
+
+    ch = sb.channel("pp-video-appts")
+      .on("postgres_changes", { event: "*", schema: "public", table: "portal_state", filter: "id=eq.appointments" }, (payload) => {
+        setAppts(parseAppts(payload.new?.state));
+      }).subscribe();
+    return () => { if (ch) sb.removeChannel(ch); };
+  }, [invitation.patient_id]);
+
+  const fmtDate = (iso) => new Date(iso + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+
+  if (loading) return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 60, gap: 12 }}>
+      <div style={{ width: 32, height: 32, border: "3px solid var(--border)", borderTopColor: "var(--teal)", borderRadius: "50%", animation: "ppspin 0.8s linear infinite" }} />
+      <div style={{ color: "var(--text-faint)", fontSize: 14 }}>Loading video calls…</div>
+    </div>
+  );
+
+  if (!appts.length) return (
+    <div style={{ padding: "48px 24px", textAlign: "center" }}>
+      <div style={{ width: 76, height: 76, borderRadius: "50%", background: "var(--teal-pale)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px" }}>
+        <Icon name="video-off" size={34} style={{ color: "var(--teal)" }} />
+      </div>
+      <div style={{ fontWeight: 700, fontSize: 18, color: "var(--text)", marginBottom: 8 }}>No upcoming video calls</div>
+      <div style={{ color: "var(--text-sub)", fontSize: 14, lineHeight: 1.6, maxWidth: 300, margin: "0 auto" }}>
+        Your care coordinator will schedule a video call when it's time. You'll see it here automatically.
+      </div>
+    </div>
+  );
+
+  return (
+    <div style={{ padding: "20px 16px", maxWidth: 600, margin: "0 auto" }}>
+      <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-faint)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 16 }}>
+        {appts.length} upcoming video {appts.length === 1 ? "call" : "calls"}
+      </div>
+      {appts.map(a => {
+        const isToday = a.date === new Date().toISOString().slice(0, 10);
+        const room = "cb-" + a.id;
+        return (
+          <div key={a.id} style={{ background: "var(--surface)", borderRadius: 16, border: isToday ? "2px solid var(--teal)" : "1.5px solid var(--border)", padding: 20, marginBottom: 14, boxShadow: "var(--shadow)" }}>
+            {isToday && (
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "var(--teal-pale)", color: "var(--teal)", borderRadius: 20, padding: "3px 12px", fontSize: 12, fontWeight: 700, marginBottom: 12 }}>
+                <span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--teal)", display: "inline-block", animation: "ppbadge 1.4s ease-in-out infinite" }} />
+                Today
+              </div>
+            )}
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
+              <div style={{ width: 46, height: 46, borderRadius: 12, background: isToday ? "var(--teal)" : "var(--teal-pale)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <Icon name="video" size={22} style={{ color: isToday ? "#fff" : "var(--teal)" }} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 700, fontSize: 16, color: "var(--text)", marginBottom: 4 }}>{a.type || "Video Consultation"}</div>
+                {a.doctor && <div style={{ color: "var(--text-sub)", fontSize: 13, marginBottom: 2 }}>{a.doctor}</div>}
+                <div style={{ color: "var(--text-faint)", fontSize: 13 }}>{fmtDate(a.date)} · {a.time}</div>
+              </div>
+            </div>
+            <div style={{ marginTop: 16, display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <a href={"https://meet.jit.si/" + room} target="_blank" rel="noreferrer"
+                style={{ flex: 1, minWidth: 160, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "var(--teal)", color: "#fff", borderRadius: 12, padding: "12px 20px", fontWeight: 700, fontSize: 15, textDecoration: "none", boxShadow: "0 4px 14px rgba(28,168,156,0.35)" }}>
+                <Icon name="video" size={18} style={{ color: "#fff" }} /> Join Video Call
+              </a>
+              <button onClick={() => { navigator.clipboard.writeText("https://meet.jit.si/" + room).then(() => showToast("Link copied!")); }}
+                style={{ display: "flex", alignItems: "center", gap: 7, background: "none", border: "1.5px solid var(--border)", borderRadius: 12, padding: "12px 16px", fontWeight: 600, fontSize: 13, color: "var(--text-sub)", cursor: "pointer" }}>
+                <Icon name="copy" size={15} style={{ color: "var(--text-faint)" }} /> Copy link
+              </button>
+            </div>
+            <div style={{ marginTop: 10, fontSize: 12, color: "var(--text-faint)", display: "flex", alignItems: "center", gap: 5 }}>
+              <Icon name="info" size={13} style={{ color: "var(--text-faint)", flexShrink: 0 }} />
+              Opens in your browser. Camera &amp; microphone access required.
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ================================================================
    Dashboard shell
    ================================================================ */
 function Dashboard({ invitation, locationLabel, tab, setTab, onLogout, unreadMsgs, newJourney, clearBadge, newMsgIds, newActIds, bellOn, onToggleBell }) {
@@ -1399,6 +1495,7 @@ function Dashboard({ invitation, locationLabel, tab, setTab, onLogout, unreadMsg
           { id: "info",     label: "My Info",  icon: "user",           badge: 0           },
           { id: "messages", label: "Messages",  icon: "message-square", badge: unreadMsgs  },
           { id: "journey",  label: "Journey",   icon: "route",          badge: newJourney  },
+          { id: "video",    label: "Video Call", icon: "video",          badge: 0           },
           { id: "ai",       label: "AI Help",   icon: "cpu",            badge: 0           },
           { id: "rate",     label: "Rate Us",   icon: "star",           badge: 0           },
         ].map(t => (
@@ -1415,6 +1512,7 @@ function Dashboard({ invitation, locationLabel, tab, setTab, onLogout, unreadMsg
       {tab === "info"     && <InfoTab     invitation={invitation} />}
       {tab === "messages" && <MessagesTab invitation={invitation} newMsgIds={newMsgIds} />}
       {tab === "journey"  && <JourneyTab  invitation={invitation} newActIds={newActIds} />}
+      {tab === "video"    && <VideoTab    invitation={invitation} />}
       {tab === "ai"       && <AiTab       invitation={invitation} />}
       {tab === "rate"     && <RateTab     invitation={invitation} />}
     </div>

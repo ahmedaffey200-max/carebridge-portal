@@ -79,9 +79,49 @@ function tzShortName(tz) {
   catch (e) { return ""; }
 }
 
-function ApptCard({ appt, onEdit }) {
+/* ---- Video Call Modal ---- */
+function VideoCallModal({ appt, onClose }) {
+  const room = "cb-" + appt.id;
+  const src = "https://meet.jit.si/" + room + "#config.prejoinPageEnabled=false&userInfo.displayName=Carebridge%20Coordinator";
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 2000, display: "flex", flexDirection: "column", background: "#0a0f1a" }}>
+      {/* Header bar */}
+      <div style={{ background: "#0f1f3d", padding: "10px 18px", display: "flex", alignItems: "center", gap: 14, borderBottom: "1px solid rgba(255,255,255,0.08)", flexShrink: 0 }}>
+        <div style={{ width: 36, height: 36, borderRadius: 10, background: "var(--teal-500,#14b8a6)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <Icon name="video" size={18} style={{ color: "#fff" }} />
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ color: "#fff", fontWeight: 700, fontSize: 14, lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            Video Call · {appt.patient}
+          </div>
+          <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 11, marginTop: 2 }}>
+            {appt.type} · {appt.date} at {appt.time}
+          </div>
+        </div>
+        <a href={"https://meet.jit.si/" + room} target="_blank" rel="noreferrer"
+          style={{ color: "rgba(255,255,255,0.65)", fontSize: 12, textDecoration: "none", padding: "6px 12px", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 8, display: "flex", alignItems: "center", gap: 5, flexShrink: 0 }}>
+          <Icon name="external-link" size={13} style={{ color: "rgba(255,255,255,0.65)" }} /> Pop out
+        </a>
+        <button onClick={onClose}
+          style={{ background: "#ef4444", border: "none", borderRadius: 8, padding: "7px 16px", color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: 13, display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+          <Icon name="phone-off" size={14} style={{ color: "#fff" }} /> End call
+        </button>
+      </div>
+      {/* Jitsi iframe */}
+      <iframe
+        src={src}
+        style={{ flex: 1, border: "none", width: "100%", background: "#111" }}
+        allow="camera; microphone; fullscreen; display-capture; autoplay"
+        title="Video call"
+      />
+    </div>
+  );
+}
+
+function ApptCard({ appt, onEdit, onCall }) {
   const st = STATUS_STYLE[appt.status] || STATUS_STYLE["Scheduled"];
   const tzLabel = tzShortName(appt.timezone);
+  const canCall = appt.video && appt.status !== "Cancelled" && appt.date >= todayISO();
   return (
     <div className="appt-card" onClick={() => onEdit(appt)}>
       <div className="appt-time-col">
@@ -98,7 +138,15 @@ function ApptCard({ appt, onEdit }) {
         <div className="appt-meta">{appt.type} · {appt.doctor}</div>
         {appt.location ? <div className="appt-loc"><i data-lucide="map-pin" style={{width:12,height:12}} /> {appt.location}</div> : null}
       </div>
-      <div className="appt-status" style={{ background: st.bg, color: st.color }}>{appt.status}</div>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, flexShrink: 0 }}>
+        <div className="appt-status" style={{ background: st.bg, color: st.color }}>{appt.status}</div>
+        {canCall && (
+          <button onClick={e => { e.stopPropagation(); onCall(appt); }}
+            style={{ background: "var(--teal-600,#0d9488)", color: "#fff", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 5, whiteSpace: "nowrap" }}>
+            <i data-lucide="video" style={{ width: 13, height: 13 }} /> Start call
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -382,6 +430,7 @@ function AppointmentsView() {
   const [loading, setLoading] = useApptState(true);
   const [bookOpen, setBookOpen] = useApptState(false);
   const [editAppt, setEditAppt] = useApptState(null);
+  const [callAppt, setCallAppt] = useApptState(null);
   const [view, setView] = useApptState("list");
 
   /* Load from Supabase on mount + subscribe to realtime changes */
@@ -503,7 +552,7 @@ function AppointmentsView() {
             <span style={{ fontWeight: 700, fontSize: 15, color: "var(--text-strong)" }}>Today — {todayLabel}</span>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {todayAppts.map(a => <ApptCard key={a.id} appt={a} onEdit={setEditAppt} />)}
+            {todayAppts.map(a => <ApptCard key={a.id} appt={a} onEdit={setEditAppt} onCall={setCallAppt} />)}
           </div>
         </div>
       )}
@@ -521,7 +570,7 @@ function AppointmentsView() {
                 {isoLabel(group.date)}
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {group.items.map(a => <ApptCard key={a.id} appt={a} onEdit={setEditAppt} />)}
+                {group.items.map(a => <ApptCard key={a.id} appt={a} onEdit={setEditAppt} onCall={setCallAppt} />)}
               </div>
             </div>
           ))}
@@ -536,7 +585,7 @@ function AppointmentsView() {
             Past appointments ({past.length})
           </summary>
           <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8, opacity: 0.75 }}>
-            {past.slice(0, 10).map(a => <ApptCard key={a.id} appt={a} onEdit={setEditAppt} />)}
+            {past.slice(0, 10).map(a => <ApptCard key={a.id} appt={a} onEdit={setEditAppt} onCall={setCallAppt} />)}
           </div>
         </details>
       )}
@@ -557,6 +606,7 @@ function AppointmentsView() {
 
       {bookOpen && <BookModal onClose={() => setBookOpen(false)} onSave={addAppt} />}
       {editAppt && <EditModal appt={editAppt} onClose={() => setEditAppt(null)} onSave={saveAppt} onCancel={cancelAppt} />}
+      {callAppt && <VideoCallModal appt={callAppt} onClose={() => setCallAppt(null)} />}
     </div>
   );
 }
