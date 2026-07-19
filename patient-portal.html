@@ -808,11 +808,80 @@ function InfoTab({ invitation }) {
   );
 }
 
+function JitsiCallModal({ room, displayName, peerName, isVideo, onClose }) {
+  const containerRef = useRef(null);
+  const apiRef = useRef(null);
+
+  useEffect(() => {
+    const init = () => {
+      if (!containerRef.current || !window.JitsiMeetExternalAPI) return;
+      try {
+        apiRef.current = new window.JitsiMeetExternalAPI("meet.jit.si", {
+          roomName: room,
+          parentNode: containerRef.current,
+          width: "100%",
+          height: "100%",
+          userInfo: { displayName },
+          configOverwrite: {
+            prejoinPageEnabled: false,
+            startWithVideoMuted: !isVideo,
+            startWithAudioMuted: false,
+            disableDeepLinking: true,
+            enableWelcomePage: false,
+          },
+          interfaceConfigOverwrite: {
+            SHOW_JITSI_WATERMARK: false,
+            SHOW_WATERMARK_FOR_GUESTS: false,
+            MOBILE_APP_PROMO: false,
+            TOOLBAR_BUTTONS: isVideo
+              ? ["microphone", "camera", "hangup", "chat", "tileview", "fullscreen"]
+              : ["microphone", "hangup", "chat", "fullscreen"],
+          },
+        });
+        apiRef.current.addEventListener("readyToClose", onClose);
+      } catch (e) {}
+    };
+
+    if (window.JitsiMeetExternalAPI) {
+      init();
+    } else {
+      const s = document.createElement("script");
+      s.src = "https://meet.jit.si/external_api.js";
+      s.onload = init;
+      document.head.appendChild(s);
+    }
+
+    return () => {
+      if (apiRef.current) { try { apiRef.current.dispose(); } catch (e) {} apiRef.current = null; }
+    };
+  }, []);
+
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "#071224", display: "flex", flexDirection: "column" }}>
+      <div style={{ display: "flex", alignItems: "center", padding: "10px 16px", gap: 12, background: "#071224", borderBottom: "1px solid rgba(255,255,255,0.12)", flexShrink: 0 }}>
+        <div style={{ width: 38, height: 38, borderRadius: "50%", background: "var(--teal)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <Icon name={isVideo ? "video" : "phone"} size={18} style={{ color: "#fff" }} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ color: "#fff", fontWeight: 700, fontSize: 14.5 }}>{isVideo ? "Video call" : "Voice call"} with {peerName}</div>
+          <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 12, marginTop: 1 }}>Carebridge secure call · as {displayName}</div>
+        </div>
+        <button onClick={onClose}
+          style={{ background: "#dc2626", border: "none", borderRadius: 9, color: "#fff", padding: "9px 18px", fontWeight: 700, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 7 }}>
+          <Icon name="phone-off" size={14} style={{ color: "#fff" }} /> End Call
+        </button>
+      </div>
+      <div ref={containerRef} style={{ flex: 1, minHeight: 0 }} />
+    </div>
+  );
+}
+
 function MessagesTab({ invitation, newMsgIds = new Set() }) {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading]   = useState(true);
   const [text, setText]         = useState("");
   const [sending, setSending]   = useState(false);
+  const [activeCall, setActiveCall] = useState(null); /* {room, isVideo} */
   const endRef  = useRef(null);
   const pollRef = useRef(null);
 
@@ -887,6 +956,7 @@ function MessagesTab({ invitation, newMsgIds = new Set() }) {
       const parts = content.split("|");
       const type = parts[0].split(":")[1];
       const url = parts[1];
+      const room = url ? url.replace("https://meet.jit.si/", "").split("#")[0] : "";
       const isAudio = type === "call";
       return (
         <div key={m.id} className="pp-msg pp-msg--coordinator" style={{ marginTop: isFirstInGroup ? 8 : 2 }}>
@@ -901,11 +971,10 @@ function MessagesTab({ invitation, newMsgIds = new Set() }) {
                 <div style={{ fontSize: 11, color: "var(--text-faint)" }}>{m.sender_name} is ready</div>
               </div>
             </div>
-            <a href={url + "#config.prejoinPageEnabled=false&userInfo.displayName=" + encodeURIComponent(invitation.patient_name || "Patient")}
-               target="_blank" rel="noreferrer"
-               style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "var(--teal)", color: "#fff", borderRadius: 10, padding: "10px 18px", fontWeight: 700, fontSize: 14, textDecoration: "none" }}>
+            <button onClick={() => setActiveCall({ room, isVideo: !isAudio })}
+               style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "var(--teal)", color: "#fff", borderRadius: 10, padding: "10px 18px", fontWeight: 700, fontSize: 14, border: "none", cursor: "pointer", width: "100%" }}>
               <Icon name={isAudio ? "phone" : "video"} size={16} style={{ color: "#fff" }} /> Join {isAudio ? "Call" : "Video Call"} Now
-            </a>
+            </button>
           </div>
           <div className="pp-msg-meta">{fmtTime(m.created_at)}</div>
         </div>
@@ -955,6 +1024,15 @@ function MessagesTab({ invitation, newMsgIds = new Set() }) {
           </div>
         </div>
       </div>
+      {activeCall && (
+        <JitsiCallModal
+          room={activeCall.room}
+          displayName={invitation.patient_name || "Patient"}
+          peerName={invitation.coordinator_name || "Coordinator"}
+          isVideo={activeCall.isVideo}
+          onClose={() => setActiveCall(null)}
+        />
+      )}
     </div>
   );
 }

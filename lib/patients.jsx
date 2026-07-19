@@ -782,6 +782,75 @@ function PatientWorkflow({ p, hosp }) {
   );
 }
 
+/* ---- Embedded Jitsi call modal ---- */
+function JitsiCallModal({ room, displayName, peerName, isVideo, onClose }) {
+  const containerRef = React.useRef(null);
+  const apiRef = React.useRef(null);
+
+  React.useEffect(() => {
+    const init = () => {
+      if (!containerRef.current || !window.JitsiMeetExternalAPI) return;
+      try {
+        apiRef.current = new window.JitsiMeetExternalAPI("meet.jit.si", {
+          roomName: room,
+          parentNode: containerRef.current,
+          width: "100%",
+          height: "100%",
+          userInfo: { displayName },
+          configOverwrite: {
+            prejoinPageEnabled: false,
+            startWithVideoMuted: !isVideo,
+            startWithAudioMuted: false,
+            disableDeepLinking: true,
+            enableWelcomePage: false,
+          },
+          interfaceConfigOverwrite: {
+            SHOW_JITSI_WATERMARK: false,
+            SHOW_WATERMARK_FOR_GUESTS: false,
+            MOBILE_APP_PROMO: false,
+            TOOLBAR_BUTTONS: isVideo
+              ? ["microphone", "camera", "hangup", "chat", "tileview", "fullscreen"]
+              : ["microphone", "hangup", "chat", "fullscreen"],
+          },
+        });
+        apiRef.current.addEventListener("readyToClose", onClose);
+      } catch (e) { console.error("Jitsi init error", e); }
+    };
+
+    if (window.JitsiMeetExternalAPI) {
+      init();
+    } else {
+      const s = document.createElement("script");
+      s.src = "https://meet.jit.si/external_api.js";
+      s.onload = init;
+      document.head.appendChild(s);
+    }
+
+    return () => {
+      if (apiRef.current) { try { apiRef.current.dispose(); } catch (e) {} apiRef.current = null; }
+    };
+  }, []);
+
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "#071224", display: "flex", flexDirection: "column" }}>
+      <div style={{ display: "flex", alignItems: "center", padding: "10px 16px", gap: 12, background: "#071224", borderBottom: "1px solid rgba(255,255,255,0.12)", flexShrink: 0 }}>
+        <div style={{ width: 38, height: 38, borderRadius: "50%", background: "var(--teal-500,#14b8a6)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <Icon name={isVideo ? "video" : "phone"} size={18} style={{ color: "#fff" }} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ color: "#fff", fontWeight: 700, fontSize: 14.5 }}>{isVideo ? "Video call" : "Voice call"} with {peerName}</div>
+          <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 12, marginTop: 1 }}>Carebridge secure call · as {displayName}</div>
+        </div>
+        <button data-real onClick={onClose}
+          style={{ background: "#dc2626", border: "none", borderRadius: 9, color: "#fff", padding: "9px 18px", fontWeight: 700, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 7 }}>
+          <Icon name="phone-off" size={14} style={{ color: "#fff" }} /> End Call
+        </button>
+      </div>
+      <div ref={containerRef} style={{ flex: 1, minHeight: 0 }} />
+    </div>
+  );
+}
+
 /* ---- Supabase messaging helpers (admin side) ---- */
 function _getAdminSB() {
   /* Uses the shared Supabase SDK client from supabase-client.js */
@@ -805,6 +874,7 @@ function PatientComms({ p, co }) {
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState("");
+  const [activeCall, setActiveCall] = useState(null); /* {room, isVideo} */
   const endRef = React.useRef(null);
   const pollRef = React.useRef(null);
 
@@ -877,13 +947,14 @@ function PatientComms({ p, co }) {
 
   const startCall = (type) => {
     const pid = invPid || p.id;
-    window.open("https://meet.jit.si/carebridge-" + type + "-" + pid + "#config.prejoinPageEnabled=false&userInfo.displayName=Carebridge%20Coordinator", "_blank");
+    setActiveCall({ room: "carebridge-" + type + "-" + pid, isVideo: type === "video" });
   };
 
   const acceptCall = async (type) => {
     const pid = invPid || p.id;
-    const url = "https://meet.jit.si/carebridge-" + type + "-" + pid;
-    window.open(url + "#config.prejoinPageEnabled=false&userInfo.displayName=Carebridge%20Coordinator", "_blank");
+    const room = "carebridge-" + type + "-" + pid;
+    const url = "https://meet.jit.si/" + room;
+    setActiveCall({ room, isVideo: type === "video" });
     var sb = _getAdminSB();
     if (!sb || !invPid) return;
     var payload = { patient_id: invPid, sender_role: "coordinator", sender_name: co.name || "Coordinator", content: "__CALL_ACCEPTED__:" + type + "|" + url };
@@ -985,6 +1056,15 @@ function PatientComms({ p, co }) {
         <div className="cb-search" style={{ flex: 1, minWidth: 0 }}><input value={text} onChange={(e) => setText(e.target.value)} placeholder={"Message " + p.name + "…"} disabled={sending || !invPid} /></div>
         <button type="submit" className="cb-icon-pill" data-real aria-label="Send" disabled={!text.trim() || sending || !invPid} style={{ background: "var(--teal-500)", color: "#fff", border: "none" }}><Icon name="send" size={18} /></button>
       </form>
+      {activeCall && (
+        <JitsiCallModal
+          room={activeCall.room}
+          displayName={co.name || "Coordinator"}
+          peerName={p.name}
+          isVideo={activeCall.isVideo}
+          onClose={() => setActiveCall(null)}
+        />
+      )}
     </Card>
   );
 }
