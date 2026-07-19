@@ -1510,7 +1510,6 @@ function Dashboard({ invitation, locationLabel, tab, setTab, onLogout, unreadMsg
           { id: "info",     label: "My Info",  icon: "user",           badge: 0           },
           { id: "messages", label: "Messages",  icon: "message-square", badge: unreadMsgs  },
           { id: "journey",  label: "Journey",   icon: "route",          badge: newJourney  },
-          { id: "video",    label: "Video Call", icon: "video",          badge: 0           },
           { id: "ai",       label: "AI Help",   icon: "cpu",            badge: 0           },
           { id: "rate",     label: "Rate Us",   icon: "star",           badge: 0           },
         ].map(t => (
@@ -1527,7 +1526,6 @@ function Dashboard({ invitation, locationLabel, tab, setTab, onLogout, unreadMsg
       {tab === "info"     && <InfoTab     invitation={invitation} />}
       {tab === "messages" && <MessagesTab invitation={invitation} newMsgIds={newMsgIds} />}
       {tab === "journey"  && <JourneyTab  invitation={invitation} newActIds={newActIds} />}
-      {tab === "video"    && <VideoTab    invitation={invitation} />}
       {tab === "ai"       && <AiTab       invitation={invitation} />}
       {tab === "rate"     && <RateTab     invitation={invitation} />}
     </div>
