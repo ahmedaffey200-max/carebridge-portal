@@ -782,75 +782,6 @@ function PatientWorkflow({ p, hosp }) {
   );
 }
 
-/* ---- Embedded Jitsi call modal ---- */
-function JitsiCallModal({ room, displayName, peerName, isVideo, onClose }) {
-  const containerRef = React.useRef(null);
-  const apiRef = React.useRef(null);
-
-  React.useEffect(() => {
-    const init = () => {
-      if (!containerRef.current || !window.JitsiMeetExternalAPI) return;
-      try {
-        apiRef.current = new window.JitsiMeetExternalAPI("meet.jit.si", {
-          roomName: room,
-          parentNode: containerRef.current,
-          width: "100%",
-          height: "100%",
-          userInfo: { displayName },
-          configOverwrite: {
-            prejoinPageEnabled: false,
-            startWithVideoMuted: !isVideo,
-            startWithAudioMuted: false,
-            disableDeepLinking: true,
-            enableWelcomePage: false,
-          },
-          interfaceConfigOverwrite: {
-            SHOW_JITSI_WATERMARK: false,
-            SHOW_WATERMARK_FOR_GUESTS: false,
-            MOBILE_APP_PROMO: false,
-            TOOLBAR_BUTTONS: isVideo
-              ? ["microphone", "camera", "hangup", "chat", "tileview", "fullscreen"]
-              : ["microphone", "hangup", "chat", "fullscreen"],
-          },
-        });
-        apiRef.current.addEventListener("readyToClose", onClose);
-      } catch (e) { console.error("Jitsi init error", e); }
-    };
-
-    if (window.JitsiMeetExternalAPI) {
-      init();
-    } else {
-      const s = document.createElement("script");
-      s.src = "https://meet.jit.si/external_api.js";
-      s.onload = init;
-      document.head.appendChild(s);
-    }
-
-    return () => {
-      if (apiRef.current) { try { apiRef.current.dispose(); } catch (e) {} apiRef.current = null; }
-    };
-  }, []);
-
-  return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "#071224", display: "flex", flexDirection: "column" }}>
-      <div style={{ display: "flex", alignItems: "center", padding: "10px 16px", gap: 12, background: "#071224", borderBottom: "1px solid rgba(255,255,255,0.12)", flexShrink: 0 }}>
-        <div style={{ width: 38, height: 38, borderRadius: "50%", background: "var(--teal-500,#14b8a6)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          <Icon name={isVideo ? "video" : "phone"} size={18} style={{ color: "#fff" }} />
-        </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ color: "#fff", fontWeight: 700, fontSize: 14.5 }}>{isVideo ? "Video call" : "Voice call"} with {peerName}</div>
-          <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 12, marginTop: 1 }}>Carebridge secure call · as {displayName}</div>
-        </div>
-        <button data-real onClick={onClose}
-          style={{ background: "#dc2626", border: "none", borderRadius: 9, color: "#fff", padding: "9px 18px", fontWeight: 700, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 7 }}>
-          <Icon name="phone-off" size={14} style={{ color: "#fff" }} /> End Call
-        </button>
-      </div>
-      <div ref={containerRef} style={{ flex: 1, minHeight: 0 }} />
-    </div>
-  );
-}
-
 /* ---- Supabase messaging helpers (admin side) ---- */
 function _getAdminSB() {
   /* Uses the shared Supabase SDK client from supabase-client.js */
@@ -874,7 +805,6 @@ function PatientComms({ p, co }) {
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState("");
-  const [activeCall, setActiveCall] = useState(null); /* {room, isVideo} */
   const endRef = React.useRef(null);
   const pollRef = React.useRef(null);
 
@@ -945,71 +875,11 @@ function PatientComms({ p, co }) {
     setSending(false);
   };
 
-  const startCall = (type) => {
-    const pid = invPid || p.id;
-    setActiveCall({ room: "carebridge-" + type + "-" + pid, isVideo: type === "video" });
-  };
-
-  const acceptCall = async (type) => {
-    const pid = invPid || p.id;
-    const room = "carebridge-" + type + "-" + pid;
-    const url = "https://meet.jit.si/" + room;
-    setActiveCall({ room, isVideo: type === "video" });
-    var sb = _getAdminSB();
-    if (!sb || !invPid) return;
-    var payload = { patient_id: invPid, sender_role: "coordinator", sender_name: co.name || "Coordinator", content: "__CALL_ACCEPTED__:" + type + "|" + url };
-    if (invId) payload.invitation_id = invId;
-    await sb.from("patient_messages").insert(payload);
-    await loadMsgs(invPid);
-  };
 
   const renderMsg = (m) => {
     const me = m.sender_role === "coordinator";
     const c = m.content || "";
 
-    if (c.startsWith("__CALL_REQUEST__:")) {
-      const type = c.split(":")[1];
-      const isAudio = type === "call";
-      return (
-        <div key={m.id} style={{ alignSelf: "flex-start", maxWidth: "82%" }}>
-          <div style={{ background: "var(--sky-50,#f0f9ff)", border: "1.5px solid var(--sky-200,#bae6fd)", borderRadius: "14px 14px 14px 4px", padding: "14px 16px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 10 }}>
-              <div style={{ width: 34, height: 34, borderRadius: "50%", background: isAudio ? "#dbeafe" : "#dcfce7", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <Icon name={isAudio ? "phone" : "video"} size={16} style={{ color: isAudio ? "#2563eb" : "var(--teal-600,#0d9488)" }} />
-              </div>
-              <div>
-                <div style={{ fontWeight: 700, fontSize: 13, color: "var(--text-strong)" }}>{isAudio ? "Audio" : "Video"} call request</div>
-                <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 1 }}>{m.sender_name} is requesting a {isAudio ? "phone call" : "video call"}</div>
-              </div>
-            </div>
-            <button data-real onClick={() => acceptCall(type)}
-              style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "var(--teal-500,#14b8a6)", color: "#fff", border: "none", borderRadius: 9, padding: "8px 16px", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
-              <Icon name={isAudio ? "phone" : "video"} size={14} style={{ color: "#fff" }} /> Accept &amp; Join call
-            </button>
-          </div>
-          <div style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 3, paddingLeft: 2 }}>{m.sender_name} · {fmtTime(m.created_at)}</div>
-        </div>
-      );
-    }
-
-    if (c.startsWith("__CALL_ACCEPTED__:")) {
-      const parts = c.split("|");
-      const type = parts[0].split(":")[1];
-      const url = parts[1];
-      const isAudio = type === "call";
-      return (
-        <div key={m.id} style={{ alignSelf: "flex-end", maxWidth: "82%" }}>
-          <div style={{ background: "var(--teal-50,#f0fdfa)", border: "1.5px solid var(--teal-200,#99f6e4)", borderRadius: "14px 14px 4px 14px", padding: "12px 16px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 6 }}>
-              <Icon name="check-circle-2" size={15} style={{ color: "var(--teal-600,#0d9488)" }} />
-              <span style={{ fontWeight: 700, fontSize: 13, color: "var(--teal-700,#0f766e)" }}>You accepted — {isAudio ? "audio" : "video"} call started</span>
-            </div>
-            <div style={{ fontSize: 12, color: "var(--text-muted)" }}>The patient can now join the room.</div>
-          </div>
-          <div style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 3, textAlign: "right" }}>{fmtTime(m.created_at)}</div>
-        </div>
-      );
-    }
 
     return (
       <div key={m.id} style={{ alignSelf: me ? "flex-end" : "flex-start", maxWidth: "78%" }}>
@@ -1027,12 +897,12 @@ function PatientComms({ p, co }) {
           <div className="cb-sub">{"Secure thread with " + p.name + " · replies reach the patient app"}</div>
         </div>
         <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-          <button data-real onClick={() => startCall("call")} disabled={!invPid}
-            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px", background: "var(--teal-50,#f0fdfa)", border: "1.5px solid var(--teal-400,#2dd4bf)", borderRadius: 9, fontWeight: 700, fontSize: 12, color: "var(--teal-700,#0f766e)", cursor: "pointer", opacity: invPid ? 1 : 0.4 }}>
+          <button disabled title="Coming soon"
+            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px", background: "var(--teal-50,#f0fdfa)", border: "1.5px solid var(--teal-400,#2dd4bf)", borderRadius: 9, fontWeight: 700, fontSize: 12, color: "var(--teal-700,#0f766e)", opacity: 0.4, cursor: "not-allowed" }}>
             <Icon name="phone" size={14} style={{ color: "var(--teal-700,#0f766e)" }} /> Call
           </button>
-          <button data-real onClick={() => startCall("video")} disabled={!invPid}
-            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px", background: "var(--navy-600,#1B3A6B)", border: "none", borderRadius: 9, fontWeight: 700, fontSize: 12, color: "#fff", cursor: "pointer", opacity: invPid ? 1 : 0.4 }}>
+          <button disabled title="Coming soon"
+            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px", background: "var(--navy-600,#1B3A6B)", border: "none", borderRadius: 9, fontWeight: 700, fontSize: 12, color: "#fff", opacity: 0.4, cursor: "not-allowed" }}>
             <Icon name="video" size={14} style={{ color: "#fff" }} /> Video Call
           </button>
         </div>
@@ -1056,15 +926,6 @@ function PatientComms({ p, co }) {
         <div className="cb-search" style={{ flex: 1, minWidth: 0 }}><input value={text} onChange={(e) => setText(e.target.value)} placeholder={"Message " + p.name + "…"} disabled={sending || !invPid} /></div>
         <button type="submit" className="cb-icon-pill" data-real aria-label="Send" disabled={!text.trim() || sending || !invPid} style={{ background: "var(--teal-500)", color: "#fff", border: "none" }}><Icon name="send" size={18} /></button>
       </form>
-      {activeCall && (
-        <JitsiCallModal
-          room={activeCall.room}
-          displayName={co.name || "Coordinator"}
-          peerName={p.name}
-          isVideo={activeCall.isVideo}
-          onClose={() => setActiveCall(null)}
-        />
-      )}
     </Card>
   );
 }
