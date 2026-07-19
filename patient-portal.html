@@ -850,7 +850,21 @@ function MessagesTab({ invitation, newMsgIds = new Set() }) {
     <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
       <div className="pp-content" style={{ paddingBottom: 0, gap: 0 }}>
         <div className="pp-card">
-          <div className="pp-card-header"><div className="pp-card-title"><Icon name="message-square" /> Messages with {invitation.coordinator_name || "your coordinator"}</div></div>
+          <div className="pp-card-header" style={{ justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
+            <div className="pp-card-title"><Icon name="message-square" /> Messages with {invitation.coordinator_name || "your coordinator"}</div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <a href={"https://meet.jit.si/carebridge-call-" + invitation.patient_id + "#config.startWithVideoMuted=true&config.prejoinPageEnabled=false&userInfo.displayName=" + encodeURIComponent(invitation.patient_name || "Patient")}
+                 target="_blank" rel="noreferrer"
+                 style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px", background: "var(--teal-pale)", color: "var(--teal)", border: "1.5px solid var(--teal)", borderRadius: 10, fontWeight: 700, fontSize: 13, textDecoration: "none" }}>
+                <Icon name="phone" size={15} style={{ color: "var(--teal)" }} /> Call
+              </a>
+              <a href={"https://meet.jit.si/carebridge-video-" + invitation.patient_id + "#config.prejoinPageEnabled=false&userInfo.displayName=" + encodeURIComponent(invitation.patient_name || "Patient")}
+                 target="_blank" rel="noreferrer"
+                 style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px", background: "var(--navy)", color: "#fff", borderRadius: 10, fontWeight: 700, fontSize: 13, textDecoration: "none" }}>
+                <Icon name="video" size={15} style={{ color: "#fff" }} /> Video Call
+              </a>
+            </div>
+          </div>
           {loading ? <div className="pp-loading"><div className="pp-spin" /> Loading messages…</div> : (
             <div className="pp-messages-list">
               {messages.length === 0 ? (

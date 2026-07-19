@@ -306,12 +306,24 @@ function MessagePanel({ invitation, onClose }) {
 
   return (
     <div style={{ position: "fixed", right: 0, top: 0, bottom: 0, width: "min(420px, 100vw)", background: "var(--surface)", boxShadow: "-4px 0 32px rgba(0,0,0,0.15)", zIndex: 400, display: "flex", flexDirection: "column" }}>
-      <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
-        <div>
-          <div style={{ fontWeight: 700, fontSize: 15 }}>{invitation.patient_name}</div>
+      <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10, flexShrink: 0, flexWrap: "wrap" }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 700, fontSize: 15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{invitation.patient_name}</div>
           <div style={{ fontSize: 12, color: "var(--text-faint)", marginTop: 2 }}>{invitation.patient_id} · Messages</div>
         </div>
-        <button className="cb-icon-pill" data-real onClick={onClose} style={{ width: 34, height: 34, boxShadow: "none", border: "none", background: "transparent" }}>
+        <div style={{ display: "flex", gap: 7, flexShrink: 0 }}>
+          <a href={"https://meet.jit.si/carebridge-call-" + invitation.patient_id + "#config.startWithVideoMuted=true&config.prejoinPageEnabled=false&userInfo.displayName=Carebridge%20Coordinator"}
+             target="_blank" rel="noreferrer" data-real
+             style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "6px 12px", background: "var(--teal-50,#f0fdfa)", color: "var(--teal-700,#0f766e)", border: "1.5px solid var(--teal-300,#5eead4)", borderRadius: 9, fontWeight: 700, fontSize: 12, textDecoration: "none" }}>
+            <i data-lucide="phone" style={{ width: 13, height: 13 }} /> Call
+          </a>
+          <a href={"https://meet.jit.si/carebridge-video-" + invitation.patient_id + "#config.prejoinPageEnabled=false&userInfo.displayName=Carebridge%20Coordinator"}
+             target="_blank" rel="noreferrer" data-real
+             style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "6px 12px", background: "var(--navy-600,#1B3A6B)", color: "#fff", borderRadius: 9, fontWeight: 700, fontSize: 12, textDecoration: "none" }}>
+            <i data-lucide="video" style={{ width: 13, height: 13 }} /> Video
+          </a>
+        </div>
+        <button className="cb-icon-pill" data-real onClick={onClose} style={{ width: 32, height: 32, boxShadow: "none", border: "1px solid var(--border)", background: "var(--bg-page)", flexShrink: 0 }}>
           <i data-lucide="x" />
         </button>
       </div>
