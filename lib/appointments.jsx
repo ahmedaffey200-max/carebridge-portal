@@ -457,14 +457,27 @@ async function loadApptsFromDB() {
 }
 
 async function saveApptsToDB(list) {
+  /* Wait up to 8 s for the async Supabase client to become available */
+  let tries = 0;
+  while (!window.CBSupabase && tries++ < 40) await new Promise(r => setTimeout(r, 200));
   const sb = window.CBSupabase;
-  if (!sb) return;
+  if (!sb) {
+    if (window.cbToast) window.cbToast("Sync unavailable — appointments not saved", { icon: "alert-triangle" });
+    return;
+  }
   try {
-    await sb.from("portal_state").upsert(
+    const { error } = await sb.from("portal_state").upsert(
       { id: APPT_ROW_ID, state: list, updated_at: new Date().toISOString() },
       { onConflict: "id" }
     );
-  } catch (e) {}
+    if (error) {
+      console.error("[Appointments] save error:", error);
+      if (window.cbToast) window.cbToast("Failed to save: " + error.message, { icon: "alert-triangle" });
+    }
+  } catch (e) {
+    console.error("[Appointments] save exception:", e);
+    if (window.cbToast) window.cbToast("Failed to save appointments", { icon: "alert-triangle" });
+  }
 }
 
 /* ---- Main View ---- */
