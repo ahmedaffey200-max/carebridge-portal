@@ -447,7 +447,7 @@ function EditModal({ appt, onClose, onSave, onCancel, onDelete }) {
 const APPT_ROW_ID = "appointments";
 
 async function loadApptsFromDB() {
-  const sb = window.CBSupabase;
+  const sb = window.CB_SB;
   if (!sb) return null;
   try {
     const { data } = await sb.from("portal_state").select("state").eq("id", APPT_ROW_ID).single();
@@ -459,8 +459,8 @@ async function loadApptsFromDB() {
 async function saveApptsToDB(list) {
   /* Wait up to 8 s for the async Supabase client to become available */
   let tries = 0;
-  while (!window.CBSupabase && tries++ < 40) await new Promise(r => setTimeout(r, 200));
-  const sb = window.CBSupabase;
+  while (!window.CB_SB && tries++ < 40) await new Promise(r => setTimeout(r, 200));
+  const sb = window.CB_SB;
   if (!sb) {
     if (window.cbToast) window.cbToast("Sync unavailable — appointments not saved", { icon: "alert-triangle" });
     return;
@@ -506,17 +506,17 @@ function AppointmentsView() {
     async function init() {
       /* Wait for CBSupabase to be initialised (injected async) */
       let tries = 0;
-      while (!window.CBSupabase && tries++ < 30) await new Promise(r => setTimeout(r, 200));
+      while (!window.CB_SB && tries++ < 30) await new Promise(r => setTimeout(r, 200));
       if (cancelled) return;
       const list = await loadApptsFromDB();
       if (!cancelled) { setAppts(list || []); setLoading(false); }
-      if (window.CBSupabase) subscribe(window.CBSupabase);
+      if (window.CB_SB) subscribe(window.CB_SB);
     }
 
     init();
     return () => {
       cancelled = true;
-      if (channel && window.CBSupabase) window.CBSupabase.removeChannel(channel);
+      if (channel && window.CB_SB) window.CB_SB.removeChannel(channel);
     };
   }, []);
 
