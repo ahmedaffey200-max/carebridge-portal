@@ -839,11 +839,89 @@ function MessagesTab({ invitation, newMsgIds = new Set() }) {
     setSending(false);
   };
 
+  const sendCallRequest = async (type) => {
+    if (sending) return;
+    setSending(true);
+    const content = "__CALL_REQUEST__:" + type;
+    const { error } = await sb.from("patient_messages").insert({ invitation_id: invitation.id, patient_id: invitation.patient_id, sender_role: "patient", sender_name: invitation.patient_name, content });
+    if (error) showToast("Failed to send request. Please try again.");
+    else await loadMessages();
+    setSending(false);
+  };
+
   const fmtTime = (ts) => {
     const d = new Date(ts), now = new Date();
     const today = d.toDateString() === now.toDateString();
     if (today) return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" }) + " " + d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  };
+
+  const renderMsg = (m, idx) => {
+    const content = m.content || "";
+    const isNew = newMsgIds.has(m.id);
+    const prev = messages[idx - 1];
+    const isFirstInGroup = !prev || prev.sender_role !== m.sender_role;
+
+    /* ---- Call request (sent by patient) ---- */
+    if (content.startsWith("__CALL_REQUEST__:")) {
+      const type = content.split(":")[1];
+      const isAudio = type === "call";
+      return (
+        <div key={m.id} className="pp-msg pp-msg--patient" style={{ marginTop: isFirstInGroup ? 8 : 2 }}>
+          <div style={{ background: "var(--teal-pale)", border: "1.5px solid var(--teal)", borderRadius: "14px 14px 4px 14px", padding: "12px 16px", maxWidth: 280 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+              <Icon name={isAudio ? "phone" : "video"} size={16} style={{ color: "var(--teal)" }} />
+              <span style={{ fontWeight: 700, fontSize: 13, color: "var(--teal)" }}>{isAudio ? "Audio" : "Video"} call requested</span>
+            </div>
+            <div style={{ fontSize: 12, color: "var(--text-sub)", lineHeight: 1.5 }}>
+              Waiting for your coordinator to accept…
+            </div>
+          </div>
+          <div className="pp-msg-meta">{fmtTime(m.created_at)}</div>
+        </div>
+      );
+    }
+
+    /* ---- Call accepted (sent by coordinator) ---- */
+    if (content.startsWith("__CALL_ACCEPTED__:")) {
+      const parts = content.split("|");
+      const type = parts[0].split(":")[1];
+      const url = parts[1];
+      const isAudio = type === "call";
+      return (
+        <div key={m.id} className="pp-msg pp-msg--coordinator" style={{ marginTop: isFirstInGroup ? 8 : 2 }}>
+          <div className="pp-msg-sender">{m.sender_name}</div>
+          <div style={{ background: "var(--surface)", border: "2px solid var(--teal)", borderRadius: "4px 14px 14px 14px", padding: "14px 16px", maxWidth: 300 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+              <div style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--teal)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <Icon name="check" size={16} style={{ color: "#fff" }} />
+              </div>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 13, color: "var(--text)" }}>Call accepted!</div>
+                <div style={{ fontSize: 11, color: "var(--text-faint)" }}>{m.sender_name} is ready</div>
+              </div>
+            </div>
+            <a href={url + "#config.prejoinPageEnabled=false&userInfo.displayName=" + encodeURIComponent(invitation.patient_name || "Patient")}
+               target="_blank" rel="noreferrer"
+               style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "var(--teal)", color: "#fff", borderRadius: 10, padding: "10px 18px", fontWeight: 700, fontSize: 14, textDecoration: "none" }}>
+              <Icon name={isAudio ? "phone" : "video"} size={16} style={{ color: "#fff" }} /> Join {isAudio ? "Call" : "Video Call"} Now
+            </a>
+          </div>
+          <div className="pp-msg-meta">{fmtTime(m.created_at)}</div>
+        </div>
+      );
+    }
+
+    /* ---- Normal message ---- */
+    const showName = m.sender_role === "coordinator" && isFirstInGroup;
+    return (
+      <div key={m.id} className={"pp-msg pp-msg--" + m.sender_role} style={{ marginTop: isFirstInGroup ? 8 : 2 }}>
+        {showName && <div className="pp-msg-sender">{m.sender_name}{isNew && <span style={{ marginLeft: 6, background: "#e53e3e", color: "white", fontSize: 9, fontWeight: 800, padding: "1px 6px", borderRadius: 10, verticalAlign: "middle" }}>NEW</span>}</div>}
+        {!showName && isNew && m.sender_role === "coordinator" && <div className="pp-msg-sender"><span style={{ background: "#e53e3e", color: "white", fontSize: 9, fontWeight: 800, padding: "1px 6px", borderRadius: 10 }}>NEW</span></div>}
+        <div className="pp-msg-bubble" style={isNew ? { outline: "2px solid #e53e3e" } : {}}>{content}</div>
+        <div className="pp-msg-meta">{fmtTime(m.created_at)}{m.sender_role === "patient" && m.read_at ? " · Read" : ""}</div>
+      </div>
+    );
   };
 
   return (
@@ -853,38 +931,21 @@ function MessagesTab({ invitation, newMsgIds = new Set() }) {
           <div className="pp-card-header" style={{ justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
             <div className="pp-card-title"><Icon name="message-square" /> Messages with {invitation.coordinator_name || "your coordinator"}</div>
             <div style={{ display: "flex", gap: 8 }}>
-              <a href={"https://meet.jit.si/carebridge-call-" + invitation.patient_id + "#config.startWithVideoMuted=true&config.prejoinPageEnabled=false&userInfo.displayName=" + encodeURIComponent(invitation.patient_name || "Patient")}
-                 target="_blank" rel="noreferrer"
-                 style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px", background: "var(--teal-pale)", color: "var(--teal)", border: "1.5px solid var(--teal)", borderRadius: 10, fontWeight: 700, fontSize: 13, textDecoration: "none" }}>
-                <Icon name="phone" size={15} style={{ color: "var(--teal)" }} /> Call
-              </a>
-              <a href={"https://meet.jit.si/carebridge-video-" + invitation.patient_id + "#config.prejoinPageEnabled=false&userInfo.displayName=" + encodeURIComponent(invitation.patient_name || "Patient")}
-                 target="_blank" rel="noreferrer"
-                 style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px", background: "var(--navy)", color: "#fff", borderRadius: 10, fontWeight: 700, fontSize: 13, textDecoration: "none" }}>
-                <Icon name="video" size={15} style={{ color: "#fff" }} /> Video Call
-              </a>
+              <button onClick={() => sendCallRequest("call")} disabled={sending}
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 13px", background: "var(--teal-pale)", color: "var(--teal)", border: "1.5px solid var(--teal)", borderRadius: 10, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
+                <Icon name="phone" size={14} style={{ color: "var(--teal)" }} /> Request Call
+              </button>
+              <button onClick={() => sendCallRequest("video")} disabled={sending}
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 13px", background: "var(--navy)", color: "#fff", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
+                <Icon name="video" size={14} style={{ color: "#fff" }} /> Request Video
+              </button>
             </div>
           </div>
           {loading ? <div className="pp-loading"><div className="pp-spin" /> Loading messages…</div> : (
             <div className="pp-messages-list">
               {messages.length === 0 ? (
                 <div className="pp-no-messages"><Icon name="message-square" size={32} /><p style={{ marginTop: 12 }}>No messages yet. Send a message to your coordinator below.</p></div>
-              ) : messages.map((m, idx) => {
-                const isNew = newMsgIds.has(m.id);
-                const prev = messages[idx - 1];
-                const isFirstInGroup = !prev || prev.sender_role !== m.sender_role;
-                const showName = m.sender_role === "coordinator" && isFirstInGroup;
-                return (
-                <div key={m.id} className={"pp-msg pp-msg--" + m.sender_role} style={{ marginTop: isFirstInGroup ? 8 : 2 }}>
-                  {showName && <div className="pp-msg-sender">{m.sender_name}{isNew && <span style={{ marginLeft: 6, background: "#e53e3e", color: "white", fontSize: 9, fontWeight: 800, padding: "1px 6px", borderRadius: 10, verticalAlign: "middle" }}>NEW</span>}</div>}
-                  {!showName && isNew && m.sender_role === "coordinator" && <div className="pp-msg-sender"><span style={{ background: "#e53e3e", color: "white", fontSize: 9, fontWeight: 800, padding: "1px 6px", borderRadius: 10 }}>NEW</span></div>}
-                  <div className="pp-msg-bubble" style={isNew ? { outline: "2px solid #e53e3e" } : {}}>
-                    {m.content}
-                  </div>
-                  <div className="pp-msg-meta">{fmtTime(m.created_at)}{m.sender_role === "patient" && m.read_at ? " · Read" : ""}</div>
-                </div>
-                );
-              })}
+              ) : messages.map((m, idx) => renderMsg(m, idx))}
               <div ref={endRef} />
             </div>
           )}

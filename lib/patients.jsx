@@ -868,7 +868,6 @@ function PatientComms({ p, co }) {
     if (res.error) {
       setSendError("Failed to send: " + res.error.message);
       setText(content);
-      console.error("[CB] PatientComms send error:", res.error);
     } else {
       window.cbToast("Message sent to " + p.name, { icon: "send" });
     }
@@ -876,9 +875,97 @@ function PatientComms({ p, co }) {
     setSending(false);
   };
 
+  const startCall = (type) => {
+    const pid = invPid || p.id;
+    window.open("https://meet.jit.si/carebridge-" + type + "-" + pid + "#config.prejoinPageEnabled=false&userInfo.displayName=Carebridge%20Coordinator", "_blank");
+  };
+
+  const acceptCall = async (type) => {
+    const pid = invPid || p.id;
+    const url = "https://meet.jit.si/carebridge-" + type + "-" + pid;
+    window.open(url + "#config.prejoinPageEnabled=false&userInfo.displayName=Carebridge%20Coordinator", "_blank");
+    var sb = _getAdminSB();
+    if (!sb || !invPid) return;
+    var payload = { patient_id: invPid, sender_role: "coordinator", sender_name: co.name || "Coordinator", content: "__CALL_ACCEPTED__:" + type + "|" + url };
+    if (invId) payload.invitation_id = invId;
+    await sb.from("patient_messages").insert(payload);
+    await loadMsgs(invPid);
+  };
+
+  const renderMsg = (m) => {
+    const me = m.sender_role === "coordinator";
+    const c = m.content || "";
+
+    if (c.startsWith("__CALL_REQUEST__:")) {
+      const type = c.split(":")[1];
+      const isAudio = type === "call";
+      return (
+        <div key={m.id} style={{ alignSelf: "flex-start", maxWidth: "82%" }}>
+          <div style={{ background: "var(--sky-50,#f0f9ff)", border: "1.5px solid var(--sky-200,#bae6fd)", borderRadius: "14px 14px 14px 4px", padding: "14px 16px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 10 }}>
+              <div style={{ width: 34, height: 34, borderRadius: "50%", background: isAudio ? "#dbeafe" : "#dcfce7", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <Icon name={isAudio ? "phone" : "video"} size={16} style={{ color: isAudio ? "#2563eb" : "var(--teal-600,#0d9488)" }} />
+              </div>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 13, color: "var(--text-strong)" }}>{isAudio ? "Audio" : "Video"} call request</div>
+                <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 1 }}>{m.sender_name} is requesting a {isAudio ? "phone call" : "video call"}</div>
+              </div>
+            </div>
+            <button data-real onClick={() => acceptCall(type)}
+              style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "var(--teal-500,#14b8a6)", color: "#fff", border: "none", borderRadius: 9, padding: "8px 16px", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+              <Icon name={isAudio ? "phone" : "video"} size={14} style={{ color: "#fff" }} /> Accept &amp; Join call
+            </button>
+          </div>
+          <div style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 3, paddingLeft: 2 }}>{m.sender_name} · {fmtTime(m.created_at)}</div>
+        </div>
+      );
+    }
+
+    if (c.startsWith("__CALL_ACCEPTED__:")) {
+      const parts = c.split("|");
+      const type = parts[0].split(":")[1];
+      const url = parts[1];
+      const isAudio = type === "call";
+      return (
+        <div key={m.id} style={{ alignSelf: "flex-end", maxWidth: "82%" }}>
+          <div style={{ background: "var(--teal-50,#f0fdfa)", border: "1.5px solid var(--teal-200,#99f6e4)", borderRadius: "14px 14px 4px 14px", padding: "12px 16px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 6 }}>
+              <Icon name="check-circle-2" size={15} style={{ color: "var(--teal-600,#0d9488)" }} />
+              <span style={{ fontWeight: 700, fontSize: 13, color: "var(--teal-700,#0f766e)" }}>You accepted — {isAudio ? "audio" : "video"} call started</span>
+            </div>
+            <div style={{ fontSize: 12, color: "var(--text-muted)" }}>The patient can now join the room.</div>
+          </div>
+          <div style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 3, textAlign: "right" }}>{fmtTime(m.created_at)}</div>
+        </div>
+      );
+    }
+
+    return (
+      <div key={m.id} style={{ alignSelf: me ? "flex-end" : "flex-start", maxWidth: "78%" }}>
+        <div style={{ padding: "11px 15px", borderRadius: me ? "16px 16px 4px 16px" : "16px 16px 16px 4px", background: me ? "var(--navy-600)" : "var(--sky-100)", color: me ? "#fff" : "var(--text-body)", fontSize: 14, lineHeight: 1.5 }}>{c}</div>
+        <div style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 4, textAlign: me ? "right" : "left" }}>{m.sender_name} · {fmtTime(m.created_at)}</div>
+      </div>
+    );
+  };
+
   return (
     <Card>
-      <CardHead title="Message patient" sub={"Secure thread with " + p.name + " · replies reach the patient app"} />
+      <div className="cb-card__head" style={{ flexWrap: "wrap", gap: 10 }}>
+        <div style={{ flex: 1 }}>
+          <h3>Message patient</h3>
+          <div className="cb-sub">{"Secure thread with " + p.name + " · replies reach the patient app"}</div>
+        </div>
+        <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+          <button data-real onClick={() => startCall("call")} disabled={!invPid}
+            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px", background: "var(--teal-50,#f0fdfa)", border: "1.5px solid var(--teal-400,#2dd4bf)", borderRadius: 9, fontWeight: 700, fontSize: 12, color: "var(--teal-700,#0f766e)", cursor: "pointer", opacity: invPid ? 1 : 0.4 }}>
+            <Icon name="phone" size={14} style={{ color: "var(--teal-700,#0f766e)" }} /> Call
+          </button>
+          <button data-real onClick={() => startCall("video")} disabled={!invPid}
+            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px", background: "var(--navy-600,#1B3A6B)", border: "none", borderRadius: 9, fontWeight: 700, fontSize: 12, color: "#fff", cursor: "pointer", opacity: invPid ? 1 : 0.4 }}>
+            <Icon name="video" size={14} style={{ color: "#fff" }} /> Video Call
+          </button>
+        </div>
+      </div>
       {loading && !invPid ? (
         <div style={{ textAlign: "center", padding: 24, color: "var(--text-muted)" }}>Loading…</div>
       ) : (
@@ -890,15 +977,7 @@ function PatientComms({ p, co }) {
           )}
           {msgs.length === 0 && !loading ? (
             <div style={{ textAlign: "center", padding: 24, color: "var(--text-faint)", fontSize: 14 }}>No messages yet. Send a message to {p.name} below.</div>
-          ) : msgs.map((m) => {
-            const me = m.sender_role === "coordinator";
-            return (
-              <div key={m.id} style={{ alignSelf: me ? "flex-end" : "flex-start", maxWidth: "78%" }}>
-                <div style={{ padding: "11px 15px", borderRadius: me ? "16px 16px 4px 16px" : "16px 16px 16px 4px", background: me ? "var(--navy-600)" : "var(--sky-100)", color: me ? "#fff" : "var(--text-body)", fontSize: 14, lineHeight: 1.5 }}>{m.content}</div>
-                <div style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 4, textAlign: me ? "right" : "left" }}>{m.sender_name} · {fmtTime(m.created_at)}</div>
-              </div>
-            );
-          })}
+          ) : msgs.map(renderMsg)}
         </div>
       )}
       {sendError && <div style={{ color: "var(--red-600,#dc2626)", fontSize: 13, padding: "4px 0 8px" }}>{sendError}</div>}
