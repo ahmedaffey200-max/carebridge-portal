@@ -1356,7 +1356,7 @@ function AiTab({ invitation }) {
         content: data.text || (lang === "so" ? "Waan ka xumahay, jawaab ma helin. Fadlan isku day mar kale." : "Sorry, I could not get a response."),
       }]);
     } catch (err) {
-      setMessages(prev => [...prev, { role: "assistant", content: t.error }]);
+      setMessages(prev => [...prev, { role: "assistant", content: t.error + " (" + (err.message || "unknown") + ")" }]);
     } finally {
       setBusy(false);
     }
