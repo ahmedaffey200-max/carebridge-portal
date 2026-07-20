@@ -9,7 +9,7 @@ const AI_HISTORY_STORAGE = "cb_ai_chat_history";
 // Supabase project constants (public values — same as supabase-client.js)
 const SB_URL  = "https://htvjjwfenvittdritjni.supabase.co";
 const SB_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh0dmpqd2ZlbnZpdHRkcml0am5pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2NTQ3OTAsImV4cCI6MjA5OTIzMDc5MH0.AMKUctPj49ahqXAFZbzJ341ZFH5XTckBUQaDmF5ZLj8";
-const EDGE_FN = SB_URL + "/functions/v1/ai-chat";
+const EDGE_FN = "/api/ai-chat";
 
 const SUGGESTED_QUESTIONS = [
   "Give me a full summary of all active patients and their status",
