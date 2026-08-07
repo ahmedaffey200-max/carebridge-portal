@@ -34,10 +34,17 @@ function callAnthropic(payload) {
   });
 }
 
+const ALLOWED_ORIGINS = ["carebridgeinternational.ca", "vercel.app"];
+
 module.exports = async (req, res) => {
   Object.entries(CORS).forEach(([k, v]) => res.setHeader(k, v));
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+
+  // Block requests not coming from the portal domains
+  const origin = (req.headers.origin || req.headers.referer || "");
+  const allowed = ALLOWED_ORIGINS.some(d => origin.includes(d));
+  if (!allowed) return res.status(403).json({ error: "Forbidden" });
 
   const { system = "", messages = [] } = req.body || {};
   if (!Array.isArray(messages) || messages.length === 0)
