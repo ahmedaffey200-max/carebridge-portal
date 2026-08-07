@@ -405,10 +405,78 @@
   document.getElementById("email").addEventListener("input", hideError);
   document.getElementById("password").addEventListener("input", hideError);
 
-  // Forgot password
+  // Forgot password — show inline email form
   document.getElementById("forgot").addEventListener("click", function (e) {
     e.preventDefault();
-    alert("To reset your password, go to Supabase → Authentication → Users and reset it from there.\n\nOr contact your system administrator.");
+    var card = document.getElementById("auth-card");
+    card.innerHTML =
+      '<div class="auth__mobilebrand"><img src="assets/carebridge-logo.png" alt="Carebridge International" /></div>' +
+      '<h2 class="auth__title">Reset your password</h2>' +
+      '<p class="auth__sub">Enter your email and we\'ll send you a reset link.</p>' +
+      '<div class="auth__hint" id="fp-error" style="display:none;background:#fff1f2;border-color:#fda4af;">' +
+        '<i data-lucide="alert-circle" style="color:#e11d48;flex:none"></i>' +
+        '<span style="color:#be123c" id="fp-error-msg">Could not send reset email. Please try again.</span>' +
+      '</div>' +
+      '<div class="auth__hint" id="fp-success" style="display:none;background:#f0fdf4;border-color:#86efac;">' +
+        '<i data-lucide="mail-check" style="color:#16a34a;flex:none"></i>' +
+        '<span style="color:#166534">Reset link sent! Check your email (including spam).</span>' +
+      '</div>' +
+      '<form id="fp-form" novalidate>' +
+        '<div class="auth__field"><label class="auth__label">Email address</label>' +
+          '<div class="auth__inputwrap"><i data-lucide="mail"></i>' +
+            '<input class="auth__input" type="email" id="fp-email" placeholder="you@carebridge.com" autocomplete="email" />' +
+          '</div></div>' +
+        '<button type="submit" class="auth__btn auth__btn--primary">' +
+          '<span id="fp-label">Send reset link</span><i data-lucide="send"></i>' +
+        '</button>' +
+      '</form>' +
+      '<p style="text-align:center;margin-top:16px">' +
+        '<a href="#" id="fp-back" style="color:var(--teal,#1CA89C);font-size:14px">&larr; Back to sign in</a>' +
+      '</p>';
+    if (window.lucide) lucide.createIcons();
+
+    document.getElementById("fp-back").addEventListener("click", function(ev) {
+      ev.preventDefault();
+      window.location.reload();
+    });
+
+    document.getElementById("fp-form").addEventListener("submit", async function(ev) {
+      ev.preventDefault();
+      var email = document.getElementById("fp-email").value.trim();
+      document.getElementById("fp-error").style.display = "none";
+      document.getElementById("fp-success").style.display = "none";
+      if (!email) return;
+
+      document.getElementById("fp-label").textContent = "Sending…";
+      var btn = document.querySelector("#fp-form button[type=submit]");
+      btn.disabled = true;
+
+      // Wait up to 4s for Supabase to be ready
+      var tries = 0;
+      while (!window.CB_SB && tries++ < 20) await new Promise(function(r){ setTimeout(r, 200); });
+
+      if (!window.CB_SB) {
+        document.getElementById("fp-error-msg").textContent = "Service unavailable. Please try again in a moment.";
+        document.getElementById("fp-error").style.display = "flex";
+        document.getElementById("fp-label").textContent = "Send reset link";
+        btn.disabled = false;
+        if (window.lucide) lucide.createIcons();
+        return;
+      }
+
+      var redirectTo = window.location.origin + window.location.pathname;
+      var res = await window.CB_SB.auth.resetPasswordForEmail(email, { redirectTo: redirectTo });
+      if (res.error) {
+        document.getElementById("fp-error-msg").textContent = res.error.message || "Could not send reset email.";
+        document.getElementById("fp-error").style.display = "flex";
+        document.getElementById("fp-label").textContent = "Send reset link";
+        btn.disabled = false;
+      } else {
+        document.getElementById("fp-success").style.display = "flex";
+        document.getElementById("fp-form").style.display = "none";
+      }
+      if (window.lucide) lucide.createIcons();
+    });
   });
 
   setRole("admin");
