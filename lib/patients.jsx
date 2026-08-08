@@ -710,7 +710,45 @@ function PatientDocuments({ pid }) {
   usePatients(); // re-render on visa change
   const visaApp = window.CBStore.getVisaApp(pid);
   const fileRef = React.useRef(null);
+  const replaceRef = React.useRef(null);
   const [delDoc, setDelDoc] = useState(null);
+  const [replacingId, setReplacingId] = useState(null);
+  const [uploadingId, setUploadingId] = useState(null);
+
+  const onReplace = async (e, doc) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    e.target.value = "";
+    setUploadingId(doc.id);
+    const sb = _getAdminSB();
+    if (sb) {
+      try {
+        const ext  = file.name.split(".").pop().toLowerCase();
+        const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const path = pid + "/" + Date.now() + "_" + safe;
+        await sb.storage.createBucket("patient-documents", { public: true }).catch(() => {});
+        const { error: upErr } = await sb.storage.from("patient-documents").upload(path, file, { upsert: true });
+        if (!upErr) {
+          const { data: pub } = sb.storage.from("patient-documents").getPublicUrl(path);
+          const autoType = ext === "pdf" ? "pdf" : ["jpg","jpeg","png","gif","webp"].includes(ext) ? "image" : "document";
+          await sb.from("patient_documents").upsert({
+            patient_id: pid,
+            name: doc.name,
+            url: pub?.publicUrl || "",
+            file_type: autoType,
+            uploaded_by: "coordinator",
+          }, { onConflict: "id" });
+          window.cbToast("File uploaded — patient can download it", { icon: "upload-cloud" });
+        } else {
+          window.cbToast("Upload failed: " + upErr.message, { icon: "x-circle" });
+        }
+      } catch (err) {
+        window.cbToast("Upload error", { icon: "x-circle" });
+      }
+    }
+    setUploadingId(null);
+    setReplacingId(null);
+  };
   const onPick = async (e) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
@@ -807,6 +845,14 @@ function PatientDocuments({ pid }) {
                 <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{d.type} · {d.size}{d.updated ? " · " + d.updated : ""}</div>
               </div>
               <div className="cb-doccard__actions">
+                {canEdit ? (
+                  <label title="Upload file for patient" style={{ cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", width:30, height:30, borderRadius:7, background:"rgba(28,168,156,0.1)", color:"var(--teal-600,#1CA89C)", border:"none", flexShrink:0 }}>
+                    {uploadingId === d.id
+                      ? <Icon name="loader" size={15} style={{ animation:"spin 1s linear infinite" }} />
+                      : <Icon name="upload-cloud" size={15} />}
+                    <input type="file" style={{ display:"none" }} accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif" onChange={e => onReplace(e, d)} />
+                  </label>
+                ) : null}
                 <button className="cb-rowbtn" data-real aria-label={"Preview " + d.name} title="Preview" onClick={() => window.cbToast("Opening preview…", { icon: "eye", sub: d.name })}><Icon name="eye" size={16} /></button>
                 <button className="cb-rowbtn" data-real aria-label={"Download " + d.name} title="Download" onClick={() => window.cbToast("Downloading…", { icon: "download", sub: d.name })}><Icon name="download" size={16} /></button>
                 {canEdit ? <button className="cb-rowbtn cb-rowbtn--danger" data-real aria-label={"Delete " + d.name} title="Delete" onClick={() => setDelDoc(d)}><Icon name="trash-2" size={16} /></button> : null}
