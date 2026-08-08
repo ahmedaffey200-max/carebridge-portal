@@ -249,7 +249,7 @@ function SendInvitationModal({ onClose, onSent }) {
 }
 
 /* ---- Message thread side panel ---- */
-function MessagePanel({ invitation, onClose }) {
+function MessagePanel({ invitation, onClose, onPatientUpdated }) {
   const [panelTab, setPanelTab] = useSt("messages");
   const [messages, setMsgs] = useSt([]);
   const [loading, setLoading] = useSt(true);
@@ -306,9 +306,12 @@ function MessagePanel({ invitation, onClose }) {
   };
 
   const PANEL_TABS = [
-    { id: "messages", label: "Messages", icon: "message-square" },
-    { id: "travel",   label: "Travel",   icon: "plane" },
-    { id: "documents",label: "Documents",icon: "file-text" },
+    { id: "messages",  label: "Messages",  icon: "message-square" },
+    { id: "journey",   label: "Journey",   icon: "route" },
+    { id: "info",      label: "Edit Info", icon: "edit-3" },
+    { id: "travel",    label: "Travel",    icon: "plane" },
+    { id: "documents", label: "Documents", icon: "file-text" },
+    { id: "checklist", label: "Checklist", icon: "check-square" },
   ];
 
   return (
@@ -336,12 +339,12 @@ function MessagePanel({ invitation, onClose }) {
             <i data-lucide="x" />
           </button>
         </div>
-        {/* Tab bar */}
-        <div style={{ display: "flex", gap: 4 }}>
+        {/* Tab bar — scrollable so all 6 tabs fit on mobile */}
+        <div style={{ display: "flex", gap: 2, overflowX: "auto", scrollbarWidth: "none" }}>
           {PANEL_TABS.map(t => (
             <button key={t.id} data-real onClick={() => setPanelTab(t.id)}
-              style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "7px 14px", fontSize: 13, fontWeight: panelTab === t.id ? 700 : 500, color: panelTab === t.id ? "var(--navy-600,#1B3A6B)" : "var(--text-faint)", borderBottom: panelTab === t.id ? "2.5px solid var(--navy-600,#1B3A6B)" : "2.5px solid transparent", background: "none", border: "none", borderBottom: panelTab === t.id ? "2.5px solid var(--navy-600,#1B3A6B)" : "2.5px solid transparent", cursor: "pointer", borderRadius: "6px 6px 0 0", transition: "color .15s" }}>
-              <i data-lucide={t.icon} style={{ width: 13, height: 13 }} /> {t.label}
+              style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "7px 11px", fontSize: 12, fontWeight: panelTab === t.id ? 700 : 500, color: panelTab === t.id ? "var(--navy-600,#1B3A6B)" : "var(--text-faint)", background: "none", border: "none", borderBottom: panelTab === t.id ? "2.5px solid var(--navy-600,#1B3A6B)" : "2.5px solid transparent", cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0, transition: "color .15s" }}>
+              <i data-lucide={t.icon} style={{ width: 12, height: 12 }} /> {t.label}
             </button>
           ))}
         </div>
@@ -371,6 +374,20 @@ function MessagePanel({ invitation, onClose }) {
         </div>
       </>)}
 
+      {/* Journey tab */}
+      {panelTab === "journey" && (
+        <div style={{ flex: 1, overflowY: "auto" }}>
+          <JourneyPanel invitation={invitation} onPatientUpdated={onPatientUpdated} />
+        </div>
+      )}
+
+      {/* Edit Info tab */}
+      {panelTab === "info" && (
+        <div style={{ flex: 1, overflowY: "auto" }}>
+          <EditInfoPanel invitation={invitation} onPatientUpdated={onPatientUpdated} />
+        </div>
+      )}
+
       {/* Travel tab */}
       {panelTab === "travel" && (
         <div style={{ flex: 1, overflowY: "auto" }}>
@@ -382,6 +399,13 @@ function MessagePanel({ invitation, onClose }) {
       {panelTab === "documents" && (
         <div style={{ flex: 1, overflowY: "auto" }}>
           <DocumentsPanel invitation={invitation} />
+        </div>
+      )}
+
+      {/* Checklist tab */}
+      {panelTab === "checklist" && (
+        <div style={{ flex: 1, overflowY: "auto" }}>
+          <ChecklistPanel invitation={invitation} />
         </div>
       )}
     </div>
@@ -536,6 +560,298 @@ function DocumentsPanel({ invitation }) {
           </button>
         </div>
       ))}
+    </div>
+  );
+}
+
+/* ---- Journey panel (coordinator adds activities + updates stage) ---- */
+const STAGES = ["Pre-Assessment","Documents Collection","Visa & Travel Preparation","Treatment Planning","Travel","Hospital Admission","Treatment / Procedure","Recovery","Follow-up","Completed"];
+const ACT_TYPES = [
+  { id: "stage_change",        label: "Stage Update" },
+  { id: "appointment_booked",  label: "Appointment Booked" },
+  { id: "appointment_updated", label: "Appointment Updated" },
+  { id: "specialty_change",    label: "Specialty Change" },
+  { id: "priority_change",     label: "Priority Change" },
+  { id: "condition_update",    label: "Condition Update" },
+  { id: "destination_change",  label: "Destination Change" },
+  { id: "document_status",     label: "Document Status" },
+  { id: "visa_status",         label: "Visa Status" },
+];
+function JourneyPanel({ invitation, onPatientUpdated }) {
+  const BLANK = { activity_type: "stage_change", title: "", description: "", new_value: "" };
+  const [form,    setForm]    = useSt(BLANK);
+  const [acts,    setActs]    = useSt([]);
+  const [saving,  setSaving]  = useSt(false);
+  const [loading, setLoading] = useSt(true);
+  const [stage,   setStage]   = useSt(invitation.stage || "");
+  const [updatingStage, setUpdatingStage] = useSt(false);
+
+  const sb = getSB();
+  const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
+
+  useEff(() => {
+    if (!sb) return;
+    sb.from("patient_activities").select("*").eq("patient_id", invitation.patient_id)
+      .order("created_at", { ascending: false }).limit(20)
+      .then(({ data }) => { setActs(data || []); setLoading(false); });
+  }, [invitation.patient_id]);
+
+  const addActivity = async () => {
+    if (!form.title.trim()) return;
+    setSaving(true);
+    const coordName = invitation.coordinator_name || "Carebridge Coordinator";
+    const old_value = form.activity_type === "stage_change" ? (invitation.stage || "") : undefined;
+    const new_value = form.activity_type === "stage_change" ? (form.new_value || stage) : (form.new_value || undefined);
+    const { error } = await sb.from("patient_activities").insert({
+      patient_id:    invitation.patient_id,
+      activity_type: form.activity_type,
+      title:         form.title.trim(),
+      description:   form.description.trim() || null,
+      old_value:     old_value || null,
+      new_value:     new_value || null,
+      created_by:    coordName,
+    });
+    if (!error) {
+      if (form.activity_type === "stage_change" && form.new_value) {
+        await sb.from("patient_invitations").update({ stage: form.new_value }).eq("id", invitation.id);
+        onPatientUpdated && onPatientUpdated();
+      }
+      const { data } = await sb.from("patient_activities").select("*").eq("patient_id", invitation.patient_id).order("created_at", { ascending: false }).limit(20);
+      setActs(data || []);
+      setForm(BLANK);
+      window.cbToast && window.cbToast("Journey update added", { icon: "route" });
+    } else {
+      window.cbToast && window.cbToast("Error: " + error.message, { icon: "x-circle" });
+    }
+    setSaving(false);
+  };
+
+  const updateStage = async () => {
+    if (!stage) return;
+    setUpdatingStage(true);
+    await sb.from("patient_invitations").update({ stage }).eq("id", invitation.id);
+    onPatientUpdated && onPatientUpdated();
+    setUpdatingStage(false);
+    window.cbToast && window.cbToast("Stage updated to: " + stage, { icon: "route" });
+  };
+
+  const fmtT = (ts) => new Date(ts).toLocaleDateString("en-GB", { day:"numeric", month:"short" }) + " " + new Date(ts).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" });
+  const IS = { width:"100%", minHeight:38 };
+
+  return (
+    <div style={{ padding:16, display:"flex", flexDirection:"column", gap:14 }}>
+      {/* Quick stage update */}
+      <div style={{ background:"var(--bg-page)", border:"1px solid var(--border)", borderRadius:10, padding:14 }}>
+        <div style={{ fontSize:12, fontWeight:700, color:"var(--text-faint)", textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:10 }}>Treatment Stage</div>
+        <div style={{ display:"flex", gap:8 }}>
+          <select className="cb-input" value={stage} onChange={e=>setStage(e.target.value)} style={{ flex:1, minHeight:38 }} data-real>
+            <option value="">— Select stage —</option>
+            {STAGES.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+          <button className="cb-btn cb-btn--primary" data-real onClick={updateStage} disabled={updatingStage || !stage} style={{ whiteSpace:"nowrap" }}>
+            <i data-lucide="check" style={{ width:14, height:14 }} /> {updatingStage ? "Saving…" : "Update"}
+          </button>
+        </div>
+        {invitation.stage && <div style={{ fontSize:11, color:"var(--text-faint)", marginTop:6 }}>Current: <strong>{invitation.stage}</strong></div>}
+      </div>
+
+      {/* Add activity */}
+      <div style={{ background:"var(--bg-page)", border:"1px solid var(--border)", borderRadius:10, padding:14 }}>
+        <div style={{ fontSize:12, fontWeight:700, color:"var(--text-faint)", textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:10 }}>Add Journey Update</div>
+        <div style={{ marginBottom:10 }}>
+          <label style={{ display:"block", fontSize:11, fontWeight:600, color:"var(--text-faint)", marginBottom:4 }}>Type</label>
+          <select className="cb-input" value={form.activity_type} onChange={set("activity_type")} style={IS} data-real>
+            {ACT_TYPES.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+          </select>
+        </div>
+        {form.activity_type === "stage_change" && (
+          <div style={{ marginBottom:10 }}>
+            <label style={{ display:"block", fontSize:11, fontWeight:600, color:"var(--text-faint)", marginBottom:4 }}>New Stage</label>
+            <select className="cb-input" value={form.new_value} onChange={set("new_value")} style={IS} data-real>
+              <option value="">— Select —</option>
+              {STAGES.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+        )}
+        <div style={{ marginBottom:10 }}>
+          <label style={{ display:"block", fontSize:11, fontWeight:600, color:"var(--text-faint)", marginBottom:4 }}>Title</label>
+          <input className="cb-input" value={form.title} onChange={set("title")} placeholder="e.g. Visa application submitted" style={IS} data-real />
+        </div>
+        <div style={{ marginBottom:12 }}>
+          <label style={{ display:"block", fontSize:11, fontWeight:600, color:"var(--text-faint)", marginBottom:4 }}>Description (optional)</label>
+          <textarea className="cb-input" value={form.description} onChange={set("description")} placeholder="Additional details…" style={{ width:"100%", minHeight:60, resize:"vertical" }} data-real />
+        </div>
+        <button className="cb-btn cb-btn--primary" data-real onClick={addActivity} disabled={saving || !form.title.trim()} style={{ width:"100%" }}>
+          <i data-lucide="plus" style={{ width:14, height:14 }} /> {saving ? "Adding…" : "Add to Journey"}
+        </button>
+      </div>
+
+      {/* Recent activities */}
+      <div style={{ fontSize:12, fontWeight:700, color:"var(--text-faint)", textTransform:"uppercase", letterSpacing:"0.05em" }}>Recent Updates</div>
+      {loading ? <div style={{ color:"var(--text-faint)", fontSize:13, textAlign:"center", padding:16 }}>Loading…</div>
+      : acts.length === 0 ? <div style={{ color:"var(--text-faint)", fontSize:13, textAlign:"center", padding:16 }}>No journey updates yet.</div>
+      : acts.map(a => (
+        <div key={a.id} style={{ background:"var(--bg-page)", border:"1px solid var(--border)", borderRadius:10, padding:"10px 14px" }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:8, marginBottom:4 }}>
+            <div style={{ fontWeight:600, fontSize:13 }}>{a.title}</div>
+            <div style={{ fontSize:11, color:"var(--text-faint)", flexShrink:0 }}>{fmtT(a.created_at)}</div>
+          </div>
+          {a.description && <div style={{ fontSize:12, color:"var(--text-faint)" }}>{a.description}</div>}
+          {a.new_value && <div style={{ fontSize:11, marginTop:4, color:"var(--teal-600,#1CA89C)", fontWeight:600 }}>{a.old_value ? a.old_value + " → " + a.new_value : a.new_value}</div>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ---- Checklist panel (coordinator customises per-patient items) ---- */
+function ChecklistPanel({ invitation }) {
+  const DEFAULT_ITEMS = [
+    { id: "passport",  label: "Passport valid (6+ months)" },
+    { id: "visa",      label: "Visa obtained" },
+    { id: "medical",   label: "Medical records ready" },
+    { id: "insurance", label: "Insurance confirmed" },
+    { id: "flight",    label: "Flight booked" },
+    { id: "hotel",     label: "Hotel confirmed" },
+    { id: "meds",      label: "Medications list prepared" },
+    { id: "contacts",  label: "Emergency contacts saved" },
+  ];
+  const rowId = "checklist_" + invitation.patient_id;
+  const [items,   setItems]   = useSt(DEFAULT_ITEMS);
+  const [newLabel, setNewLabel] = useSt("");
+  const [saving,  setSaving]  = useSt(false);
+  const [loaded,  setLoaded]  = useSt(false);
+
+  useEff(() => {
+    const sb = getSB(); if (!sb) return;
+    sb.from("portal_state").select("state").eq("id", rowId).single()
+      .then(({ data }) => { if (data?.state?.items?.length) setItems(data.state.items); setLoaded(true); })
+      .catch(() => setLoaded(true));
+  }, [invitation.patient_id]);
+
+  const addItem = () => {
+    if (!newLabel.trim()) return;
+    const id = "custom_" + Date.now();
+    setItems(prev => [...prev, { id, label: newLabel.trim() }]);
+    setNewLabel("");
+  };
+  const removeItem = (id) => setItems(prev => prev.filter(it => it.id !== id));
+
+  const save = async () => {
+    setSaving(true);
+    const sb = getSB();
+    await sb.from("portal_state").upsert({ id: rowId, state: { items } }, { onConflict: "id" });
+    setSaving(false);
+    window.cbToast && window.cbToast("Checklist saved for " + invitation.patient_name, { icon: "check-square" });
+  };
+
+  return (
+    <div style={{ padding:16, display:"flex", flexDirection:"column", gap:12 }}>
+      <div style={{ fontSize:12, color:"var(--text-faint)", lineHeight:1.5 }}>
+        Customise the pre-travel checklist for <strong>{invitation.patient_name}</strong>. Changes appear on their portal immediately after saving.
+      </div>
+      {!loaded ? <div style={{ color:"var(--text-faint)", fontSize:13, textAlign:"center", padding:16 }}>Loading…</div> : (<>
+        <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+          {items.map((it, idx) => (
+            <div key={it.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 14px", background:"var(--bg-page)", border:"1px solid var(--border)", borderRadius:10 }}>
+              <i data-lucide="check-square" style={{ width:16, height:16, color:"var(--teal-600,#1CA89C)", flexShrink:0 }} />
+              <span style={{ flex:1, fontSize:14 }}>{it.label}</span>
+              <button data-real onClick={() => removeItem(it.id)} style={{ background:"none", border:"none", color:"var(--text-faint)", cursor:"pointer", padding:4 }}>
+                <i data-lucide="x" style={{ width:14, height:14 }} />
+              </button>
+            </div>
+          ))}
+        </div>
+        <div style={{ display:"flex", gap:8 }}>
+          <input className="cb-input" value={newLabel} onChange={e=>setNewLabel(e.target.value)} placeholder="New item…" style={{ flex:1, minHeight:38 }}
+            onKeyDown={e => { if (e.key === "Enter") addItem(); }} data-real />
+          <button className="cb-btn cb-btn--ghost" data-real onClick={addItem} disabled={!newLabel.trim()} style={{ whiteSpace:"nowrap" }}>
+            <i data-lucide="plus" style={{ width:14, height:14 }} /> Add
+          </button>
+        </div>
+        <button className="cb-btn cb-btn--primary" data-real onClick={save} disabled={saving} style={{ width:"100%" }}>
+          <i data-lucide="save" style={{ width:14, height:14 }} /> {saving ? "Saving…" : "Save Checklist"}
+        </button>
+      </>)}
+    </div>
+  );
+}
+
+/* ---- Edit patient info panel ---- */
+function EditInfoPanel({ invitation, onPatientUpdated }) {
+  const BLANK = {
+    hospital: invitation.hospital || "",
+    doctor: invitation.doctor || "",
+    specialty: invitation.specialty || "",
+    condition: invitation.condition || "",
+    country: invitation.country || "",
+    stage: invitation.stage || "",
+    coordinator_name: invitation.coordinator_name || "",
+    priority: invitation.priority || "Standard",
+  };
+  const [form,   setForm]   = useSt(BLANK);
+  const [saving, setSaving] = useSt(false);
+
+  const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
+  const IS = { width:"100%", minHeight:38 };
+
+  const save = async () => {
+    setSaving(true);
+    const sb = getSB();
+    const { error } = await sb.from("patient_invitations").update({
+      hospital:         form.hospital.trim() || null,
+      doctor:           form.doctor.trim() || null,
+      specialty:        form.specialty.trim() || null,
+      condition:        form.condition.trim() || null,
+      country:          form.country.trim() || null,
+      stage:            form.stage || null,
+      coordinator_name: form.coordinator_name.trim() || null,
+      priority:         form.priority || "Standard",
+    }).eq("id", invitation.id);
+    setSaving(false);
+    if (!error) {
+      window.cbToast && window.cbToast("Patient info updated", { icon: "check-circle" });
+      onPatientUpdated && onPatientUpdated();
+    } else {
+      window.cbToast && window.cbToast("Error: " + error.message, { icon: "x-circle" });
+    }
+  };
+
+  const Field = ({ label, k, placeholder="" }) => (
+    <div style={{ marginBottom:12 }}>
+      <label style={{ display:"block", fontSize:11, fontWeight:700, color:"var(--text-faint)", textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:4 }}>{label}</label>
+      <input className="cb-input" value={form[k]} onChange={set(k)} placeholder={placeholder} style={IS} data-real />
+    </div>
+  );
+
+  return (
+    <div style={{ padding:16 }}>
+      <div style={{ fontSize:12, fontWeight:700, color:"var(--text-faint)", textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:14 }}>Treatment Details</div>
+      <div style={{ marginBottom:12 }}>
+        <label style={{ display:"block", fontSize:11, fontWeight:700, color:"var(--text-faint)", textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:4 }}>Treatment Stage</label>
+        <select className="cb-input" value={form.stage} onChange={set("stage")} style={IS} data-real>
+          <option value="">— Not set —</option>
+          {STAGES.map(s => <option key={s} value={s}>{s}</option>)}
+        </select>
+      </div>
+      <Field label="Hospital" k="hospital" placeholder="e.g. Royal Medical Centre" />
+      <Field label="Doctor" k="doctor" placeholder="e.g. Dr. K. Patel" />
+      <Field label="Specialty" k="specialty" placeholder="e.g. Cardiology" />
+      <Field label="Condition / Procedure" k="condition" placeholder="e.g. Cardiac bypass" />
+      <Field label="Destination country / city" k="country" placeholder="e.g. Istanbul, Turkey" />
+      <div style={{ fontSize:12, fontWeight:700, color:"var(--text-faint)", textTransform:"uppercase", letterSpacing:"0.05em", margin:"16px 0 14px" }}>Coordinator & Priority</div>
+      <Field label="Coordinator name" k="coordinator_name" placeholder="e.g. A Afey" />
+      <div style={{ marginBottom:16 }}>
+        <label style={{ display:"block", fontSize:11, fontWeight:700, color:"var(--text-faint)", textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:4 }}>Priority</label>
+        <select className="cb-input" value={form.priority} onChange={set("priority")} style={IS} data-real>
+          <option value="Standard">Standard</option>
+          <option value="High">High</option>
+          <option value="Attention">Attention</option>
+        </select>
+      </div>
+      <button className="cb-btn cb-btn--primary" data-real onClick={save} disabled={saving} style={{ width:"100%" }}>
+        <i data-lucide="save" style={{ width:14, height:14 }} /> {saving ? "Saving…" : "Save Changes"}
+      </button>
     </div>
   );
 }
@@ -822,7 +1138,7 @@ function PatientInvitationsView() {
       </div>
 
       {showModal  && <SendInvitationModal onClose={() => setShowModal(false)} onSent={loadAll} />}
-      {panelInv   && <MessagePanel invitation={panelInv} onClose={() => setPanelInv(null)} />}
+      {panelInv   && <MessagePanel invitation={panelInv} onClose={() => setPanelInv(null)} onPatientUpdated={loadAll} />}
       {showEmerg  && <EmergencyContactsPanel onClose={() => setShowEmerg(false)} />}
     </div>
   );
