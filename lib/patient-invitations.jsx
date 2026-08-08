@@ -250,6 +250,7 @@ function SendInvitationModal({ onClose, onSent }) {
 
 /* ---- Message thread side panel ---- */
 function MessagePanel({ invitation, onClose }) {
+  const [panelTab, setPanelTab] = useSt("messages");
   const [messages, setMsgs] = useSt([]);
   const [loading, setLoading] = useSt(true);
   const [text, setText] = useSt("");
@@ -304,47 +305,327 @@ function MessagePanel({ invitation, onClose }) {
     return (today ? "" : d.toLocaleDateString("en-GB", { day: "numeric", month: "short" }) + " ") + d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
 
+  const PANEL_TABS = [
+    { id: "messages", label: "Messages", icon: "message-square" },
+    { id: "travel",   label: "Travel",   icon: "plane" },
+    { id: "documents",label: "Documents",icon: "file-text" },
+  ];
+
   return (
-    <div style={{ position: "fixed", right: 0, top: 0, bottom: 0, width: "min(420px, 100vw)", background: "var(--surface)", boxShadow: "-4px 0 32px rgba(0,0,0,0.15)", zIndex: 400, display: "flex", flexDirection: "column" }}>
-      <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10, flexShrink: 0, flexWrap: "wrap" }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 700, fontSize: 15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{invitation.patient_name}</div>
-          <div style={{ fontSize: 12, color: "var(--text-faint)", marginTop: 2 }}>{invitation.patient_id} · Messages</div>
+    <div style={{ position: "fixed", right: 0, top: 0, bottom: 0, width: "min(480px, 100vw)", background: "var(--surface)", boxShadow: "-4px 0 32px rgba(0,0,0,0.15)", zIndex: 400, display: "flex", flexDirection: "column" }}>
+      {/* Header */}
+      <div style={{ padding: "14px 16px 0", borderBottom: "1px solid var(--border)", flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", paddingBottom: 10 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 700, fontSize: 15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{invitation.patient_name}</div>
+            <div style={{ fontSize: 12, color: "var(--text-faint)", marginTop: 2 }}>{invitation.patient_id}</div>
+          </div>
+          <div style={{ display: "flex", gap: 7, flexShrink: 0 }}>
+            <a href={"https://meet.jit.si/carebridge-call-" + invitation.patient_id + "#config.startWithVideoMuted=true&config.prejoinPageEnabled=false&userInfo.displayName=Carebridge%20Coordinator"}
+               target="_blank" rel="noreferrer" data-real
+               style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "6px 12px", background: "var(--teal-50,#f0fdfa)", color: "var(--teal-700,#0f766e)", border: "1.5px solid var(--teal-300,#5eead4)", borderRadius: 9, fontWeight: 700, fontSize: 12, textDecoration: "none" }}>
+              <i data-lucide="phone" style={{ width: 13, height: 13 }} /> Call
+            </a>
+            <a href={"https://meet.jit.si/carebridge-video-" + invitation.patient_id + "#config.prejoinPageEnabled=false&userInfo.displayName=Carebridge%20Coordinator"}
+               target="_blank" rel="noreferrer" data-real
+               style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "6px 12px", background: "var(--navy-600,#1B3A6B)", color: "#fff", borderRadius: 9, fontWeight: 700, fontSize: 12, textDecoration: "none" }}>
+              <i data-lucide="video" style={{ width: 13, height: 13 }} /> Video
+            </a>
+          </div>
+          <button className="cb-icon-pill" data-real onClick={onClose} style={{ width: 32, height: 32, boxShadow: "none", border: "1px solid var(--border)", background: "var(--bg-page)", flexShrink: 0 }}>
+            <i data-lucide="x" />
+          </button>
         </div>
-        <div style={{ display: "flex", gap: 7, flexShrink: 0 }}>
-          <a href={"https://meet.jit.si/carebridge-call-" + invitation.patient_id + "#config.startWithVideoMuted=true&config.prejoinPageEnabled=false&userInfo.displayName=Carebridge%20Coordinator"}
-             target="_blank" rel="noreferrer" data-real
-             style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "6px 12px", background: "var(--teal-50,#f0fdfa)", color: "var(--teal-700,#0f766e)", border: "1.5px solid var(--teal-300,#5eead4)", borderRadius: 9, fontWeight: 700, fontSize: 12, textDecoration: "none" }}>
-            <i data-lucide="phone" style={{ width: 13, height: 13 }} /> Call
-          </a>
-          <a href={"https://meet.jit.si/carebridge-video-" + invitation.patient_id + "#config.prejoinPageEnabled=false&userInfo.displayName=Carebridge%20Coordinator"}
-             target="_blank" rel="noreferrer" data-real
-             style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "6px 12px", background: "var(--navy-600,#1B3A6B)", color: "#fff", borderRadius: 9, fontWeight: 700, fontSize: 12, textDecoration: "none" }}>
-            <i data-lucide="video" style={{ width: 13, height: 13 }} /> Video
-          </a>
+        {/* Tab bar */}
+        <div style={{ display: "flex", gap: 4 }}>
+          {PANEL_TABS.map(t => (
+            <button key={t.id} data-real onClick={() => setPanelTab(t.id)}
+              style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "7px 14px", fontSize: 13, fontWeight: panelTab === t.id ? 700 : 500, color: panelTab === t.id ? "var(--navy-600,#1B3A6B)" : "var(--text-faint)", borderBottom: panelTab === t.id ? "2.5px solid var(--navy-600,#1B3A6B)" : "2.5px solid transparent", background: "none", border: "none", borderBottom: panelTab === t.id ? "2.5px solid var(--navy-600,#1B3A6B)" : "2.5px solid transparent", cursor: "pointer", borderRadius: "6px 6px 0 0", transition: "color .15s" }}>
+              <i data-lucide={t.icon} style={{ width: 13, height: 13 }} /> {t.label}
+            </button>
+          ))}
         </div>
-        <button className="cb-icon-pill" data-real onClick={onClose} style={{ width: 32, height: 32, boxShadow: "none", border: "1px solid var(--border)", background: "var(--bg-page)", flexShrink: 0 }}>
+      </div>
+
+      {/* Messages tab */}
+      {panelTab === "messages" && (<>
+        <div style={{ flex: 1, overflowY: "auto", padding: "16px", display: "flex", flexDirection: "column", gap: 10 }}>
+          {loading ? (
+            <div style={{ textAlign: "center", color: "var(--text-faint)", padding: 32 }}>Loading…</div>
+          ) : messages.length === 0 ? (
+            <div style={{ textAlign: "center", color: "var(--text-faint)", padding: 32, fontSize: 13 }}>No messages yet. Start the conversation below.</div>
+          ) : messages.map(m => (
+            <div key={m.id} style={{ display: "flex", flexDirection: "column", alignItems: m.sender_role === "coordinator" ? "flex-end" : "flex-start", gap: 2, maxWidth: "80%", alignSelf: m.sender_role === "coordinator" ? "flex-end" : "flex-start" }}>
+              {m.sender_role === "patient" && <div style={{ fontSize: 11, fontWeight: 600, color: "var(--teal-600, #1CA89C)", paddingLeft: 4 }}>{m.sender_name}</div>}
+              <div style={{ padding: "8px 12px", borderRadius: 16, fontSize: 13, lineHeight: 1.5, background: m.sender_role === "coordinator" ? "var(--navy-600, #1B3A6B)" : "var(--bg-page)", color: m.sender_role === "coordinator" ? "white" : "var(--text)", border: m.sender_role === "patient" ? "1px solid var(--border)" : "none", borderBottomRightRadius: m.sender_role === "coordinator" ? 4 : 16, borderBottomLeftRadius: m.sender_role === "patient" ? 4 : 16 }}>{m.content}</div>
+              <div style={{ fontSize: 11, color: "var(--text-faint)", padding: "0 4px" }}>{fmtT(m.created_at)}{m.read_at && m.sender_role === "coordinator" ? " · Seen" : ""}</div>
+            </div>
+          ))}
+          <div ref={endRef} />
+        </div>
+        <div style={{ padding: "10px 14px", borderTop: "1px solid var(--border)", display: "flex", gap: 8, flexShrink: 0 }}>
+          <textarea style={{ flex: 1, borderRadius: 10, border: "1px solid var(--border)", padding: "8px 12px", fontSize: 13, background: "var(--bg-page)", color: "var(--text)", outline: "none", resize: "none", fontFamily: "inherit", maxHeight: 100 }} rows={2} value={text} onChange={e => setText(e.target.value)} placeholder="Reply as coordinator…" onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }} data-real />
+          <button className="cb-btn cb-btn--primary" data-real onClick={send} disabled={!text.trim() || sending} style={{ alignSelf: "flex-end", padding: "8px 14px", whiteSpace: "nowrap" }}>
+            <i data-lucide="send" style={{ width: 14, height: 14 }} /> Send
+          </button>
+        </div>
+      </>)}
+
+      {/* Travel tab */}
+      {panelTab === "travel" && (
+        <div style={{ flex: 1, overflowY: "auto" }}>
+          <TravelPanel invitation={invitation} />
+        </div>
+      )}
+
+      {/* Documents tab */}
+      {panelTab === "documents" && (
+        <div style={{ flex: 1, overflowY: "auto" }}>
+          <DocumentsPanel invitation={invitation} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ---- Travel details panel ---- */
+function TravelPanel({ invitation }) {
+  const BLANK = { flight_number:"", departure_date:"", departure_time:"", from_city:"", to_city:"", arrival_time:"", hotel_name:"", hotel_nights:"", hotel_address:"", pickup:"", notes:"" };
+  const [form, setForm] = useSt(BLANK);
+  const [saving, setSaving] = useSt(false);
+  const [loaded, setLoaded] = useSt(false);
+  const rowId = "travel_" + invitation.patient_id;
+
+  useEff(() => {
+    const sb = getSB(); if (!sb) return;
+    sb.from("portal_state").select("state").eq("id", rowId).single()
+      .then(({ data }) => { if (data?.state) setForm({ ...BLANK, ...data.state }); setLoaded(true); });
+  }, [invitation.patient_id]);
+
+  const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
+
+  const save = async () => {
+    setSaving(true);
+    const sb = getSB();
+    await sb.from("portal_state").upsert({ id: rowId, state: form }, { onConflict: "id" });
+    setSaving(false);
+    window.cbToast && window.cbToast("Travel details saved for " + invitation.patient_name, { icon: "plane" });
+  };
+
+  const Field = ({ label, k, type="text", placeholder="" }) => (
+    <div style={{ marginBottom: 12 }}>
+      <label style={{ display:"block", fontSize:11, fontWeight:700, color:"var(--text-faint)", textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:4 }}>{label}</label>
+      <input className="cb-input" type={type} value={form[k]} onChange={set(k)} placeholder={placeholder} style={{ width:"100%", minHeight:38 }} data-real />
+    </div>
+  );
+
+  if (!loaded) return <div style={{ padding:24, color:"var(--text-faint)", textAlign:"center" }}>Loading…</div>;
+
+  return (
+    <div style={{ padding:16 }}>
+      <div style={{ fontSize:12, fontWeight:700, color:"var(--text-faint)", textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:14 }}>Flight</div>
+      <Field label="Flight number" k="flight_number" placeholder="e.g. TK 092" />
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+        <Field label="Departure date" k="departure_date" type="date" />
+        <Field label="Departure time" k="departure_time" placeholder="e.g. 09:30" />
+        <Field label="From city" k="from_city" placeholder="e.g. Edmonton" />
+        <Field label="To city" k="to_city" placeholder="e.g. Istanbul" />
+        <Field label="Arrival time" k="arrival_time" placeholder="e.g. 18:45" />
+      </div>
+      <div style={{ fontSize:12, fontWeight:700, color:"var(--text-faint)", textTransform:"uppercase", letterSpacing:"0.05em", margin:"16px 0 14px" }}>Accommodation</div>
+      <Field label="Hotel name" k="hotel_name" placeholder="e.g. Grand Istanbul Hotel" />
+      <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr", gap:10 }}>
+        <Field label="Hotel address" k="hotel_address" placeholder="Street, City" />
+        <Field label="Nights" k="hotel_nights" placeholder="e.g. 5" />
+      </div>
+      <div style={{ fontSize:12, fontWeight:700, color:"var(--text-faint)", textTransform:"uppercase", letterSpacing:"0.05em", margin:"16px 0 14px" }}>Other</div>
+      <Field label="Airport pickup arrangement" k="pickup" placeholder="e.g. Driver meets at arrivals — flight board name" />
+      <div style={{ marginBottom:12 }}>
+        <label style={{ display:"block", fontSize:11, fontWeight:700, color:"var(--text-faint)", textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:4 }}>Notes</label>
+        <textarea className="cb-input" value={form.notes} onChange={set("notes")} placeholder="Any important notes for the patient…" style={{ width:"100%", minHeight:80, resize:"vertical" }} data-real />
+      </div>
+      <button className="cb-btn cb-btn--primary" data-real onClick={save} disabled={saving} style={{ width:"100%" }}>
+        <i data-lucide="save" style={{ width:14, height:14 }} /> {saving ? "Saving…" : "Save Travel Details"}
+      </button>
+    </div>
+  );
+}
+
+/* ---- Documents panel ---- */
+function DocumentsPanel({ invitation }) {
+  const [docs, setDocs] = useSt([]);
+  const [loading, setLoading] = useSt(true);
+  const [name, setName] = useSt("");
+  const [url, setUrl] = useSt("");
+  const [fileType, setFileType] = useSt("document");
+  const [adding, setAdding] = useSt(false);
+
+  const load = useCb(async () => {
+    const sb = getSB(); if (!sb) return;
+    const { data } = await sb.from("patient_documents").select("*")
+      .eq("patient_id", invitation.patient_id).order("created_at", { ascending: false });
+    setDocs(data || []);
+    setLoading(false);
+  }, [invitation.patient_id]);
+
+  useEff(() => { load(); }, [load]);
+
+  const add = async () => {
+    if (!name.trim()) return;
+    setAdding(true);
+    const sb = getSB();
+    await sb.from("patient_documents").insert({
+      patient_id: invitation.patient_id,
+      invitation_id: invitation.id,
+      name: name.trim(),
+      url: url.trim() || null,
+      file_type: fileType,
+      uploaded_by: "coordinator",
+    });
+    setName(""); setUrl(""); setFileType("document");
+    await load();
+    setAdding(false);
+    window.cbToast && window.cbToast("Document added", { icon: "file-text" });
+  };
+
+  const remove = async (id) => {
+    const sb = getSB();
+    await sb.from("patient_documents").delete().eq("id", id);
+    setDocs(d => d.filter(x => x.id !== id));
+    window.cbToast && window.cbToast("Document removed", { icon: "trash" });
+  };
+
+  const fmtD = (ts) => new Date(ts).toLocaleDateString("en-GB", { day:"numeric", month:"short", year:"numeric" });
+  const FILE_TYPES = ["document","pdf","image","medical","visa","insurance","other"];
+
+  return (
+    <div style={{ padding:16, display:"flex", flexDirection:"column", gap:16 }}>
+      <div style={{ background:"var(--bg-page)", border:"1px solid var(--border)", borderRadius:10, padding:14 }}>
+        <div style={{ fontSize:12, fontWeight:700, color:"var(--text-faint)", textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:12 }}>Add document</div>
+        <div style={{ marginBottom:10 }}>
+          <label style={{ display:"block", fontSize:11, fontWeight:600, color:"var(--text-faint)", marginBottom:4 }}>Document name</label>
+          <input className="cb-input" value={name} onChange={e=>setName(e.target.value)} placeholder="e.g. Passport copy, Hospital authorization letter…" style={{ width:"100%", minHeight:38 }} data-real />
+        </div>
+        <div style={{ marginBottom:10 }}>
+          <label style={{ display:"block", fontSize:11, fontWeight:600, color:"var(--text-faint)", marginBottom:4 }}>Link (Google Drive, Dropbox, etc.)</label>
+          <input className="cb-input" value={url} onChange={e=>setUrl(e.target.value)} placeholder="https://…" style={{ width:"100%", minHeight:38 }} data-real />
+        </div>
+        <div style={{ marginBottom:12 }}>
+          <label style={{ display:"block", fontSize:11, fontWeight:600, color:"var(--text-faint)", marginBottom:4 }}>Type</label>
+          <select className="cb-input" value={fileType} onChange={e=>setFileType(e.target.value)} style={{ width:"100%", minHeight:38 }} data-real>
+            {FILE_TYPES.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase()+t.slice(1)}</option>)}
+          </select>
+        </div>
+        <button className="cb-btn cb-btn--primary" data-real onClick={add} disabled={adding || !name.trim()} style={{ width:"100%" }}>
+          <i data-lucide="plus" style={{ width:14, height:14 }} /> {adding ? "Adding…" : "Add Document"}
+        </button>
+      </div>
+
+      {loading ? <div style={{ textAlign:"center", color:"var(--text-faint)", padding:16 }}>Loading…</div>
+      : docs.length === 0 ? <div style={{ textAlign:"center", color:"var(--text-faint)", padding:16, fontSize:13 }}>No documents added yet.</div>
+      : docs.map(doc => (
+        <div key={doc.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 14px", background:"var(--bg-page)", border:"1px solid var(--border)", borderRadius:10 }}>
+          <i data-lucide="file-text" style={{ width:18, height:18, color:"var(--teal-600,#1CA89C)", flexShrink:0 }} />
+          <div style={{ flex:1, minWidth:0 }}>
+            <div style={{ fontWeight:600, fontSize:13, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{doc.name}</div>
+            <div style={{ fontSize:11, color:"var(--text-faint)", marginTop:2 }}>{doc.file_type} · {fmtD(doc.created_at)}</div>
+          </div>
+          {doc.url && <a href={doc.url} target="_blank" rel="noopener noreferrer" data-real style={{ color:"var(--teal-600,#1CA89C)", fontSize:12, fontWeight:600, textDecoration:"none", flexShrink:0 }}><i data-lucide="external-link" style={{ width:14, height:14 }} /></a>}
+          <button data-real onClick={() => remove(doc.id)} style={{ background:"none", border:"none", color:"var(--text-faint)", cursor:"pointer", padding:4, flexShrink:0 }} title="Remove">
+            <i data-lucide="trash-2" style={{ width:15, height:15 }} />
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ---- Emergency Contacts slide-over ---- */
+function EmergencyContactsPanel({ onClose }) {
+  const BLANK_C = { name: "", phone: "", type: "Medical", label: "" };
+  const [contacts, setContacts] = useSt([]);
+  const [saving, setSaving] = useSt(false);
+  const [loading, setLoading] = useSt(true);
+
+  useEff(() => {
+    const sb = getSB(); if (!sb) return;
+    sb.from("portal_state").select("state").eq("id", "emergency").single()
+      .then(({ data }) => {
+        if (data?.state?.contacts) setContacts(data.state.contacts);
+        setLoading(false);
+      }).catch(() => setLoading(false));
+  }, []);
+
+  const update = (idx, field, val) =>
+    setContacts(cs => cs.map((c, i) => i === idx ? { ...c, [field]: val } : c));
+  const add = () => setContacts(cs => [...cs, { ...BLANK_C }]);
+  const remove = (idx) => setContacts(cs => cs.filter((_, i) => i !== idx));
+
+  const save = async () => {
+    setSaving(true);
+    const sb = getSB();
+    await sb.from("portal_state").upsert({ id: "emergency", state: { contacts } }, { onConflict: "id" });
+    setSaving(false);
+    window.cbToast && window.cbToast("Emergency contacts saved", { icon: "phone" });
+  };
+
+  const INPUT_S = { width: "100%", minHeight: 36 };
+  const CONTACT_TYPES = ["Medical", "Coordinator", "Hospital", "Embassy", "Family", "Other"];
+
+  return (
+    <div style={{ position: "fixed", right: 0, top: 0, bottom: 0, width: "min(460px, 100vw)", background: "var(--surface)", boxShadow: "-4px 0 32px rgba(0,0,0,0.15)", zIndex: 400, display: "flex", flexDirection: "column" }}>
+      <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+        <i data-lucide="phone-call" style={{ width: 18, height: 18, color: "var(--teal-600,#1CA89C)", flexShrink: 0 }} />
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: 700, fontSize: 15 }}>Emergency Contacts</div>
+          <div style={{ fontSize: 12, color: "var(--text-faint)", marginTop: 2 }}>Shown to ALL patients on the Emergency tab</div>
+        </div>
+        <button className="cb-icon-pill" data-real onClick={onClose} style={{ width: 32, height: 32, boxShadow: "none", border: "1px solid var(--border)", background: "var(--bg-page)" }}>
           <i data-lucide="x" />
         </button>
       </div>
-      <div style={{ flex: 1, overflowY: "auto", padding: "16px", display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{ flex: 1, overflowY: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
         {loading ? (
           <div style={{ textAlign: "center", color: "var(--text-faint)", padding: 32 }}>Loading…</div>
-        ) : messages.length === 0 ? (
-          <div style={{ textAlign: "center", color: "var(--text-faint)", padding: 32, fontSize: 13 }}>No messages yet. Start the conversation below.</div>
-        ) : messages.map(m => (
-          <div key={m.id} style={{ display: "flex", flexDirection: "column", alignItems: m.sender_role === "coordinator" ? "flex-end" : "flex-start", gap: 2, maxWidth: "80%", alignSelf: m.sender_role === "coordinator" ? "flex-end" : "flex-start" }}>
-            {m.sender_role === "patient" && <div style={{ fontSize: 11, fontWeight: 600, color: "var(--teal-600, #1CA89C)", paddingLeft: 4 }}>{m.sender_name}</div>}
-            <div style={{ padding: "8px 12px", borderRadius: 16, fontSize: 13, lineHeight: 1.5, background: m.sender_role === "coordinator" ? "var(--navy-600, #1B3A6B)" : "var(--bg-page)", color: m.sender_role === "coordinator" ? "white" : "var(--text)", border: m.sender_role === "patient" ? "1px solid var(--border)" : "none", borderBottomRightRadius: m.sender_role === "coordinator" ? 4 : 16, borderBottomLeftRadius: m.sender_role === "patient" ? 4 : 16 }}>{m.content}</div>
-            <div style={{ fontSize: 11, color: "var(--text-faint)", padding: "0 4px" }}>{fmtT(m.created_at)}{m.read_at && m.sender_role === "coordinator" ? " · Seen" : ""}</div>
-          </div>
-        ))}
-        <div ref={endRef} />
+        ) : (<>
+          {contacts.map((c, idx) => (
+            <div key={idx} style={{ background: "var(--bg-page)", border: "1px solid var(--border)", borderRadius: 10, padding: 14 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                <div style={{ fontWeight: 700, fontSize: 13 }}>Contact {idx + 1}</div>
+                <button data-real onClick={() => remove(idx)} style={{ background: "none", border: "none", color: "var(--text-faint)", cursor: "pointer", padding: 4 }} title="Remove">
+                  <i data-lucide="trash-2" style={{ width: 15, height: 15 }} />
+                </button>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+                <div>
+                  <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--text-faint)", marginBottom: 4 }}>Name</label>
+                  <input className="cb-input" value={c.name} onChange={e => update(idx, "name", e.target.value)} placeholder="Dr. Smith / Carebridge 24/7…" style={INPUT_S} data-real />
+                </div>
+                <div>
+                  <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--text-faint)", marginBottom: 4 }}>Phone</label>
+                  <input className="cb-input" value={c.phone} onChange={e => update(idx, "phone", e.target.value)} placeholder="+1 (555) 000-0000" style={INPUT_S} data-real />
+                </div>
+                <div>
+                  <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--text-faint)", marginBottom: 4 }}>Type</label>
+                  <select className="cb-input" value={c.type} onChange={e => update(idx, "type", e.target.value)} style={INPUT_S} data-real>
+                    {CONTACT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--text-faint)", marginBottom: 4 }}>Label (optional)</label>
+                  <input className="cb-input" value={c.label} onChange={e => update(idx, "label", e.target.value)} placeholder="e.g. Available 24/7" style={INPUT_S} data-real />
+                </div>
+              </div>
+            </div>
+          ))}
+          <button className="cb-btn cb-btn--ghost" data-real onClick={add} style={{ width: "100%", justifyContent: "center" }}>
+            <i data-lucide="plus" style={{ width: 14, height: 14 }} /> Add Contact
+          </button>
+        </>)}
       </div>
-      <div style={{ padding: "10px 14px", borderTop: "1px solid var(--border)", display: "flex", gap: 8, flexShrink: 0 }}>
-        <textarea style={{ flex: 1, borderRadius: 10, border: "1px solid var(--border)", padding: "8px 12px", fontSize: 13, background: "var(--bg-page)", color: "var(--text)", outline: "none", resize: "none", fontFamily: "inherit", maxHeight: 100 }} rows={2} value={text} onChange={e => setText(e.target.value)} placeholder="Reply as coordinator…" onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }} data-real />
-        <button className="cb-btn cb-btn--primary" data-real onClick={send} disabled={!text.trim() || sending} style={{ alignSelf: "flex-end", padding: "8px 14px", whiteSpace: "nowrap" }}>
-          <i data-lucide="send" style={{ width: 14, height: 14 }} /> Send
+      <div style={{ padding: "12px 16px", borderTop: "1px solid var(--border)", flexShrink: 0 }}>
+        <button className="cb-btn cb-btn--primary" data-real onClick={save} disabled={saving} style={{ width: "100%" }}>
+          <i data-lucide="save" style={{ width: 14, height: 14 }} /> {saving ? "Saving…" : "Save Emergency Contacts"}
         </button>
       </div>
     </div>
@@ -358,6 +639,7 @@ function PatientInvitationsView() {
   const [loading,     setLoading]     = useSt(true);
   const [showModal,   setShowModal]   = useSt(false);
   const [panelInv,    setPanelInv]    = useSt(null);
+  const [showEmerg,   setShowEmerg]   = useSt(false);
   const pollRef = useRf(null);
 
   const loadAll = useCb(async () => {
@@ -421,9 +703,14 @@ function PatientInvitationsView() {
           <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>Patient Invitations</h2>
           <p style={{ fontSize: 13, color: "var(--text-faint)" }}>Send invitation emails to patients and manage their portal access.</p>
         </div>
-        <button className="cb-btn cb-btn--primary" data-real onClick={() => setShowModal(true)}>
-          <i data-lucide="send" style={{ width: 15, height: 15 }} /> Send Invitation
-        </button>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button className="cb-btn cb-btn--ghost" data-real onClick={() => setShowEmerg(true)}>
+            <i data-lucide="phone-call" style={{ width: 15, height: 15 }} /> Emergency Contacts
+          </button>
+          <button className="cb-btn cb-btn--primary" data-real onClick={() => setShowModal(true)}>
+            <i data-lucide="send" style={{ width: 15, height: 15 }} /> Send Invitation
+          </button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -534,8 +821,9 @@ function PatientInvitationsView() {
         )}
       </div>
 
-      {showModal && <SendInvitationModal onClose={() => setShowModal(false)} onSent={loadAll} />}
-      {panelInv  && <MessagePanel invitation={panelInv} onClose={() => setPanelInv(null)} />}
+      {showModal  && <SendInvitationModal onClose={() => setShowModal(false)} onSent={loadAll} />}
+      {panelInv   && <MessagePanel invitation={panelInv} onClose={() => setPanelInv(null)} />}
+      {showEmerg  && <EmergencyContactsPanel onClose={() => setShowEmerg(false)} />}
     </div>
   );
 }
