@@ -135,9 +135,9 @@
 
   /* ---- Header ---- */
   .pp-header {
-    background: linear-gradient(135deg, var(--navy) 0%, #223d72 100%);
+    background: linear-gradient(160deg, #1CA89C 0%, #1B3A6B 58%);
     padding: 20px 20px 24px; position: sticky; top: 0; z-index: 100;
-    box-shadow: 0 2px 16px rgba(27,58,107,0.3);
+    box-shadow: 0 2px 20px rgba(27,58,107,0.4);
   }
   .pp-header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
   .pp-header-brand { display: flex; align-items: center; gap: 10px; }
@@ -238,6 +238,12 @@
   .pp-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .pp-info-item label { font-size: 11px; font-weight: 600; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 3px; }
   .pp-info-item .pp-info-val { font-size: 14px; color: var(--text); font-weight: 500; }
+  /* Row-style info layout (matches mockup) */
+  .pp-row-info { display: flex; flex-direction: column; gap: 0; }
+  .pp-row-item { display: flex; align-items: center; justify-content: space-between; padding: 11px 0; border-bottom: 1px solid var(--border); gap: 12px; }
+  .pp-row-item:last-child { border-bottom: none; }
+  .pp-row-label { font-size: 13px; color: var(--text-faint); flex-shrink: 0; }
+  .pp-row-val { font-size: 14px; font-weight: 600; color: var(--text); text-align: right; }
 
   /* ---- Status pills ---- */
   .pp-pill { display: inline-flex; align-items: center; gap: 4px; border-radius: 20px; padding: 3px 10px; font-size: 12px; font-weight: 600; }
@@ -853,7 +859,7 @@ const APPT_SO = {
 const UI_SO = {
   "My Info":"Macluumaadkayga","Messages":"Fariimaha","Journey":"Safarka",
   "AI Help":"Gargaarka AI","Rate Us":"Naga Qiimee","Sign out":"Ka Bax",
-  "My Information":"Macluumaadkayga","Active":"Firfircoon","Pending":"Sugitaanka",
+  "My Information":"Macluumaadkayga","My information":"Macluumaadkayga","Hospital & treatment":"Isbitaalka & Daaweynta","Doctor":"Dhakhtarka","Active":"Firfircoon","Pending":"Sugitaanka",
   "Full name":"Magaca Buuxa","Patient ID":"Aqoonsiga Bukaan","Specialty":"Takhasusyaha",
   "Condition":"Xaaladda Caafimaad","Hospital":"Isbitaalka","Destination":"Dalka La Socdo",
   "Priority":"Muhiimadda","Standard":"Caadi","High":"Sarreeya","Attention":"Baahi Degdeg ah",
@@ -932,31 +938,42 @@ function InfoTab({ invitation, lang = "en" }) {
   const priority  = invitation.priority || "Standard";
   const pillClass = priority === "Attention" ? "pp-pill--danger" : priority === "High" ? "pp-pill--warn" : "pp-pill--teal";
   const statusPill = invitation.status === "active" ? "pp-pill--ok" : "pp-pill--navy";
+  const hasHospital = invitation.hospital || invitation.doctor || invitation.specialty || invitation.condition || invitation.country;
   return (
     <div className="pp-content">
+      {/* My information card */}
       <div className="pp-card">
         <div className="pp-card-header">
-          <div className="pp-card-title"><Icon name="user" /> {t(lang, "My Information")}</div>
+          <div className="pp-card-title"><Icon name="user" /> {t(lang, "My information")}</div>
           <span className={"pp-pill " + statusPill}><span className="pp-pill-dot" />{t(lang, invitation.status === "active" ? "Active" : "Pending")}</span>
         </div>
         <div className="pp-card-body">
-          <div className="pp-info-grid">
-            <div className="pp-info-item"><label>{t(lang, "Full name")}</label><div className="pp-info-val">{invitation.patient_name}</div></div>
-            <div className="pp-info-item"><label>{t(lang, "Patient ID")}</label><div className="pp-info-val" style={{ fontFamily: "monospace", fontSize: 13 }}>{invitation.patient_id}</div></div>
-            {invitation.specialty  && <div className="pp-info-item"><label>{t(lang, "Specialty")}</label><div className="pp-info-val">{invitation.specialty}</div></div>}
-            {invitation.condition  && <div className="pp-info-item"><label>{t(lang, "Condition")}</label><div className="pp-info-val">{invitation.condition}</div></div>}
-            {invitation.hospital   && <div className="pp-info-item"><label>{t(lang, "Hospital")}</label><div className="pp-info-val">{invitation.hospital}</div></div>}
-            {invitation.country    && <div className="pp-info-item"><label>{t(lang, "Destination")}</label><div className="pp-info-val">{invitation.country}</div></div>}
-            <div className="pp-info-item"><label>{t(lang, "Priority")}</label><div className="pp-info-val"><span className={"pp-pill " + pillClass}>{t(lang, priority)}</span></div></div>
-            <div className="pp-info-item">
-              <label>{t(lang, "Portal expires")}</label>
-              <div className="pp-info-val" style={{ fontSize: 13 }}>
-                {new Date(invitation.expires_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
-              </div>
-            </div>
+          <div className="pp-row-info">
+            <div className="pp-row-item"><span className="pp-row-label">{t(lang, "Full name")}</span><span className="pp-row-val">{invitation.patient_name}</span></div>
+            <div className="pp-row-item"><span className="pp-row-label">{t(lang, "Patient ID")}</span><span className="pp-row-val" style={{ fontFamily: "monospace" }}>{invitation.patient_id}</span></div>
+            <div className="pp-row-item"><span className="pp-row-label">{t(lang, "Priority")}</span><span className="pp-row-val"><span className={"pp-pill " + pillClass}>{t(lang, priority)}</span></span></div>
+            <div className="pp-row-item"><span className="pp-row-label">{t(lang, "Portal expires")}</span><span className="pp-row-val">{new Date(invitation.expires_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</span></div>
           </div>
         </div>
       </div>
+
+      {/* Hospital & treatment card */}
+      {hasHospital && (
+        <div className="pp-card">
+          <div className="pp-card-header"><div className="pp-card-title"><Icon name="building-hospital" /> {t(lang, "Hospital & treatment")}</div></div>
+          <div className="pp-card-body">
+            <div className="pp-row-info">
+              {invitation.hospital   && <div className="pp-row-item"><span className="pp-row-label">{t(lang, "Hospital")}</span><span className="pp-row-val">{invitation.hospital}</span></div>}
+              {invitation.doctor     && <div className="pp-row-item"><span className="pp-row-label">{t(lang, "Doctor")}</span><span className="pp-row-val">{invitation.doctor}</span></div>}
+              {invitation.specialty  && <div className="pp-row-item"><span className="pp-row-label">{t(lang, "Specialty")}</span><span className="pp-row-val">{invitation.specialty}</span></div>}
+              {invitation.condition  && <div className="pp-row-item"><span className="pp-row-label">{t(lang, "Condition")}</span><span className="pp-row-val">{invitation.condition}</span></div>}
+              {invitation.country    && <div className="pp-row-item"><span className="pp-row-label">{t(lang, "Destination")}</span><span className="pp-row-val">{invitation.country}</span></div>}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Coordinator card */}
       {invitation.coordinator_name && (
         <div className="pp-card">
           <div className="pp-card-header"><div className="pp-card-title"><Icon name="user" /> {t(lang, "Your Coordinator")}</div></div>
@@ -1789,11 +1806,13 @@ function EmergencyTab({ invitation, lang = "en" }) {
   const [contacts, setContacts] = useState([]);
   const [loading, setLoading]   = useState(true);
 
+  const CB247 = { name: "Carebridge 24/7 Support", phone: "+18257853396", type: "carebridge", label: "Available 24 hours, 7 days a week" };
+
   useEffect(() => {
     sb.from("portal_state").select("state").eq("id", "emergency").single()
       .then(({ data }) => {
         const base = data?.state?.contacts || [];
-        const withCoord = [...base];
+        const withCoord = [CB247, ...base];
         const hasCoord = base.some(c => c.type === "coordinator");
         if (!hasCoord && invitation.coordinator_name) {
           withCoord.push({ name: invitation.coordinator_name, phone: invitation.coordinator_phone || "", type: "coordinator", label: "Your Coordinator" });
@@ -1802,15 +1821,15 @@ function EmergencyTab({ invitation, lang = "en" }) {
         setLoading(false);
       })
       .catch(() => {
-        const fallback = [];
+        const fallback = [CB247];
         if (invitation.coordinator_name) fallback.push({ name: invitation.coordinator_name, phone: "", type: "coordinator", label: "Your Coordinator" });
         setContacts(fallback);
         setLoading(false);
       });
   }, [invitation]);
 
-  const avCls  = (type) => type === "coordinator" ? "pp-emer-av--teal" : type === "hospital" ? "pp-emer-av--blue" : "pp-emer-av--red";
-  const avIcon = (type) => type === "coordinator" ? "user" : type === "hospital" ? "building-hospital" : "phone-call";
+  const avCls  = (type) => type === "carebridge" ? "pp-emer-av--teal" : type === "coordinator" ? "pp-emer-av--teal" : type === "hospital" ? "pp-emer-av--blue" : "pp-emer-av--red";
+  const avIcon = (type) => type === "carebridge" ? "headphones" : type === "coordinator" ? "user" : type === "hospital" ? "building-hospital" : "phone-call";
 
   return (
     <div className="pp-content">
@@ -2028,7 +2047,7 @@ function Dashboard({ invitation, locationLabel, tab, setTab, onLogout, unreadMsg
             <div className="pp-progress-wrap">
               <div className="pp-progress-bar"><div className="pp-progress-fill" style={{ width: progress + "%" }} /></div>
               <div className="pp-progress-meta">
-                <span>{invitation.stage || "Treatment Journey"}</span>
+                <span>Treatment progress</span>
                 <span style={{ fontWeight: 700, color: "#7eeee8" }}>{progress}%</span>
               </div>
             </div>
