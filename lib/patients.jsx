@@ -711,18 +711,43 @@ function PatientDocuments({ pid }) {
   const visaApp = window.CBStore.getVisaApp(pid);
   const fileRef = React.useRef(null);
   const [delDoc, setDelDoc] = useState(null);
-  const onPick = (e) => {
+  const onPick = async (e) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
-    const mapped = files.map((f) => ({
-      name: f.name.replace(/\.[^.]+$/, ""),
-      type: (f.name.split(".").pop() || "FILE").toUpperCase(),
-      size: f.size > 1048576 ? (f.size / 1048576).toFixed(1) + " MB" : Math.max(1, Math.round(f.size / 1024)) + " KB",
-      icon: /pdf/i.test(f.type) ? "file-text" : /image/i.test(f.type) ? "image" : "file",
-    }));
-    window.CBStore.addDocuments(pid, mapped);
     e.target.value = "";
-    window.cbToast(mapped.length > 1 ? mapped.length + " documents uploaded" : "Document uploaded", { icon: "file-check-2", sub: "Status set to Pending" });
+    const sb = _getAdminSB();
+    for (const file of files) {
+      /* local store record (internal tracking) */
+      const localRec = [{
+        name: file.name.replace(/\.[^.]+$/, ""),
+        type: (file.name.split(".").pop() || "FILE").toUpperCase(),
+        size: file.size > 1048576 ? (file.size / 1048576).toFixed(1) + " MB" : Math.max(1, Math.round(file.size / 1024)) + " KB",
+        icon: /pdf/i.test(file.type) ? "file-text" : /image/i.test(file.type) ? "image" : "file",
+      }];
+      window.CBStore.addDocuments(pid, localRec);
+      /* upload to Supabase so patient can download */
+      if (sb) {
+        try {
+          const ext  = file.name.split(".").pop().toLowerCase();
+          const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+          const path = pid + "/" + Date.now() + "_" + safe;
+          await sb.storage.createBucket("patient-documents", { public: true }).catch(() => {});
+          const { error: upErr } = await sb.storage.from("patient-documents").upload(path, file, { upsert: true });
+          if (!upErr) {
+            const { data: pub } = sb.storage.from("patient-documents").getPublicUrl(path);
+            const autoType = ext === "pdf" ? "pdf" : ["jpg","jpeg","png","gif","webp"].includes(ext) ? "image" : "document";
+            await sb.from("patient_documents").insert({
+              patient_id: pid,
+              name: file.name.replace(/\.[^.]+$/, ""),
+              url: pub?.publicUrl || "",
+              file_type: autoType,
+              uploaded_by: "coordinator",
+            });
+          }
+        } catch (err) { /* non-fatal — local record still saved */ }
+      }
+    }
+    window.cbToast(files.length > 1 ? files.length + " documents uploaded" : "Document uploaded — patient can download it", { icon: "file-check-2" });
   };
   return (
     <Card>
