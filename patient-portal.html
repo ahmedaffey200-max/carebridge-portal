@@ -1663,8 +1663,8 @@ function App() {
     }
 
     const msgCh = sb.channel("pp-msg-" + invitation.patient_id)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "patient_messages",
-        filter: "patient_id=eq." + invitation.patient_id }, (payload) => {
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "patient_messages" }, (payload) => {
+        if (payload.new?.patient_id !== invitation.patient_id) return;
         if (payload.new?.sender_role !== "patient") {
           setUnreadMsgs(n => n + 1);
           setNewMsgIds(s => new Set([...s, payload.new.id]));
@@ -1673,14 +1673,14 @@ function App() {
       }).subscribe();
 
     const actCh = sb.channel("pp-act-" + invitation.patient_id)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "patient_activities",
-        filter: "patient_id=eq." + invitation.patient_id }, (payload) => {
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "patient_activities" }, (payload) => {
+        if (payload.new?.patient_id !== invitation.patient_id) return;
         setNewJourney(n => n + 1);
         setNewActIds(s => new Set([...s, payload.new.id]));
         if (bellRef.current) pushNotify("Journey updated", payload.new?.title);
       })
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "patient_activities",
-        filter: "patient_id=eq." + invitation.patient_id }, (payload) => {
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "patient_activities" }, (payload) => {
+        if (payload.new?.patient_id !== invitation.patient_id) return;
         setNewJourney(n => n + 1);
         setNewActIds(s => new Set([...s, payload.new.id]));
         if (bellRef.current) pushNotify("Journey updated", payload.new?.title);
