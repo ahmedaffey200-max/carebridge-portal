@@ -460,7 +460,7 @@ function MessagePanel({ invitation, onClose, onPatientUpdated }) {
 
 /* ---- Travel details panel ---- */
 function TravelPanel({ invitation }) {
-  const BLANK = { flight_number:"", departure_date:"", departure_time:"", from_city:"", to_city:"", arrival_time:"", hotel_name:"", hotel_nights:"", hotel_reservation:"", hotel_address:"", pickup:"", notes:"" };
+  const BLANK = { flight_number:"", departure_date:"", departure_time:"", from_city:"", to_city:"", arrival_time:"", taxi_driver:"", taxi_cell:"", taxi_vehicle:"", taxi_notes:"", hotel_name:"", hotel_nights:"", hotel_reservation:"", hotel_address:"", pickup:"", notes:"" };
   const [form, setForm] = useSt(BLANK);
   const [saving, setSaving] = useSt(false);
   const [loaded, setLoaded] = useSt(false);
@@ -501,6 +501,13 @@ function TravelPanel({ invitation }) {
         <Field label="From city" k="from_city" placeholder="e.g. Edmonton" />
         <Field label="To city" k="to_city" placeholder="e.g. Istanbul" />
         <Field label="Arrival time" k="arrival_time" placeholder="e.g. 18:45" />
+      </div>
+      <div style={{ fontSize:12, fontWeight:700, color:"var(--text-faint)", textTransform:"uppercase", letterSpacing:"0.05em", margin:"16px 0 14px" }}>Taxi / Transfer</div>
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+        <Field label="Driver name" k="taxi_driver" placeholder="e.g. Mohammed Ali" />
+        <Field label="Cell / WhatsApp" k="taxi_cell" type="tel" placeholder="e.g. +91 98765 43210" />
+        <Field label="Vehicle type" k="taxi_vehicle" placeholder="e.g. Toyota Innova" />
+        <Field label="Pickup notes" k="taxi_notes" placeholder="e.g. Arrivals exit B" />
       </div>
       <div style={{ fontSize:12, fontWeight:700, color:"var(--text-faint)", textTransform:"uppercase", letterSpacing:"0.05em", margin:"16px 0 14px" }}>Accommodation</div>
       <Field label="Hotel name" k="hotel_name" placeholder="e.g. Grand Istanbul Hotel" />

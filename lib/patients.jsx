@@ -812,7 +812,7 @@ function PatientDocuments({ pid }) {
 
 /* ---- Travel coordinator tab (saves to portal_state → patient sees it live) ---- */
 function PatientTravelCoord({ pid }) {
-  const BLANK = { flight_number:"", departure_date:"", departure_time:"", from_city:"", to_city:"", arrival_time:"", hotel_name:"", hotel_nights:"", hotel_reservation:"", hotel_address:"", pickup:"", notes:"" };
+  const BLANK = { flight_number:"", departure_date:"", departure_time:"", from_city:"", to_city:"", arrival_time:"", taxi_driver:"", taxi_cell:"", taxi_vehicle:"", taxi_notes:"", hotel_name:"", hotel_nights:"", hotel_reservation:"", hotel_address:"", pickup:"", notes:"" };
   const [form, setForm] = useState({ ...BLANK });
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -859,6 +859,13 @@ function PatientTravelCoord({ pid }) {
             {field("Arrival time", "arrival_time", "time")}
             {field("From city", "from_city", "text", "e.g. Edmonton")}
             {field("To city", "to_city", "text", "e.g. Delhi")}
+          </div>
+          <div style={{ fontWeight:700, fontSize:12, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.07em", marginTop:4 }}>Taxi / Transfer</div>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(180px,1fr))", gap:12 }}>
+            {field("Driver name", "taxi_driver", "text", "e.g. Mohammed Ali")}
+            {field("Cell / WhatsApp", "taxi_cell", "tel", "e.g. +91 98765 43210")}
+            {field("Vehicle type", "taxi_vehicle", "text", "e.g. Toyota Innova")}
+            {field("Pickup notes", "taxi_notes", "text", "e.g. Arrivals exit B")}
           </div>
           <div style={{ fontWeight:700, fontSize:12, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.07em", marginTop:4 }}>Accommodation</div>
           <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(180px,1fr))", gap:12 }}>

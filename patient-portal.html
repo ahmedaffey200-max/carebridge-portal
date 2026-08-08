@@ -1820,6 +1820,19 @@ function TravelTab({ invitation, lang = "en" }) {
           </div>
         </div>
       )}
+      {(travel.taxi_driver || travel.taxi_cell) && (
+        <div className="pp-card">
+          <div className="pp-card-header"><div className="pp-card-title"><Icon name="car" /> {t(lang, "Taxi / Transfer")}</div></div>
+          <div className="pp-card-body">
+            <div className="pp-travel-grid">
+              {travel.taxi_driver  && <div className="pp-travel-card"><div className="pp-travel-card-label">Driver</div><div className="pp-travel-card-value">{travel.taxi_driver}</div></div>}
+              {travel.taxi_cell    && <div className="pp-travel-card"><div className="pp-travel-card-label">Cell / WhatsApp</div><div className="pp-travel-card-value">{travel.taxi_cell}</div></div>}
+              {travel.taxi_vehicle && <div className="pp-travel-card"><div className="pp-travel-card-label">Vehicle</div><div className="pp-travel-card-value">{travel.taxi_vehicle}</div></div>}
+            </div>
+            {travel.taxi_notes && <div style={{ marginTop: 10, fontSize: 13, color: "var(--text-sub)", display: "flex", alignItems: "flex-start", gap: 5 }}><Icon name="info" size={13} style={{ flexShrink: 0, marginTop: 1 }} />{travel.taxi_notes}</div>}
+          </div>
+        </div>
+      )}
       {(travel.hotel_name || travel.hotel_address) && (
         <div className="pp-card">
           <div className="pp-card-header"><div className="pp-card-title"><Icon name="building" /> {t(lang, "Accommodation")}</div></div>
