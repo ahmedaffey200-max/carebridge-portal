@@ -1678,6 +1678,12 @@ function App() {
         setNewJourney(n => n + 1);
         setNewActIds(s => new Set([...s, payload.new.id]));
         if (bellRef.current) pushNotify("Journey updated", payload.new?.title);
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "patient_activities",
+        filter: "patient_id=eq." + invitation.patient_id }, (payload) => {
+        setNewJourney(n => n + 1);
+        setNewActIds(s => new Set([...s, payload.new.id]));
+        if (bellRef.current) pushNotify("Journey updated", payload.new?.title);
       }).subscribe();
 
     const invCh = sb.channel("pp-inv2-" + invitation.id)
