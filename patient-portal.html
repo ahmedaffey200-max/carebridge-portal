@@ -1749,11 +1749,22 @@ function DocumentsTab({ invitation, lang = "en" }) {
   const [docs, setDocs]       = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const loadDocs = () => {
     sb.from("patient_documents").select("*").eq("patient_id", invitation.patient_id)
       .order("created_at", { ascending: false })
       .then(({ data }) => { setDocs(data || []); setLoading(false); })
       .catch(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadDocs();
+    const ch = sb.channel("docs_" + invitation.patient_id)
+      .on("postgres_changes", { event: "*", schema: "public", table: "patient_documents" }, (payload) => {
+        if (payload.new?.patient_id === invitation.patient_id || payload.old?.patient_id === invitation.patient_id) {
+          loadDocs();
+        }
+      }).subscribe();
+    return () => { sb.removeChannel(ch); };
   }, [invitation.patient_id]);
 
   const iconCls = (ft) => {
@@ -1812,11 +1823,23 @@ function DocumentsTab({ invitation, lang = "en" }) {
 function TravelTab({ invitation, lang = "en" }) {
   const [travel, setTravel]   = useState(null);
   const [loading, setLoading] = useState(true);
+  const travelKey = "travel_" + invitation.patient_id;
 
-  useEffect(() => {
-    sb.from("portal_state").select("state").eq("id", "travel_" + invitation.patient_id).single()
+  const loadTravel = () => {
+    sb.from("portal_state").select("state").eq("id", travelKey).single()
       .then(({ data }) => { setTravel(data?.state || null); setLoading(false); })
       .catch(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadTravel();
+    const ch = sb.channel("travel_" + invitation.patient_id)
+      .on("postgres_changes", { event: "*", schema: "public", table: "portal_state" }, (payload) => {
+        if (payload.new?.id === travelKey || payload.old?.id === travelKey) {
+          loadTravel();
+        }
+      }).subscribe();
+    return () => { sb.removeChannel(ch); };
   }, [invitation.patient_id]);
 
   const countdown = (dateStr) => {

@@ -540,68 +540,177 @@ function DocumentsPanel({ invitation }) {
 
   useEff(() => { load(); }, [load]);
 
-  const add = async () => {
-    if (!name.trim()) return;
+  const [uploadMode, setUploadMode] = useSt("file"); // "file" | "link"
+  const [uploading,  setUploading]  = useSt(false);
+  const [uploadPct,  setUploadPct]  = useSt(0);
+  const fileRef = useRf(null);
+
+  /* ---- Upload a file directly to Supabase Storage ---- */
+  const uploadFile = async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const sb = getSB(); if (!sb) return;
+    setUploading(true); setUploadPct(10);
+    const ext  = file.name.split(".").pop().toLowerCase();
+    const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const path = invitation.patient_id + "/" + Date.now() + "_" + safe;
+
+    /* ensure bucket exists (ignore if already exists) */
+    await sb.storage.createBucket("patient-documents", { public: true }).catch(() => {});
+    setUploadPct(30);
+
+    const { error: upErr } = await sb.storage.from("patient-documents").upload(path, file, { upsert: true });
+    if (upErr) {
+      window.cbToast && window.cbToast("Upload failed: " + upErr.message, { icon: "x-circle" });
+      setUploading(false); setUploadPct(0);
+      if (fileRef.current) fileRef.current.value = "";
+      return;
+    }
+    setUploadPct(80);
+
+    const { data: pub } = sb.storage.from("patient-documents").getPublicUrl(path);
+    const publicUrl = pub?.publicUrl || "";
+
+    /* auto-detect type */
+    const autoType = ext === "pdf" ? "pdf" : ["jpg","jpeg","png","gif","webp"].includes(ext) ? "image" : "document";
+    const docName  = name.trim() || file.name.replace(/\.[^.]+$/, "");
+
+    await sb.from("patient_documents").insert({
+      patient_id:    invitation.patient_id,
+      invitation_id: invitation.id,
+      name:          docName,
+      url:           publicUrl,
+      file_type:     autoType,
+      uploaded_by:   "coordinator",
+    });
+
+    setUploadPct(100);
+    setName(""); setUrl(""); setFileType("document");
+    await load();
+    setUploading(false); setUploadPct(0);
+    if (fileRef.current) fileRef.current.value = "";
+    window.cbToast && window.cbToast("File uploaded — patient can now download it", { icon: "upload-cloud" });
+  };
+
+  /* ---- Save a link-only document ---- */
+  const addLink = async () => {
+    if (!name.trim() || !url.trim()) return;
     setAdding(true);
     const sb = getSB();
     await sb.from("patient_documents").insert({
-      patient_id: invitation.patient_id,
+      patient_id:    invitation.patient_id,
       invitation_id: invitation.id,
-      name: name.trim(),
-      url: url.trim() || null,
-      file_type: fileType,
-      uploaded_by: "coordinator",
+      name:          name.trim(),
+      url:           url.trim(),
+      file_type:     fileType,
+      uploaded_by:   "coordinator",
     });
     setName(""); setUrl(""); setFileType("document");
     await load();
     setAdding(false);
-    window.cbToast && window.cbToast("Document added", { icon: "file-text" });
+    window.cbToast && window.cbToast("Document link added", { icon: "file-text" });
   };
 
-  const remove = async (id) => {
+  const remove = async (id, storagePath) => {
     const sb = getSB();
     await sb.from("patient_documents").delete().eq("id", id);
+    if (storagePath) await sb.storage.from("patient-documents").remove([storagePath]).catch(() => {});
     setDocs(d => d.filter(x => x.id !== id));
     window.cbToast && window.cbToast("Document removed", { icon: "trash" });
   };
 
-  const fmtD = (ts) => new Date(ts).toLocaleDateString("en-GB", { day:"numeric", month:"short", year:"numeric" });
+  const fmtD     = (ts) => new Date(ts).toLocaleDateString("en-GB", { day:"numeric", month:"short", year:"numeric" });
+  const fmtSize  = (b)  => b > 1048576 ? (b/1048576).toFixed(1)+"MB" : b > 1024 ? (b/1024).toFixed(0)+"KB" : b+"B";
   const FILE_TYPES = ["document","pdf","image","medical","visa","insurance","other"];
+  const docIcon = (ft) => ft==="pdf" ? "file-type-pdf" : ft==="image" ? "image" : ft==="medical" ? "activity" : ft==="visa" ? "stamp" : "file-text";
 
   return (
     <div style={{ padding:16, display:"flex", flexDirection:"column", gap:16 }}>
-      <div style={{ background:"var(--bg-page)", border:"1px solid var(--border)", borderRadius:10, padding:14 }}>
-        <div style={{ fontSize:12, fontWeight:700, color:"var(--text-faint)", textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:12 }}>Add document</div>
-        <div style={{ marginBottom:10 }}>
-          <label style={{ display:"block", fontSize:11, fontWeight:600, color:"var(--text-faint)", marginBottom:4 }}>Document name</label>
-          <input className="cb-input" value={name} onChange={e=>setName(e.target.value)} placeholder="e.g. Passport copy, Hospital authorization letter…" style={{ width:"100%", minHeight:38 }} data-real />
-        </div>
-        <div style={{ marginBottom:10 }}>
-          <label style={{ display:"block", fontSize:11, fontWeight:600, color:"var(--text-faint)", marginBottom:4 }}>Link (Google Drive, Dropbox, etc.)</label>
-          <input className="cb-input" value={url} onChange={e=>setUrl(e.target.value)} placeholder="https://…" style={{ width:"100%", minHeight:38 }} data-real />
-        </div>
-        <div style={{ marginBottom:12 }}>
-          <label style={{ display:"block", fontSize:11, fontWeight:600, color:"var(--text-faint)", marginBottom:4 }}>Type</label>
-          <select className="cb-input" value={fileType} onChange={e=>setFileType(e.target.value)} style={{ width:"100%", minHeight:38 }} data-real>
-            {FILE_TYPES.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase()+t.slice(1)}</option>)}
-          </select>
-        </div>
-        <button className="cb-btn cb-btn--primary" data-real onClick={add} disabled={adding || !name.trim()} style={{ width:"100%" }}>
-          <i data-lucide="plus" style={{ width:14, height:14 }} /> {adding ? "Adding…" : "Add Document"}
-        </button>
+
+      {/* Mode switcher */}
+      <div style={{ display:"flex", background:"var(--bg-page)", border:"1px solid var(--border)", borderRadius:10, overflow:"hidden" }}>
+        {[["file","Upload File from Computer","upload-cloud"],["link","Paste Link (Drive/Dropbox)","link"]].map(([m, lbl, icon]) => (
+          <button key={m} data-real onClick={() => setUploadMode(m)}
+            style={{ flex:1, padding:"11px 8px", fontSize:13, fontWeight: uploadMode===m ? 700 : 500, color: uploadMode===m ? "#fff" : "var(--text-faint)", background: uploadMode===m ? "var(--navy-600,#1B3A6B)" : "transparent", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:7, transition:"all .15s" }}>
+            <i data-lucide={icon} style={{ width:14, height:14 }} /> {lbl}
+          </button>
+        ))}
       </div>
 
+      {/* Upload file from computer */}
+      {uploadMode === "file" && (
+        <div style={{ background:"var(--bg-page)", border:"2px dashed var(--border)", borderRadius:12, padding:20, textAlign:"center" }}>
+          <div style={{ marginBottom:12 }}>
+            <label style={{ display:"block", fontSize:11, fontWeight:600, color:"var(--text-faint)", marginBottom:6 }}>Document name (optional — uses filename if blank)</label>
+            <input className="cb-input" value={name} onChange={e=>setName(e.target.value)} placeholder="e.g. Passport copy…" style={{ width:"100%", minHeight:38 }} data-real />
+          </div>
+          <input ref={fileRef} type="file" id="doc-file-input" style={{ display:"none" }} data-real
+            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.xlsx,.xls,.ppt,.pptx,.txt"
+            onChange={uploadFile} />
+          {uploading ? (
+            <div style={{ padding:"12px 0" }}>
+              <div style={{ height:6, background:"var(--border)", borderRadius:20, overflow:"hidden", marginBottom:10 }}>
+                <div style={{ width: uploadPct+"%", height:"100%", background:"var(--teal-600,#1CA89C)", borderRadius:20, transition:"width .3s" }} />
+              </div>
+              <div style={{ fontSize:13, color:"var(--text-faint)" }}>Uploading… {uploadPct}%</div>
+            </div>
+          ) : (
+            <label htmlFor="doc-file-input" data-real style={{ display:"inline-flex", alignItems:"center", gap:8, padding:"12px 24px", background:"var(--teal-600,#1CA89C)", color:"#fff", borderRadius:10, fontWeight:700, fontSize:14, cursor:"pointer" }}>
+              <i data-lucide="upload-cloud" style={{ width:18, height:18 }} /> Choose File to Upload
+            </label>
+          )}
+          <div style={{ fontSize:11, color:"var(--text-faint)", marginTop:10 }}>PDF, Word, Excel, Images — patient gets a download button</div>
+        </div>
+      )}
+
+      {/* Paste a link */}
+      {uploadMode === "link" && (
+        <div style={{ background:"var(--bg-page)", border:"1px solid var(--border)", borderRadius:10, padding:14 }}>
+          <div style={{ marginBottom:10 }}>
+            <label style={{ display:"block", fontSize:11, fontWeight:600, color:"var(--text-faint)", marginBottom:4 }}>Document name *</label>
+            <input className="cb-input" value={name} onChange={e=>setName(e.target.value)} placeholder="e.g. Authorization letter…" style={{ width:"100%", minHeight:38 }} data-real />
+          </div>
+          <div style={{ marginBottom:10 }}>
+            <label style={{ display:"block", fontSize:11, fontWeight:600, color:"var(--text-faint)", marginBottom:4 }}>Link (Google Drive, Dropbox, OneDrive…)</label>
+            <input className="cb-input" value={url} onChange={e=>setUrl(e.target.value)} placeholder="https://drive.google.com/…" style={{ width:"100%", minHeight:38 }} data-real />
+          </div>
+          <div style={{ marginBottom:12 }}>
+            <label style={{ display:"block", fontSize:11, fontWeight:600, color:"var(--text-faint)", marginBottom:4 }}>Type</label>
+            <select className="cb-input" value={fileType} onChange={e=>setFileType(e.target.value)} style={{ width:"100%", minHeight:38 }} data-real>
+              {FILE_TYPES.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase()+t.slice(1)}</option>)}
+            </select>
+          </div>
+          <button className="cb-btn cb-btn--primary" data-real onClick={addLink} disabled={adding || !name.trim() || !url.trim()} style={{ width:"100%" }}>
+            <i data-lucide="link" style={{ width:14, height:14 }} /> {adding ? "Saving…" : "Add Link"}
+          </button>
+        </div>
+      )}
+
+      {/* Document list */}
+      <div style={{ fontSize:12, fontWeight:700, color:"var(--text-faint)", textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:-8 }}>
+        Patient can see & download ({docs.length})
+      </div>
       {loading ? <div style={{ textAlign:"center", color:"var(--text-faint)", padding:16 }}>Loading…</div>
-      : docs.length === 0 ? <div style={{ textAlign:"center", color:"var(--text-faint)", padding:16, fontSize:13 }}>No documents added yet.</div>
-      : docs.map(doc => (
+      : docs.length === 0 ? (
+        <div style={{ textAlign:"center", color:"var(--text-faint)", padding:24, fontSize:13, border:"1px dashed var(--border)", borderRadius:10 }}>
+          No documents yet — upload a file or add a link above.
+        </div>
+      ) : docs.map(doc => (
         <div key={doc.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 14px", background:"var(--bg-page)", border:"1px solid var(--border)", borderRadius:10 }}>
-          <i data-lucide="file-text" style={{ width:18, height:18, color:"var(--teal-600,#1CA89C)", flexShrink:0 }} />
+          <div style={{ width:36, height:36, borderRadius:8, background:"var(--teal-pale,rgba(28,168,156,0.1))", display:"grid", placeItems:"center", flexShrink:0 }}>
+            <i data-lucide={docIcon(doc.file_type)} style={{ width:16, height:16, color:"var(--teal-600,#1CA89C)" }} />
+          </div>
           <div style={{ flex:1, minWidth:0 }}>
             <div style={{ fontWeight:600, fontSize:13, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{doc.name}</div>
             <div style={{ fontSize:11, color:"var(--text-faint)", marginTop:2 }}>{doc.file_type} · {fmtD(doc.created_at)}</div>
           </div>
-          {doc.url && <a href={doc.url} target="_blank" rel="noopener noreferrer" data-real style={{ color:"var(--teal-600,#1CA89C)", fontSize:12, fontWeight:600, textDecoration:"none", flexShrink:0 }}><i data-lucide="external-link" style={{ width:14, height:14 }} /></a>}
-          <button data-real onClick={() => remove(doc.id)} style={{ background:"none", border:"none", color:"var(--text-faint)", cursor:"pointer", padding:4, flexShrink:0 }} title="Remove">
+          {doc.url && (
+            <a href={doc.url} target="_blank" rel="noopener noreferrer" data-real
+              style={{ display:"inline-flex", alignItems:"center", gap:5, padding:"5px 10px", background:"var(--teal-pale,rgba(28,168,156,0.1))", color:"var(--teal-600,#1CA89C)", border:"1px solid rgba(28,168,156,0.3)", borderRadius:7, fontSize:12, fontWeight:700, textDecoration:"none", flexShrink:0 }}>
+              <i data-lucide="download" style={{ width:13, height:13 }} /> Open
+            </a>
+          )}
+          <button data-real onClick={() => remove(doc.id)} style={{ background:"none", border:"none", color:"var(--text-faint)", cursor:"pointer", padding:4, flexShrink:0 }}>
             <i data-lucide="trash-2" style={{ width:15, height:15 }} />
           </button>
         </div>
