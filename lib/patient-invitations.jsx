@@ -460,7 +460,7 @@ function MessagePanel({ invitation, onClose, onPatientUpdated }) {
 
 /* ---- Travel details panel ---- */
 function TravelPanel({ invitation }) {
-  const BLANK = { flight_number:"", departure_date:"", departure_time:"", from_city:"", to_city:"", arrival_time:"", hotel_name:"", hotel_nights:"", hotel_address:"", pickup:"", notes:"" };
+  const BLANK = { flight_number:"", departure_date:"", departure_time:"", from_city:"", to_city:"", arrival_time:"", hotel_name:"", hotel_nights:"", hotel_reservation:"", hotel_address:"", pickup:"", notes:"" };
   const [form, setForm] = useSt(BLANK);
   const [saving, setSaving] = useSt(false);
   const [loaded, setLoaded] = useSt(false);
@@ -508,6 +508,7 @@ function TravelPanel({ invitation }) {
         <Field label="Hotel address" k="hotel_address" placeholder="Street, City" />
         <Field label="Nights" k="hotel_nights" placeholder="e.g. 5" />
       </div>
+      <Field label="Reservation number" k="hotel_reservation" placeholder="e.g. RES-123456" />
       <div style={{ fontSize:12, fontWeight:700, color:"var(--text-faint)", textTransform:"uppercase", letterSpacing:"0.05em", margin:"16px 0 14px" }}>Other</div>
       <Field label="Airport pickup arrangement" k="pickup" placeholder="e.g. Driver meets at arrivals — flight board name" />
       <div style={{ marginBottom:12 }}>

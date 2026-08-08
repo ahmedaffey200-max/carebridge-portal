@@ -812,7 +812,7 @@ function PatientDocuments({ pid }) {
 
 /* ---- Travel coordinator tab (saves to portal_state → patient sees it live) ---- */
 function PatientTravelCoord({ pid }) {
-  const BLANK = { flight_number:"", departure_date:"", departure_time:"", from_city:"", to_city:"", arrival_time:"", hotel_name:"", hotel_nights:"", hotel_address:"", pickup:"", notes:"" };
+  const BLANK = { flight_number:"", departure_date:"", departure_time:"", from_city:"", to_city:"", arrival_time:"", hotel_name:"", hotel_nights:"", hotel_reservation:"", hotel_address:"", pickup:"", notes:"" };
   const [form, setForm] = useState({ ...BLANK });
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -864,6 +864,7 @@ function PatientTravelCoord({ pid }) {
           <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(180px,1fr))", gap:12 }}>
             {field("Hotel name", "hotel_name", "text", "e.g. The Leela")}
             {field("Nights", "hotel_nights", "number", "e.g. 5")}
+            {field("Reservation number", "hotel_reservation", "text", "e.g. RES-123456")}
           </div>
           {field("Hotel address", "hotel_address", "text", "Full address")}
           {field("Airport pickup", "pickup", "text", "e.g. Private car arranged at exit B")}

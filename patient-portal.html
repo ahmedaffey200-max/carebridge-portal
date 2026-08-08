@@ -1825,8 +1825,9 @@ function TravelTab({ invitation, lang = "en" }) {
           <div className="pp-card-header"><div className="pp-card-title"><Icon name="building" /> {t(lang, "Accommodation")}</div></div>
           <div className="pp-card-body">
             <div className="pp-travel-grid">
-              {travel.hotel_name   && <div className="pp-travel-card"><div className="pp-travel-card-label">Hotel</div><div className="pp-travel-card-value">{travel.hotel_name}</div></div>}
-              {travel.hotel_nights && <div className="pp-travel-card"><div className="pp-travel-card-label">Duration</div><div className="pp-travel-card-value">{travel.hotel_nights} nights</div></div>}
+              {travel.hotel_name        && <div className="pp-travel-card"><div className="pp-travel-card-label">Hotel</div><div className="pp-travel-card-value">{travel.hotel_name}</div></div>}
+              {travel.hotel_nights      && <div className="pp-travel-card"><div className="pp-travel-card-label">Duration</div><div className="pp-travel-card-value">{travel.hotel_nights} nights</div></div>}
+              {travel.hotel_reservation && <div className="pp-travel-card"><div className="pp-travel-card-label">Reservation</div><div className="pp-travel-card-value">{travel.hotel_reservation}</div></div>}
             </div>
             {travel.hotel_address && <div style={{ marginTop: 10, fontSize: 13, color: "var(--text-sub)", display: "flex", alignItems: "flex-start", gap: 5 }}><Icon name="map-pin" size={13} style={{ flexShrink: 0, marginTop: 1 }} />{travel.hotel_address}</div>}
           </div>
