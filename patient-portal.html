@@ -954,7 +954,6 @@ function InfoTab({ invitation, lang = "en" }) {
             <div className="pp-row-item"><span className="pp-row-label">{t(lang, "Full name")}</span><span className="pp-row-val">{invitation.patient_name}</span></div>
             <div className="pp-row-item"><span className="pp-row-label">{t(lang, "Patient ID")}</span><span className="pp-row-val" style={{ fontFamily: "monospace", letterSpacing: "0.04em" }}>{invitation.patient_id}</span></div>
             <div className="pp-row-item"><span className="pp-row-label">{t(lang, "Priority")}</span><span className="pp-row-val"><span className={"pp-pill " + pillClass}>{t(lang, priority)}</span></span></div>
-            <div className="pp-row-item"><span className="pp-row-label">{t(lang, "Portal expires")}</span><span className="pp-row-val">{new Date(invitation.expires_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</span></div>
           </div>
         </div>
       </div>
