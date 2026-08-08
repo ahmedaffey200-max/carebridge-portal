@@ -990,6 +990,29 @@ function InfoTab({ invitation, lang = "en" }) {
         </div>
       )}
 
+      {/* Du'a card */}
+      <div style={{
+        background: "linear-gradient(135deg, #1B3A6B 0%, #1CA89C 100%)",
+        borderRadius: "var(--radius, 14px)",
+        padding: "24px 20px",
+        textAlign: "center",
+        margin: "0 0 8px"
+      }}>
+        <div style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", marginBottom: 12, letterSpacing: "0.06em", textTransform: "uppercase", fontWeight: 600 }}>Carebridge International</div>
+        <p style={{
+          direction: "rtl",
+          fontFamily: "'Scheherazade New', 'Amiri', 'Traditional Arabic', serif",
+          fontSize: "clamp(17px, 4.5vw, 22px)",
+          lineHeight: 2,
+          color: "#ffffff",
+          margin: 0,
+          fontWeight: 500,
+          textShadow: "0 1px 6px rgba(0,0,0,0.2)"
+        }}>
+          نسأل الله أن يشفيك ويعافيك، وييسّر لك رحلة العلاج.<br />نحن معك في كل خطوة، بإذن الله.
+        </p>
+      </div>
+
     </div>
   );
 }
