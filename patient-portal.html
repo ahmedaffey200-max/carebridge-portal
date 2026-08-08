@@ -2124,7 +2124,6 @@ function Dashboard({ invitation, locationLabel, tab, setTab, onLogout, unreadMsg
     { id: "info",      label: t(lang, "My Info"),    icon: "user",           badge: 0          },
     { id: "messages",  label: t(lang, "Messages"),   icon: "message-square", badge: unreadMsgs },
     { id: "journey",   label: t(lang, "Journey"),    icon: "route",          badge: newJourney },
-    { id: "documents", label: t(lang, "Documents"),  icon: "file-text",      badge: 0          },
     { id: "travel",    label: t(lang, "Travel"),     icon: "plane",          badge: 0          },
     { id: "emergency", label: t(lang, "Emergency"),  icon: "phone-call",     badge: 0          },
     { id: "checklist", label: t(lang, "Checklist"),  icon: "checklist",      badge: 0          },
@@ -2187,7 +2186,6 @@ function Dashboard({ invitation, locationLabel, tab, setTab, onLogout, unreadMsg
       {tab === "info"      && <InfoTab       invitation={invitation} lang={lang} />}
       {tab === "messages"  && <MessagesTab   invitation={invitation} newMsgIds={newMsgIds} lang={lang} />}
       {tab === "journey"   && <JourneyTab    invitation={invitation} newActIds={newActIds} lang={lang} />}
-      {tab === "documents" && <DocumentsTab  invitation={invitation} lang={lang} />}
       {tab === "travel"    && <TravelTab     invitation={invitation} lang={lang} />}
       {tab === "emergency" && <EmergencyTab  invitation={invitation} lang={lang} />}
       {tab === "checklist" && <ChecklistTab  invitation={invitation} lang={lang} />}
