@@ -312,6 +312,9 @@ function MessagePanel({ invitation, onClose, onPatientUpdated }) {
     { id: "travel",    label: "Travel",    icon: "plane" },
     { id: "documents", label: "Documents", icon: "file-text" },
     { id: "checklist", label: "Checklist", icon: "check-square" },
+    { id: "emergency", label: "Emergency", icon: "phone-call" },
+    { id: "alerts",    label: "Alerts",    icon: "bell" },
+    { id: "ratings",   label: "Ratings",   icon: "star" },
   ];
 
   return (
@@ -406,6 +409,27 @@ function MessagePanel({ invitation, onClose, onPatientUpdated }) {
       {panelTab === "checklist" && (
         <div style={{ flex: 1, overflowY: "auto" }}>
           <ChecklistPanel invitation={invitation} />
+        </div>
+      )}
+
+      {/* Emergency tab */}
+      {panelTab === "emergency" && (
+        <div style={{ flex: 1, overflowY: "auto" }}>
+          <EmergencyInlinePanel />
+        </div>
+      )}
+
+      {/* Alerts tab */}
+      {panelTab === "alerts" && (
+        <div style={{ flex: 1, overflowY: "auto" }}>
+          <AlertsPanel invitation={invitation} />
+        </div>
+      )}
+
+      {/* Ratings tab */}
+      {panelTab === "ratings" && (
+        <div style={{ flex: 1, overflowY: "auto" }}>
+          <RatingsPanel invitation={invitation} />
         </div>
       )}
     </div>
@@ -852,6 +876,173 @@ function EditInfoPanel({ invitation, onPatientUpdated }) {
       <button className="cb-btn cb-btn--primary" data-real onClick={save} disabled={saving} style={{ width:"100%" }}>
         <i data-lucide="save" style={{ width:14, height:14 }} /> {saving ? "Saving…" : "Save Changes"}
       </button>
+    </div>
+  );
+}
+
+/* ---- Emergency inline (in patient panel) ---- */
+function EmergencyInlinePanel() {
+  const BLANK_C = { name: "", phone: "", type: "Medical", label: "" };
+  const [contacts, setContacts] = useSt([]);
+  const [saving,   setSaving]   = useSt(false);
+  const [loading,  setLoading]  = useSt(true);
+  const CONTACT_TYPES = ["Medical","Coordinator","Hospital","Embassy","Family","Other"];
+  const IS = { width:"100%" };
+
+  useEff(() => {
+    const sb = getSB(); if (!sb) return;
+    sb.from("portal_state").select("state").eq("id","emergency").single()
+      .then(({ data }) => { if (data?.state?.contacts) setContacts(data.state.contacts); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
+
+  const update = (idx, field, val) => setContacts(cs => cs.map((c,i) => i===idx ? {...c,[field]:val} : c));
+  const add    = () => setContacts(cs => [...cs, {...BLANK_C}]);
+  const remove = (idx) => setContacts(cs => cs.filter((_,i) => i!==idx));
+
+  const save = async () => {
+    setSaving(true);
+    const sb = getSB();
+    await sb.from("portal_state").upsert({ id:"emergency", state:{ contacts } }, { onConflict:"id" });
+    setSaving(false);
+    window.cbToast && window.cbToast("Emergency contacts saved — visible to all patients", { icon:"phone-call" });
+  };
+
+  return (
+    <div style={{ padding:16, display:"flex", flexDirection:"column", gap:12 }}>
+      <div style={{ fontSize:12, color:"var(--text-faint)", lineHeight:1.5 }}>
+        These contacts are shown to <strong>all patients</strong> on their Emergency tab.
+      </div>
+      {loading ? <div style={{ color:"var(--text-faint)", fontSize:13, textAlign:"center", padding:16 }}>Loading…</div> : (<>
+        {contacts.map((c, idx) => (
+          <div key={idx} style={{ background:"var(--bg-page)", border:"1px solid var(--border)", borderRadius:10, padding:14 }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+              <div style={{ fontWeight:700, fontSize:13 }}>Contact {idx+1}</div>
+              <button data-real onClick={() => remove(idx)} style={{ background:"none", border:"none", color:"var(--text-faint)", cursor:"pointer", padding:4 }}>
+                <i data-lucide="trash-2" style={{ width:15, height:15 }} />
+              </button>
+            </div>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:8 }}>
+              <div><label style={{ display:"block", fontSize:11, fontWeight:600, color:"var(--text-faint)", marginBottom:3 }}>Name</label>
+                <input className="cb-input" value={c.name} onChange={e=>update(idx,"name",e.target.value)} placeholder="Carebridge 24/7…" style={IS} data-real /></div>
+              <div><label style={{ display:"block", fontSize:11, fontWeight:600, color:"var(--text-faint)", marginBottom:3 }}>Phone</label>
+                <input className="cb-input" value={c.phone} onChange={e=>update(idx,"phone",e.target.value)} placeholder="+1 (555)…" style={IS} data-real /></div>
+              <div><label style={{ display:"block", fontSize:11, fontWeight:600, color:"var(--text-faint)", marginBottom:3 }}>Type</label>
+                <select className="cb-input" value={c.type} onChange={e=>update(idx,"type",e.target.value)} style={IS} data-real>
+                  {CONTACT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                </select></div>
+              <div><label style={{ display:"block", fontSize:11, fontWeight:600, color:"var(--text-faint)", marginBottom:3 }}>Label</label>
+                <input className="cb-input" value={c.label} onChange={e=>update(idx,"label",e.target.value)} placeholder="Available 24/7" style={IS} data-real /></div>
+            </div>
+          </div>
+        ))}
+        <button className="cb-btn cb-btn--ghost" data-real onClick={add} style={{ width:"100%", justifyContent:"center" }}>
+          <i data-lucide="plus" style={{ width:14, height:14 }} /> Add Contact
+        </button>
+        <button className="cb-btn cb-btn--primary" data-real onClick={save} disabled={saving} style={{ width:"100%" }}>
+          <i data-lucide="save" style={{ width:14, height:14 }} /> {saving ? "Saving…" : "Save Emergency Contacts"}
+        </button>
+      </>)}
+    </div>
+  );
+}
+
+/* ---- Alerts panel (coordinator view of patient activity & message history) ---- */
+function AlertsPanel({ invitation }) {
+  const [acts,  setActs]  = useSt([]);
+  const [msgs,  setMsgs]  = useSt([]);
+  const [loading, setLoading] = useSt(true);
+
+  useEff(() => {
+    const sb = getSB(); if (!sb) return;
+    Promise.all([
+      sb.from("patient_activities").select("*").eq("patient_id", invitation.patient_id)
+        .order("created_at", { ascending:false }).limit(15),
+      sb.from("patient_messages").select("*").eq("patient_id", invitation.patient_id)
+        .order("created_at", { ascending:false }).limit(10),
+    ]).then(([{ data: a }, { data: m }]) => {
+      setActs(a || []);
+      setMsgs(m || []);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, [invitation.patient_id]);
+
+  const fmtT = (ts) => new Date(ts).toLocaleDateString("en-GB", { day:"numeric", month:"short" }) + " " + new Date(ts).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" });
+
+  if (loading) return <div style={{ padding:32, color:"var(--text-faint)", textAlign:"center", fontSize:13 }}>Loading…</div>;
+
+  const all = [
+    ...acts.map(a => ({ ts: a.created_at, kind:"journey", icon:"route", color:"#1CA89C", title: a.title, sub: a.description || (a.new_value ? (a.old_value ? a.old_value + " → " + a.new_value : a.new_value) : null) })),
+    ...msgs.filter(m => m.sender_role === "patient").map(m => ({ ts: m.created_at, kind:"message", icon:"message-square", color:"#2C5089", title:"Patient message", sub: m.content?.slice(0,80) + (m.content?.length > 80 ? "…" : "") })),
+  ].sort((a, b) => new Date(b.ts) - new Date(a.ts));
+
+  return (
+    <div style={{ padding:16, display:"flex", flexDirection:"column", gap:10 }}>
+      <div style={{ fontSize:12, color:"var(--text-faint)" }}>Recent patient activity — last 25 events</div>
+      {all.length === 0 ? (
+        <div style={{ color:"var(--text-faint)", fontSize:13, textAlign:"center", padding:24 }}>No activity yet for this patient.</div>
+      ) : all.map((ev, i) => (
+        <div key={i} style={{ display:"flex", gap:12, padding:"10px 14px", background:"var(--bg-page)", border:"1px solid var(--border)", borderRadius:10, alignItems:"flex-start" }}>
+          <div style={{ width:32, height:32, borderRadius:"50%", background: ev.color+"18", border:"2px solid "+ev.color, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, marginTop:1 }}>
+            <i data-lucide={ev.icon} style={{ width:13, height:13, color:ev.color }} />
+          </div>
+          <div style={{ flex:1, minWidth:0 }}>
+            <div style={{ fontWeight:600, fontSize:13 }}>{ev.title}</div>
+            {ev.sub && <div style={{ fontSize:12, color:"var(--text-faint)", marginTop:2, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{ev.sub}</div>}
+            <div style={{ fontSize:11, color:"var(--text-faint)", marginTop:4 }}>{fmtT(ev.ts)}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ---- Ratings panel (coordinator view of patient feedback) ---- */
+function RatingsPanel({ invitation }) {
+  const [rating, setRating] = useSt(null);
+  const [loading, setLoading] = useSt(true);
+
+  useEff(() => {
+    const sb = getSB(); if (!sb) return;
+    sb.from("patient_ratings").select("*").eq("invitation_id", invitation.id).maybeSingle()
+      .then(({ data }) => { setRating(data || null); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, [invitation.id]);
+
+  if (loading) return <div style={{ padding:32, color:"var(--text-faint)", textAlign:"center", fontSize:13 }}>Loading…</div>;
+
+  return (
+    <div style={{ padding:16 }}>
+      {!rating ? (
+        <div style={{ textAlign:"center", padding:"40px 16px", color:"var(--text-faint)" }}>
+          <i data-lucide="star" style={{ width:40, height:40, display:"block", margin:"0 auto 14px", opacity:0.3 }} />
+          <div style={{ fontWeight:600, marginBottom:6 }}>No rating submitted yet</div>
+          <div style={{ fontSize:13 }}>{invitation.patient_name} has not rated their experience.</div>
+        </div>
+      ) : (
+        <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+          <div style={{ background:"var(--bg-page)", border:"1px solid var(--border)", borderRadius:12, padding:20, textAlign:"center" }}>
+            <div style={{ display:"flex", justifyContent:"center", gap:6, marginBottom:12 }}>
+              {[1,2,3,4,5].map(n => (
+                <i key={n} data-lucide="star" style={{ width:28, height:28, color: n<=rating.stars ? "#F59E0B" : "var(--border)", fill: n<=rating.stars ? "#F59E0B" : "none" }} />
+              ))}
+            </div>
+            <div style={{ fontSize:28, fontWeight:800, color: rating.stars>=4 ? "var(--teal-600,#1CA89C)" : rating.stars===3 ? "#F59E0B" : "var(--danger-600,#dc2626)" }}>{rating.stars} / 5</div>
+            <div style={{ fontSize:13, color:"var(--text-faint)", marginTop:4 }}>
+              {rating.stars===5 ? "Excellent" : rating.stars===4 ? "Good" : rating.stars===3 ? "Average" : rating.stars===2 ? "Poor" : "Very poor"}
+            </div>
+          </div>
+          {rating.comment && (
+            <div style={{ background:"var(--bg-page)", border:"1px solid var(--border)", borderRadius:12, padding:16 }}>
+              <div style={{ fontSize:11, fontWeight:700, color:"var(--text-faint)", textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:8 }}>Patient comment</div>
+              <div style={{ fontSize:14, lineHeight:1.6, fontStyle:"italic", color:"var(--text)" }}>"{rating.comment}"</div>
+            </div>
+          )}
+          <div style={{ fontSize:12, color:"var(--text-faint)", textAlign:"center" }}>
+            Submitted: {new Date(rating.created_at).toLocaleDateString("en-GB", { day:"numeric", month:"long", year:"numeric" })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
