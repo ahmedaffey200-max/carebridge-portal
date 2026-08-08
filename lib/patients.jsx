@@ -99,7 +99,7 @@ function PatientDetail({ id, go, onEdit }) {
   const [confirmDel, setConfirmDel] = useState(false);
   const p = (window.CBStore.patientById(id)) || PD.PATIENTS.find((x) => x.id === id) || PD.PATIENTS[0];
   const dest = PD.destByCode(p.dest), co = PD.coordById(p.coordinator), hosp = PD.hospitalById(p.hospital);
-  const tabs = ["Overview", "Medical history", "Documents", "Workflow", "Communication"];
+  const tabs = ["Overview", "Medical history", "Documents", "Travel", "Workflow", "Communication"];
 
   return (
     <div className="cb-grid" style={{ gap: "var(--gap-grid)" }}>
@@ -150,7 +150,8 @@ function PatientDetail({ id, go, onEdit }) {
 
       {tab === "Overview" ? <PatientOverview p={p} dest={dest} co={co} hosp={hosp} /> : null}
       {tab === "Medical history" ? <PatientHistory p={p} /> : null}
-      {tab === "Documents" ? <PatientDocuments pid={p.id} /> : null}
+      {tab === "Documents" ? <React.Fragment><PatientPortalDocs pid={p.id} /><PatientDocuments pid={p.id} /></React.Fragment> : null}
+      {tab === "Travel" ? <PatientTravelCoord pid={p.id} /> : null}
       {tab === "Workflow" ? <PatientWorkflow p={p} hosp={hosp} /> : null}
       {tab === "Communication" ? <PatientComms p={p} co={co} /> : null}
       {confirmDel ? (
@@ -604,6 +605,105 @@ function HistoryModal({ pid, mode, record, onClose }) {
   );
 }
 
+/* ---- Patient portal document uploader (Supabase → patient can download) ---- */
+function PatientPortalDocs({ pid }) {
+  const [docs, setDocs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [name, setName] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [uploadPct, setUploadPct] = useState(0);
+  const fileRef = React.useRef(null);
+
+  const load = async () => {
+    const sb = _getAdminSB(); if (!sb) return;
+    const { data } = await sb.from("patient_documents").select("*").eq("patient_id", pid).order("created_at", { ascending: false });
+    setDocs(data || []); setLoading(false);
+  };
+  useEffect(() => { load(); }, [pid]);
+
+  const uploadFile = async (e) => {
+    const file = e.target.files && e.target.files[0]; if (!file) return;
+    const sb = _getAdminSB(); if (!sb) return;
+    setUploading(true); setUploadPct(10);
+    const ext  = file.name.split(".").pop().toLowerCase();
+    const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const path = pid + "/" + Date.now() + "_" + safe;
+    await sb.storage.createBucket("patient-documents", { public: true }).catch(() => {});
+    setUploadPct(30);
+    const { error: upErr } = await sb.storage.from("patient-documents").upload(path, file, { upsert: true });
+    if (upErr) {
+      window.cbToast && window.cbToast("Upload failed: " + upErr.message, { icon: "x-circle" });
+      setUploading(false); setUploadPct(0);
+      if (fileRef.current) fileRef.current.value = "";
+      return;
+    }
+    setUploadPct(80);
+    const { data: pub } = sb.storage.from("patient-documents").getPublicUrl(path);
+    const autoType = ext === "pdf" ? "pdf" : ["jpg","jpeg","png","gif","webp"].includes(ext) ? "image" : "document";
+    await sb.from("patient_documents").insert({
+      patient_id: pid, name: name.trim() || file.name.replace(/\.[^.]+$/, ""),
+      url: pub?.publicUrl || "", file_type: autoType, uploaded_by: "coordinator",
+    });
+    setUploadPct(100); setName(""); await load();
+    setUploading(false); setUploadPct(0);
+    if (fileRef.current) fileRef.current.value = "";
+    window.cbToast && window.cbToast("File uploaded — patient can now download it", { icon: "upload-cloud" });
+  };
+
+  const remove = async (id) => {
+    const sb = _getAdminSB(); if (!sb) return;
+    await sb.from("patient_documents").delete().eq("id", id);
+    setDocs(d => d.filter(x => x.id !== id));
+    window.cbToast && window.cbToast("Document removed from patient portal", { icon: "trash" });
+  };
+
+  const fmtD = (ts) => new Date(ts).toLocaleDateString("en-GB", { day:"numeric", month:"short", year:"numeric" });
+  const docIcon = (ft) => ft === "pdf" ? "file-text" : ft === "image" ? "image" : "file";
+
+  return (
+    <Card>
+      <CardHead title="Patient portal documents" sub="Files uploaded here appear immediately on the patient's Documents tab with a download button" />
+      <div style={{ display:"flex", alignItems:"center", gap:8, padding:"9px 13px", background:"rgba(28,168,156,0.08)", border:"1px solid rgba(28,168,156,0.22)", borderRadius:9, fontSize:12.5, color:"var(--teal-600,#1CA89C)", fontWeight:600, marginBottom:4 }}>
+        <Icon name="file-text" size={14} /> Patient sees this on → Documents tab · updates live, no refresh needed
+      </div>
+      <input ref={fileRef} type="file" style={{ display:"none" }} onChange={uploadFile} accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif" />
+      <div style={{ display:"flex", gap:8, alignItems:"flex-end", flexWrap:"wrap" }}>
+        <div style={{ flex:1, minWidth:160 }}>
+          <label style={{ fontSize:11, fontWeight:700, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.06em", display:"block", marginBottom:5 }}>File name (optional)</label>
+          <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Visa approval letter"
+            style={{ width:"100%", padding:"10px 12px", border:"1.5px solid var(--border)", borderRadius:8, fontSize:14, background:"var(--bg-page,#f4f7fb)", color:"var(--text-strong)", fontFamily:"inherit", outline:"none" }} />
+        </div>
+        <button data-real onClick={() => fileRef.current && fileRef.current.click()} disabled={uploading}
+          style={{ background:"var(--navy-600,#1B3A6B)", color:"#fff", border:"none", borderRadius:10, padding:"11px 18px", fontSize:14, fontWeight:700, cursor: uploading ? "not-allowed" : "pointer", opacity: uploading ? 0.65 : 1, display:"flex", alignItems:"center", gap:7, whiteSpace:"nowrap" }}>
+          <Icon name="upload-cloud" size={15} /> {uploading ? "Uploading " + uploadPct + "%" : "Upload file"}
+        </button>
+      </div>
+      {uploading && (
+        <div style={{ background:"var(--border)", borderRadius:99, height:6, overflow:"hidden", marginTop:4 }}>
+          <div style={{ height:"100%", width: uploadPct + "%", background:"var(--teal-600,#1CA89C)", transition:"width .3s" }} />
+        </div>
+      )}
+      <div style={{ display:"flex", flexDirection:"column", gap:8, marginTop:4 }}>
+        {loading ? <div style={{ color:"var(--text-muted)", fontSize:13, padding:12 }}>Loading…</div>
+        : docs.length === 0 ? <div style={{ color:"var(--text-muted)", fontSize:13, padding:12 }}>No documents sent to patient yet.</div>
+        : docs.map(doc => (
+          <div key={doc.id} style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 14px", background:"var(--bg-page,#f4f7fb)", borderRadius:10, border:"1px solid var(--border)" }}>
+            <Icon name={docIcon(doc.file_type)} size={18} style={{ color:"var(--teal-600,#1CA89C)", flexShrink:0 }} />
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ fontSize:13.5, fontWeight:600, color:"var(--text-strong)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{doc.name}</div>
+              <div style={{ fontSize:12, color:"var(--text-muted)" }}>{fmtD(doc.created_at)}</div>
+            </div>
+            {doc.url && <a href={doc.url} target="_blank" rel="noopener noreferrer" style={{ color:"var(--teal-600,#1CA89C)", fontSize:12, fontWeight:600, textDecoration:"none" }}>Open</a>}
+            <button data-real onClick={() => remove(doc.id)} title="Remove" style={{ background:"none", border:"none", cursor:"pointer", color:"var(--danger)", display:"flex", alignItems:"center", padding:4 }}>
+              <Icon name="trash-2" size={15} />
+            </button>
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
 function PatientDocuments({ pid }) {
   const docs = useDocuments(pid);
   const canEdit = window.CBStore.can("patients");
@@ -706,6 +806,74 @@ function PatientDocuments({ pid }) {
         <ConfirmDialog title={"Delete \u201c" + delDoc.name + "\u201d?"} body="This permanently removes the document from secure storage. This cannot be undone." confirmLabel="Delete document" danger
           onCancel={() => setDelDoc(null)} onConfirm={() => { window.CBStore.deleteDocument(pid, delDoc.id); window.cbToast("Document deleted", { icon: "trash-2" }); setDelDoc(null); }} />
       ) : null}
+    </Card>
+  );
+}
+
+/* ---- Travel coordinator tab (saves to portal_state → patient sees it live) ---- */
+function PatientTravelCoord({ pid }) {
+  const BLANK = { flight_number:"", departure_date:"", departure_time:"", from_city:"", to_city:"", arrival_time:"", hotel_name:"", hotel_nights:"", hotel_address:"", pickup:"", notes:"" };
+  const [form, setForm] = useState({ ...BLANK });
+  const [saving, setSaving] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const rowId = "travel_" + pid;
+
+  useEffect(() => {
+    const sb = _getAdminSB(); if (!sb) { setLoaded(true); return; }
+    sb.from("portal_state").select("state").eq("id", rowId).single()
+      .then(({ data }) => { if (data?.state) setForm({ ...BLANK, ...data.state }); setLoaded(true); })
+      .catch(() => setLoaded(true));
+  }, [pid]);
+
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  const save = async () => {
+    const sb = _getAdminSB(); if (!sb) return;
+    setSaving(true);
+    await sb.from("portal_state").upsert({ id: rowId, state: form }, { onConflict: "id" });
+    setSaving(false);
+    window.cbToast && window.cbToast("Travel details saved — patient sees this now", { icon: "plane" });
+  };
+
+  const INP = { width:"100%", padding:"10px 12px", border:"1.5px solid var(--border)", borderRadius:8, fontSize:14, background:"var(--bg-page,#f4f7fb)", color:"var(--text-strong)", fontFamily:"inherit", outline:"none", boxSizing:"border-box" };
+  const field = (label, key, type, ph) => (
+    <div style={{ display:"flex", flexDirection:"column", gap:5 }}>
+      <label style={{ fontSize:11, fontWeight:700, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.06em" }}>{label}</label>
+      <input style={INP} type={type || "text"} value={form[key] || ""} placeholder={ph || ""} onChange={e => set(key, e.target.value)} />
+    </div>
+  );
+
+  return (
+    <Card>
+      <CardHead title="Travel details" sub="Coordinator fills in flight & hotel — patient sees it instantly on their Travel tab" />
+      <div style={{ display:"flex", alignItems:"center", gap:8, padding:"9px 13px", background:"rgba(28,168,156,0.08)", border:"1px solid rgba(28,168,156,0.22)", borderRadius:9, fontSize:12.5, color:"var(--teal-600,#1CA89C)", fontWeight:600, marginBottom:4 }}>
+        <Icon name="plane" size={14} /> Patient sees this on → Travel tab · updates live, no refresh needed
+      </div>
+      {!loaded ? <div style={{ padding:24, textAlign:"center", color:"var(--text-muted)" }}>Loading…</div> : (
+        <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+          <div style={{ fontWeight:700, fontSize:12, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.07em" }}>Flight information</div>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(180px,1fr))", gap:12 }}>
+            {field("Flight number", "flight_number", "text", "e.g. EK204")}
+            {field("Departure date", "departure_date", "date")}
+            {field("Departure time", "departure_time", "time")}
+            {field("Arrival time", "arrival_time", "time")}
+            {field("From city", "from_city", "text", "e.g. Edmonton")}
+            {field("To city", "to_city", "text", "e.g. Delhi")}
+          </div>
+          <div style={{ fontWeight:700, fontSize:12, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.07em", marginTop:4 }}>Accommodation</div>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(180px,1fr))", gap:12 }}>
+            {field("Hotel name", "hotel_name", "text", "e.g. The Leela")}
+            {field("Nights", "hotel_nights", "number", "e.g. 5")}
+          </div>
+          {field("Hotel address", "hotel_address", "text", "Full address")}
+          {field("Airport pickup", "pickup", "text", "e.g. Private car arranged at exit B")}
+          {field("Notes for patient", "notes", "text", "Any additional information")}
+          <button data-real onClick={save} disabled={saving}
+            style={{ background:"var(--navy-600,#1B3A6B)", color:"#fff", border:"none", borderRadius:10, padding:"13px 24px", fontSize:14, fontWeight:700, cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.65 : 1, display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
+            <Icon name="send" size={15} /> {saving ? "Saving…" : "Save & send to patient portal"}
+          </button>
+        </div>
+      )}
     </Card>
   );
 }
