@@ -394,7 +394,7 @@ function MessagePanel({ invitation, onClose, onPatientUpdated }) {
       {/* Journey tab */}
       {panelTab === "journey" && (
         <div style={{ flex: 1, overflowY: "auto" }}>
-          <HintBar icon="route" patientTab="Journey" text="Add a new step below — the patient sees it instantly in their treatment timeline. Updating the stage also moves their progress bar." />
+          <HintBar icon="route" patientTab="Journey" text={"Add a new step below — patient sees it instantly in their timeline. Updating the stage moves their progress bar."} />
           <JourneyPanel invitation={invitation} onPatientUpdated={onPatientUpdated} />
         </div>
       )}
@@ -402,7 +402,7 @@ function MessagePanel({ invitation, onClose, onPatientUpdated }) {
       {/* Edit Info tab */}
       {panelTab === "info" && (
         <div style={{ flex: 1, overflowY: "auto" }}>
-          <HintBar icon="user" patientTab="My Info" text="Changes here update the patient's My Information and Hospital & Treatment cards immediately after saving." />
+          <HintBar icon="user" patientTab="My Info" text={"Changes here update the patient's My Information and Hospital & Treatment cards immediately after saving."} />
           <EditInfoPanel invitation={invitation} onPatientUpdated={onPatientUpdated} />
         </div>
       )}
@@ -410,7 +410,7 @@ function MessagePanel({ invitation, onClose, onPatientUpdated }) {
       {/* Travel tab */}
       {panelTab === "travel" && (
         <div style={{ flex: 1, overflowY: "auto" }}>
-          <HintBar icon="plane" patientTab="Travel" text='Fill in flight and hotel details, then click "Save Travel Details". The patient\'s Travel tab will show everything you enter here.' />
+          <HintBar icon="plane" patientTab="Travel" text={"Fill in flight and hotel details then click Save. The patient's Travel tab shows everything you enter here."} />
           <TravelPanel invitation={invitation} />
         </div>
       )}
@@ -418,7 +418,7 @@ function MessagePanel({ invitation, onClose, onPatientUpdated }) {
       {/* Documents tab */}
       {panelTab === "documents" && (
         <div style={{ flex: 1, overflowY: "auto" }}>
-          <HintBar icon="file-text" patientTab="Documents" text='Paste a Google Drive, Dropbox, or any file link. Click "Add Document" and the patient immediately sees it with a download button.' />
+          <HintBar icon="file-text" patientTab="Documents" text={"Paste a Google Drive or Dropbox link, give it a name, then click Add Document. Patient sees it immediately with a download button."} />
           <DocumentsPanel invitation={invitation} />
         </div>
       )}
@@ -426,7 +426,7 @@ function MessagePanel({ invitation, onClose, onPatientUpdated }) {
       {/* Checklist tab */}
       {panelTab === "checklist" && (
         <div style={{ flex: 1, overflowY: "auto" }}>
-          <HintBar icon="check-square" patientTab="Checklist" text='Customise the pre-travel checklist for this specific patient. Click "Save Checklist" to update — the patient can then tick items off on their phone.' />
+          <HintBar icon="check-square" patientTab="Checklist" text={"Customise the pre-travel checklist for this patient. Click Save Checklist — the patient can then tick items off on their phone."} />
           <ChecklistPanel invitation={invitation} />
         </div>
       )}
@@ -434,7 +434,7 @@ function MessagePanel({ invitation, onClose, onPatientUpdated }) {
       {/* Emergency tab */}
       {panelTab === "emergency" && (
         <div style={{ flex: 1, overflowY: "auto" }}>
-          <HintBar icon="phone-call" patientTab="Emergency" text="These contacts are shown to ALL patients on their Emergency tab. Add or edit contacts then click Save — changes are immediate." />
+          <HintBar icon="phone-call" patientTab="Emergency" text={"These contacts are shown to ALL patients on their Emergency tab. Add or edit then click Save — changes are immediate."} />
           <EmergencyInlinePanel />
         </div>
       )}
@@ -442,7 +442,7 @@ function MessagePanel({ invitation, onClose, onPatientUpdated }) {
       {/* Alerts tab */}
       {panelTab === "alerts" && (
         <div style={{ flex: 1, overflowY: "auto" }}>
-          <HintBar icon="bell" patientTab="Alerts" text="Read-only view of all recent activity for this patient — messages they sent and journey updates. Nothing to save here." />
+          <HintBar icon="bell" patientTab="Alerts" text={"Read-only view of all recent activity — messages the patient sent and journey updates. Nothing to save here."} />
           <AlertsPanel invitation={invitation} />
         </div>
       )}
@@ -450,7 +450,7 @@ function MessagePanel({ invitation, onClose, onPatientUpdated }) {
       {/* Ratings tab */}
       {panelTab === "ratings" && (
         <div style={{ flex: 1, overflowY: "auto" }}>
-          <HintBar icon="star" patientTab="Rate Us" text="View the star rating and comment this patient submitted. Read-only — only the patient can submit a rating." />
+          <HintBar icon="star" patientTab="Rate Us" text={"View the star rating and comment this patient submitted. Read-only — only the patient can submit a rating."} />
           <RatingsPanel invitation={invitation} />
         </div>
       )}
