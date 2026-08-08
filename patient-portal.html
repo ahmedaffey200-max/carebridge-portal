@@ -2128,7 +2128,6 @@ function Dashboard({ invitation, locationLabel, tab, setTab, onLogout, unreadMsg
     { id: "emergency", label: t(lang, "Emergency"),  icon: "phone-call",     badge: 0          },
     { id: "checklist", label: t(lang, "Checklist"),  icon: "checklist",      badge: 0          },
     { id: "ai",        label: t(lang, "AI Help"),    icon: "cpu",            badge: 0          },
-    { id: "notifs",    label: t(lang, "Alerts"),     icon: "bell",           badge: 0          },
     { id: "rate",      label: t(lang, "Rate Us"),    icon: "star",           badge: 0          },
   ];
 
@@ -2190,7 +2189,6 @@ function Dashboard({ invitation, locationLabel, tab, setTab, onLogout, unreadMsg
       {tab === "emergency" && <EmergencyTab  invitation={invitation} lang={lang} />}
       {tab === "checklist" && <ChecklistTab  invitation={invitation} lang={lang} />}
       {tab === "ai"        && <AiTab         invitation={invitation} />}
-      {tab === "notifs"    && <NotificationsTab patientId={invitation.patient_id} lang={lang} />}
       {tab === "rate"      && <RateTab       invitation={invitation} />}
     </div>
   );
