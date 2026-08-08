@@ -152,10 +152,77 @@
   .pp-loc-badge { display: inline-flex; align-items: center; gap: 4px; background: rgba(28,168,156,0.3); border: 1px solid rgba(28,168,156,0.5); color: #7eeee8; border-radius: 20px; padding: 2px 10px; font-size: 11px; font-weight: 500; }
 
   /* ---- Nav tabs ---- */
-  .pp-tabs { display: flex; background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 109px; z-index: 99; }
-  .pp-tab { flex: 1; padding: 14px 8px; font-size: 13px; font-weight: 500; color: var(--text-faint); background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; transition: color 0.2s, border-color 0.2s; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .pp-tabs { display: flex; background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 109px; z-index: 99; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .pp-tabs::-webkit-scrollbar { display: none; }
+  .pp-tab { flex: 0 0 auto; min-width: 64px; padding: 12px 10px; font-size: 11px; font-weight: 500; color: var(--text-faint); background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; transition: color 0.2s, border-color 0.2s; display: flex; flex-direction: column; align-items: center; gap: 4px; }
   .pp-tab svg { width: 18px; height: 18px; }
   .pp-tab.active { color: var(--teal); border-bottom-color: var(--teal); }
+
+  /* ---- Progress bar ---- */
+  .pp-progress-wrap { margin-top: 10px; }
+  .pp-progress-bar { height: 4px; background: rgba(255,255,255,0.2); border-radius: 20px; overflow: hidden; }
+  .pp-progress-fill { height: 100%; background: var(--teal); border-radius: 20px; transition: width 0.8s ease; }
+  .pp-progress-meta { display: flex; justify-content: space-between; margin-top: 5px; }
+  .pp-progress-meta span { font-size: 11px; color: rgba(255,255,255,0.7); }
+
+  /* ---- Documents ---- */
+  .pp-doc-item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .pp-doc-item:last-child { border-bottom: none; }
+  .pp-doc-icon { width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center; flex-shrink: 0; }
+  .pp-doc-icon svg { width: 18px; height: 18px; }
+  .pp-doc-icon--pdf { background: #fee2e2; color: #dc2626; }
+  .pp-doc-icon--img { background: #dcfce7; color: #16a34a; }
+  .pp-doc-icon--doc { background: #dbeafe; color: #2563eb; }
+  .pp-doc-icon--other { background: #f3e8ff; color: #7c3aed; }
+  .pp-doc-name { font-size: 14px; font-weight: 500; color: var(--text); }
+  .pp-doc-sub { font-size: 12px; color: var(--text-faint); margin-top: 2px; }
+  .pp-doc-dl { margin-left: auto; color: var(--teal); text-decoration: none; padding: 7px; border-radius: 8px; background: var(--teal-pale); flex-shrink: 0; display: grid; place-items: center; }
+  .pp-doc-dl svg { width: 16px; height: 16px; }
+
+  /* ---- Travel ---- */
+  .pp-travel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .pp-travel-card { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
+  .pp-travel-card-label { font-size: 10px; font-weight: 700; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+  .pp-travel-card-value { font-size: 14px; font-weight: 600; color: var(--text); }
+  .pp-travel-card-sub { font-size: 11px; color: var(--text-faint); margin-top: 2px; }
+
+  /* ---- Checklist ---- */
+  .pp-check-item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); cursor: pointer; user-select: none; }
+  .pp-check-item:last-child { border-bottom: none; }
+  .pp-check-box { width: 20px; height: 20px; border-radius: 6px; border: 2px solid var(--border); display: grid; place-items: center; flex-shrink: 0; transition: all 0.2s; }
+  .pp-check-box.done { background: var(--teal); border-color: var(--teal); }
+  .pp-check-box.done svg { width: 12px; height: 12px; color: white; }
+  .pp-check-label { font-size: 14px; color: var(--text); line-height: 1.4; }
+  .pp-check-label.done { color: var(--text-faint); text-decoration: line-through; }
+
+  /* ---- Emergency ---- */
+  .pp-emer-item { display: flex; align-items: center; gap: 12px; padding: 13px 0; border-bottom: 1px solid var(--border); }
+  .pp-emer-item:last-child { border-bottom: none; }
+  .pp-emer-av { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; flex-shrink: 0; }
+  .pp-emer-av svg { width: 18px; height: 18px; }
+  .pp-emer-av--red { background: #fee2e2; color: #dc2626; }
+  .pp-emer-av--blue { background: #dbeafe; color: #2563eb; }
+  .pp-emer-av--teal { background: var(--teal-pale); color: var(--teal); }
+  .pp-emer-name { font-size: 14px; font-weight: 600; color: var(--text); }
+  .pp-emer-sub { font-size: 11px; color: var(--text-faint); margin-top: 1px; }
+  .pp-emer-num { font-size: 13px; color: var(--teal); margin-top: 2px; }
+  .pp-emer-call { margin-left: auto; background: var(--teal); color: white; border: none; border-radius: 8px; padding: 7px 14px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 5px; text-decoration: none; flex-shrink: 0; }
+  .pp-emer-call svg { width: 13px; height: 13px; }
+
+  /* ---- Notifications history ---- */
+  .pp-notif-item { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .pp-notif-item:last-child { border-bottom: none; }
+  .pp-notif-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+  .pp-notif-dot--msg { background: var(--teal); }
+  .pp-notif-dot--journey { background: #8b5cf6; }
+  .pp-notif-dot--status { background: #f59e0b; }
+  .pp-notif-text { font-size: 13px; color: var(--text); line-height: 1.5; }
+  .pp-notif-time { font-size: 11px; color: var(--text-faint); margin-top: 3px; }
+
+  /* ---- Empty state ---- */
+  .pp-empty { text-align: center; padding: 36px 16px; color: var(--text-faint); }
+  .pp-empty svg { width: 44px; height: 44px; margin: 0 auto 12px; display: block; opacity: 0.25; }
+  .pp-empty p { font-size: 14px; line-height: 1.6; }
 
   /* ---- Content ---- */
   .pp-content { flex: 1; padding: 20px 16px 40px; display: flex; flex-direction: column; gap: 16px; }
@@ -1565,6 +1632,341 @@ function VideoTab({ invitation }) {
 }
 
 /* ================================================================
+   Documents tab
+   ================================================================ */
+function DocumentsTab({ invitation, lang = "en" }) {
+  const [docs, setDocs]       = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    sb.from("patient_documents").select("*").eq("patient_id", invitation.patient_id)
+      .order("created_at", { ascending: false })
+      .then(({ data }) => { setDocs(data || []); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, [invitation.patient_id]);
+
+  const iconCls = (ft) => {
+    if (!ft) return "pp-doc-icon--other";
+    if (ft.includes("pdf"))   return "pp-doc-icon--pdf";
+    if (ft.includes("image") || ft.includes("img") || ft.includes("photo")) return "pp-doc-icon--img";
+    if (ft.includes("doc") || ft.includes("word")) return "pp-doc-icon--doc";
+    return "pp-doc-icon--other";
+  };
+  const iconName = (ft) => {
+    if (!ft) return "file";
+    if (ft.includes("pdf"))   return "file-type-pdf";
+    if (ft.includes("image") || ft.includes("img")) return "photo";
+    return "file-text";
+  };
+  const fmtD = (ts) => new Date(ts).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+
+  return (
+    <div className="pp-content">
+      <div className="pp-card">
+        <div className="pp-card-header">
+          <div className="pp-card-title"><Icon name="file-text" /> {t(lang, "Documents")}</div>
+        </div>
+        <div className="pp-card-body">
+          {loading ? <div className="pp-no-messages">Loading…</div>
+          : docs.length === 0 ? (
+            <div className="pp-empty">
+              <Icon name="folder" />
+              <p>{t(lang, "No documents yet. Your coordinator will upload files here.")}</p>
+            </div>
+          ) : docs.map(doc => (
+            <div key={doc.id} className="pp-doc-item">
+              <div className={"pp-doc-icon " + iconCls(doc.file_type)}>
+                <Icon name={iconName(doc.file_type)} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="pp-doc-name" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{doc.name}</div>
+                <div className="pp-doc-sub">{doc.uploaded_by === "patient" ? "Uploaded by you" : "From coordinator"} · {fmtD(doc.created_at)}</div>
+              </div>
+              {doc.url && (
+                <a href={doc.url} target="_blank" rel="noopener noreferrer" className="pp-doc-dl">
+                  <Icon name="download" />
+                </a>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ================================================================
+   Travel tab
+   ================================================================ */
+function TravelTab({ invitation, lang = "en" }) {
+  const [travel, setTravel]   = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    sb.from("portal_state").select("state").eq("id", "travel_" + invitation.patient_id).single()
+      .then(({ data }) => { setTravel(data?.state || null); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, [invitation.patient_id]);
+
+  const countdown = (dateStr) => {
+    if (!dateStr) return null;
+    const days = Math.ceil((new Date(dateStr) - new Date()) / 86400000);
+    if (days < 0) return null;
+    if (days === 0) return "Today";
+    if (days === 1) return "Tomorrow";
+    return days + " days until departure";
+  };
+  const fmtShort = (d) => d ? new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "";
+  const fmtLong  = (d) => d ? new Date(d).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" }) : "";
+
+  if (loading) return null;
+  if (!travel) return (
+    <div className="pp-content">
+      <div className="pp-card">
+        <div className="pp-card-header"><div className="pp-card-title"><Icon name="plane" /> {t(lang, "Travel Details")}</div></div>
+        <div className="pp-card-body">
+          <div className="pp-empty"><Icon name="plane" /><p>{t(lang, "Travel details will appear here once confirmed by your coordinator.")}</p></div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const cd = countdown(travel.departure_date);
+  return (
+    <div className="pp-content">
+      {cd && (
+        <div style={{ background: "linear-gradient(135deg,var(--navy),var(--teal))", borderRadius: 14, padding: "18px", color: "white", textAlign: "center" }}>
+          <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 4 }}>Departure</div>
+          <div style={{ fontSize: 26, fontWeight: 700 }}>{cd}</div>
+          <div style={{ fontSize: 13, opacity: 0.85, marginTop: 3 }}>{fmtLong(travel.departure_date)}</div>
+        </div>
+      )}
+      {(travel.flight_number || travel.departure_date || travel.from_city || travel.to_city) && (
+        <div className="pp-card">
+          <div className="pp-card-header"><div className="pp-card-title"><Icon name="plane-departure" /> {t(lang, "Flight")}</div></div>
+          <div className="pp-card-body">
+            <div className="pp-travel-grid">
+              {travel.flight_number  && <div className="pp-travel-card"><div className="pp-travel-card-label">Flight</div><div className="pp-travel-card-value">{travel.flight_number}</div></div>}
+              {travel.departure_date && <div className="pp-travel-card"><div className="pp-travel-card-label">Date</div><div className="pp-travel-card-value">{fmtShort(travel.departure_date)}</div><div className="pp-travel-card-sub">{travel.departure_time || ""}</div></div>}
+              {travel.from_city      && <div className="pp-travel-card"><div className="pp-travel-card-label">From</div><div className="pp-travel-card-value">{travel.from_city}</div></div>}
+              {travel.to_city        && <div className="pp-travel-card"><div className="pp-travel-card-label">To</div><div className="pp-travel-card-value">{travel.to_city}</div><div className="pp-travel-card-sub">{travel.arrival_time || ""}</div></div>}
+            </div>
+          </div>
+        </div>
+      )}
+      {(travel.hotel_name || travel.hotel_address) && (
+        <div className="pp-card">
+          <div className="pp-card-header"><div className="pp-card-title"><Icon name="building" /> {t(lang, "Accommodation")}</div></div>
+          <div className="pp-card-body">
+            <div className="pp-travel-grid">
+              {travel.hotel_name   && <div className="pp-travel-card"><div className="pp-travel-card-label">Hotel</div><div className="pp-travel-card-value">{travel.hotel_name}</div></div>}
+              {travel.hotel_nights && <div className="pp-travel-card"><div className="pp-travel-card-label">Duration</div><div className="pp-travel-card-value">{travel.hotel_nights} nights</div></div>}
+            </div>
+            {travel.hotel_address && <div style={{ marginTop: 10, fontSize: 13, color: "var(--text-sub)", display: "flex", alignItems: "flex-start", gap: 5 }}><Icon name="map-pin" size={13} style={{ flexShrink: 0, marginTop: 1 }} />{travel.hotel_address}</div>}
+          </div>
+        </div>
+      )}
+      {travel.pickup && (
+        <div className="pp-card">
+          <div className="pp-card-header"><div className="pp-card-title"><Icon name="car" /> {t(lang, "Airport Pickup")}</div></div>
+          <div className="pp-card-body" style={{ fontSize: 14, color: "var(--text)", lineHeight: 1.6 }}>{travel.pickup}</div>
+        </div>
+      )}
+      {travel.notes && (
+        <div className="pp-card">
+          <div className="pp-card-header"><div className="pp-card-title"><Icon name="notes" /> {t(lang, "Notes")}</div></div>
+          <div className="pp-card-body" style={{ fontSize: 14, color: "var(--text)", lineHeight: 1.6 }}>{travel.notes}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ================================================================
+   Emergency contacts tab
+   ================================================================ */
+function EmergencyTab({ invitation, lang = "en" }) {
+  const [contacts, setContacts] = useState([]);
+  const [loading, setLoading]   = useState(true);
+
+  useEffect(() => {
+    sb.from("portal_state").select("state").eq("id", "emergency").single()
+      .then(({ data }) => {
+        const base = data?.state?.contacts || [];
+        const withCoord = [...base];
+        const hasCoord = base.some(c => c.type === "coordinator");
+        if (!hasCoord && invitation.coordinator_name) {
+          withCoord.push({ name: invitation.coordinator_name, phone: invitation.coordinator_phone || "", type: "coordinator", label: "Your Coordinator" });
+        }
+        setContacts(withCoord);
+        setLoading(false);
+      })
+      .catch(() => {
+        const fallback = [];
+        if (invitation.coordinator_name) fallback.push({ name: invitation.coordinator_name, phone: "", type: "coordinator", label: "Your Coordinator" });
+        setContacts(fallback);
+        setLoading(false);
+      });
+  }, [invitation]);
+
+  const avCls  = (type) => type === "coordinator" ? "pp-emer-av--teal" : type === "hospital" ? "pp-emer-av--blue" : "pp-emer-av--red";
+  const avIcon = (type) => type === "coordinator" ? "user" : type === "hospital" ? "building-hospital" : "phone-call";
+
+  return (
+    <div className="pp-content">
+      <div style={{ background: "#fee2e2", borderRadius: 12, padding: "12px 16px", display: "flex", alignItems: "center", gap: 10, color: "#dc2626" }}>
+        <Icon name="alert-triangle" size={18} />
+        <span style={{ fontSize: 13, fontWeight: 600 }}>{t(lang, "Save these numbers before you travel")}</span>
+      </div>
+      <div className="pp-card">
+        <div className="pp-card-header"><div className="pp-card-title"><Icon name="phone-call" /> {t(lang, "Emergency Contacts")}</div></div>
+        <div className="pp-card-body">
+          {loading ? <div className="pp-no-messages">Loading…</div>
+          : contacts.length === 0 ? (
+            <div className="pp-empty"><Icon name="phone" /><p>{t(lang, "Emergency contacts will be added by your coordinator.")}</p></div>
+          ) : contacts.map((c, i) => (
+            <div key={i} className="pp-emer-item">
+              <div className={"pp-emer-av " + avCls(c.type)}><Icon name={avIcon(c.type)} /></div>
+              <div>
+                <div className="pp-emer-name">{c.name}</div>
+                {c.label && <div className="pp-emer-sub">{c.label}</div>}
+                {c.phone && <div className="pp-emer-num">{c.phone}</div>}
+              </div>
+              {c.phone && (
+                <a href={"tel:" + c.phone.replace(/\s/g, "")} className="pp-emer-call">
+                  <Icon name="phone" /> {t(lang, "Call")}
+                </a>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ================================================================
+   Checklist tab
+   ================================================================ */
+function ChecklistTab({ invitation, lang = "en" }) {
+  const STORE_KEY = "cb_checklist_" + invitation.patient_id;
+  const DEFAULT_ITEMS = [
+    { id: "passport",  label: "Passport valid (6+ months remaining)" },
+    { id: "visa",      label: "Visa obtained for destination country" },
+    { id: "medical",   label: "Medical records and test results ready" },
+    { id: "insurance", label: "Travel insurance confirmed" },
+    { id: "flight",    label: "Flight booked and confirmed" },
+    { id: "hotel",     label: "Accommodation confirmed" },
+    { id: "meds",      label: "Current medications list prepared" },
+    { id: "contacts",  label: "Emergency contacts saved on phone" },
+  ];
+
+  const [items,   setItems]   = useState([]);
+  const [checked, setChecked] = useState({});
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const saved = {};
+    try { Object.assign(saved, JSON.parse(localStorage.getItem(STORE_KEY) || "{}")); } catch(e) {}
+    setChecked(saved);
+    sb.from("portal_state").select("state").eq("id", "checklist_" + invitation.patient_id).single()
+      .then(({ data }) => { setItems(data?.state?.items?.length ? data.state.items : DEFAULT_ITEMS); setLoading(false); })
+      .catch(() => { setItems(DEFAULT_ITEMS); setLoading(false); });
+  }, [invitation.patient_id]);
+
+  const toggle = (id) => {
+    setChecked(prev => {
+      const next = { ...prev, [id]: !prev[id] };
+      try { localStorage.setItem(STORE_KEY, JSON.stringify(next)); } catch(e) {}
+      return next;
+    });
+  };
+
+  const done  = items.filter(it => checked[it.id]).length;
+  const total = items.length;
+  const pct   = total ? Math.round(done / total * 100) : 0;
+
+  return (
+    <div className="pp-content">
+      {total > 0 && (
+        <div className="pp-card">
+          <div className="pp-card-body" style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", marginBottom: 8 }}>{done} of {total} items complete</div>
+              <div style={{ height: 6, background: "var(--border)", borderRadius: 20, overflow: "hidden" }}>
+                <div style={{ width: pct + "%", height: "100%", background: done === total ? "var(--ok)" : "var(--teal)", borderRadius: 20, transition: "width 0.4s ease" }} />
+              </div>
+            </div>
+            <div style={{ fontSize: 24, fontWeight: 700, color: done === total ? "var(--ok)" : "var(--teal)", minWidth: 44, textAlign: "right" }}>{pct}%</div>
+          </div>
+        </div>
+      )}
+      <div className="pp-card">
+        <div className="pp-card-header"><div className="pp-card-title"><Icon name="checklist" /> {t(lang, "Pre-travel Checklist")}</div></div>
+        <div className="pp-card-body">
+          {loading ? <div className="pp-no-messages">Loading…</div>
+          : items.map(it => (
+            <div key={it.id} className="pp-check-item" onClick={() => toggle(it.id)}>
+              <div className={"pp-check-box" + (checked[it.id] ? " done" : "")}>
+                {checked[it.id] && <Icon name="check" />}
+              </div>
+              <span className={"pp-check-label" + (checked[it.id] ? " done" : "")}>{it.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ================================================================
+   Notifications history tab
+   ================================================================ */
+function NotificationsTab({ patientId, lang = "en" }) {
+  const STORE_KEY = "cb_notif_" + patientId;
+  const [notifs, setNotifs] = useState([]);
+
+  useEffect(() => {
+    try { setNotifs(JSON.parse(localStorage.getItem(STORE_KEY) || "[]")); } catch(e) {}
+    const onStorage = (e) => { if (e.key === STORE_KEY) { try { setNotifs(JSON.parse(e.newValue || "[]")); } catch(e2) {} } };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, [patientId]);
+
+  const dotCls  = (type) => type === "message" ? "pp-notif-dot--msg" : type === "journey" ? "pp-notif-dot--journey" : "pp-notif-dot--status";
+  const fmtTs   = (ts) => new Date(ts).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+
+  return (
+    <div className="pp-content">
+      <div className="pp-card">
+        <div className="pp-card-header">
+          <div className="pp-card-title"><Icon name="bell" /> {t(lang, "Notification History")}</div>
+          {notifs.length > 0 && (
+            <button style={{ fontSize: 12, color: "var(--text-faint)", background: "none", border: "none", cursor: "pointer" }}
+              onClick={() => { localStorage.removeItem(STORE_KEY); setNotifs([]); }}>
+              Clear
+            </button>
+          )}
+        </div>
+        <div className="pp-card-body">
+          {notifs.length === 0 ? (
+            <div className="pp-empty"><Icon name="bell" /><p>{t(lang, "Notifications will appear here when your coordinator sends updates.")}</p></div>
+          ) : [...notifs].reverse().map((n, i) => (
+            <div key={i} className="pp-notif-item">
+              <div className={"pp-notif-dot " + dotCls(n.type)} />
+              <div>
+                <div className="pp-notif-text">{n.title}{n.body ? ": " + String(n.body).slice(0, 80) : ""}</div>
+                <div className="pp-notif-time">{fmtTs(n.ts)}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ================================================================
    Dashboard shell
    ================================================================ */
 function Dashboard({ invitation, locationLabel, tab, setTab, onLogout, unreadMsgs, newJourney, clearBadge, newMsgIds, newActIds, bellOn, onToggleBell }) {
@@ -1574,13 +1976,27 @@ function Dashboard({ invitation, locationLabel, tab, setTab, onLogout, unreadMsg
     setLang(next);
     localStorage.setItem("pp_lang", next);
   };
+
+  const STAGE_PCT = {
+    "Pre-Assessment": 10, "Documents Collection": 20, "Visa & Travel Preparation": 30,
+    "Treatment Planning": 40, "Travel": 50, "Hospital Admission": 60,
+    "Treatment / Procedure": 70, "Recovery": 80, "Follow-up": 90, "Completed": 100,
+  };
+  const progress = STAGE_PCT[invitation.stage] || (invitation.status === "active" ? 5 : 0);
+
   const tabs = [
-    { id: "info",     label: t(lang, "My Info"),   icon: "user",           badge: 0          },
-    { id: "messages", label: t(lang, "Messages"),  icon: "message-square", badge: unreadMsgs },
-    { id: "journey",  label: t(lang, "Journey"),   icon: "route",          badge: newJourney },
-    { id: "ai",       label: t(lang, "AI Help"),   icon: "cpu",            badge: 0          },
-    { id: "rate",     label: t(lang, "Rate Us"),   icon: "star",           badge: 0          },
+    { id: "info",      label: t(lang, "My Info"),    icon: "user",           badge: 0          },
+    { id: "messages",  label: t(lang, "Messages"),   icon: "message-square", badge: unreadMsgs },
+    { id: "journey",   label: t(lang, "Journey"),    icon: "route",          badge: newJourney },
+    { id: "documents", label: t(lang, "Documents"),  icon: "file-text",      badge: 0          },
+    { id: "travel",    label: t(lang, "Travel"),     icon: "plane",          badge: 0          },
+    { id: "emergency", label: t(lang, "Emergency"),  icon: "phone-call",     badge: 0          },
+    { id: "checklist", label: t(lang, "Checklist"),  icon: "checklist",      badge: 0          },
+    { id: "ai",        label: t(lang, "AI Help"),    icon: "cpu",            badge: 0          },
+    { id: "notifs",    label: t(lang, "Alerts"),     icon: "bell",           badge: 0          },
+    { id: "rate",      label: t(lang, "Rate Us"),    icon: "star",           badge: 0          },
   ];
+
   return (
     <div className="pp-app">
       <div className="pp-header">
@@ -1608,6 +2024,15 @@ function Dashboard({ invitation, locationLabel, tab, setTab, onLogout, unreadMsg
             style={{ marginTop: 6, alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "rgba(255,255,255,0.12)", border: "1.5px solid rgba(255,255,255,0.22)", borderRadius: 20, padding: "4px 12px", cursor: "pointer", color: "#fff", fontSize: 12, fontWeight: 700, letterSpacing: "0.03em" }}>
             {lang === "en" ? <><span style={{ opacity: 0.55 }}>🇬🇧 EN</span><span style={{ margin: "0 4px", opacity: 0.4 }}>·</span><span style={{ color: "#1CA89C" }}>🇸🇴 SO</span></> : <><span style={{ color: "#1CA89C" }}>🇬🇧 EN</span><span style={{ margin: "0 4px", opacity: 0.4 }}>·</span><span style={{ opacity: 0.55 }}>🇸🇴 SO</span></>}
           </button>
+          {progress > 0 && (
+            <div className="pp-progress-wrap">
+              <div className="pp-progress-bar"><div className="pp-progress-fill" style={{ width: progress + "%" }} /></div>
+              <div className="pp-progress-meta">
+                <span>{invitation.stage || "Treatment Journey"}</span>
+                <span style={{ fontWeight: 700, color: "#7eeee8" }}>{progress}%</span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -1623,11 +2048,16 @@ function Dashboard({ invitation, locationLabel, tab, setTab, onLogout, unreadMsg
         ))}
       </div>
 
-      {tab === "info"     && <InfoTab     invitation={invitation} lang={lang} />}
-      {tab === "messages" && <MessagesTab invitation={invitation} newMsgIds={newMsgIds} lang={lang} />}
-      {tab === "journey"  && <JourneyTab  invitation={invitation} newActIds={newActIds} lang={lang} />}
-      {tab === "ai"       && <AiTab       invitation={invitation} />}
-      {tab === "rate"     && <RateTab     invitation={invitation} />}
+      {tab === "info"      && <InfoTab       invitation={invitation} lang={lang} />}
+      {tab === "messages"  && <MessagesTab   invitation={invitation} newMsgIds={newMsgIds} lang={lang} />}
+      {tab === "journey"   && <JourneyTab    invitation={invitation} newActIds={newActIds} lang={lang} />}
+      {tab === "documents" && <DocumentsTab  invitation={invitation} lang={lang} />}
+      {tab === "travel"    && <TravelTab     invitation={invitation} lang={lang} />}
+      {tab === "emergency" && <EmergencyTab  invitation={invitation} lang={lang} />}
+      {tab === "checklist" && <ChecklistTab  invitation={invitation} lang={lang} />}
+      {tab === "ai"        && <AiTab         invitation={invitation} />}
+      {tab === "notifs"    && <NotificationsTab patientId={invitation.patient_id} lang={lang} />}
+      {tab === "rate"      && <RateTab       invitation={invitation} />}
     </div>
   );
 }
@@ -1662,12 +2092,23 @@ function App() {
       Notification.requestPermission();
     }
 
+    const saveNotif = (type, title, body) => {
+      try {
+        const key = "cb_notif_" + invitation.patient_id;
+        const hist = JSON.parse(localStorage.getItem(key) || "[]");
+        hist.push({ type, title, body, ts: Date.now() });
+        if (hist.length > 50) hist.shift();
+        localStorage.setItem(key, JSON.stringify(hist));
+      } catch(e) {}
+    };
+
     const msgCh = sb.channel("pp-msg-" + invitation.patient_id)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "patient_messages" }, (payload) => {
         if (payload.new?.patient_id !== invitation.patient_id) return;
         if (payload.new?.sender_role !== "patient") {
           setUnreadMsgs(n => n + 1);
           setNewMsgIds(s => new Set([...s, payload.new.id]));
+          saveNotif("message", "New message from your coordinator", payload.new?.content);
           if (bellRef.current) pushNotify("New message from your coordinator", payload.new?.content);
         }
       }).subscribe();
@@ -1677,12 +2118,14 @@ function App() {
         if (payload.new?.patient_id !== invitation.patient_id) return;
         setNewJourney(n => n + 1);
         setNewActIds(s => new Set([...s, payload.new.id]));
+        saveNotif("journey", "Journey updated", payload.new?.title);
         if (bellRef.current) pushNotify("Journey updated", payload.new?.title);
       })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "patient_activities" }, (payload) => {
         if (payload.new?.patient_id !== invitation.patient_id) return;
         setNewJourney(n => n + 1);
         setNewActIds(s => new Set([...s, payload.new.id]));
+        saveNotif("journey", "Journey updated", payload.new?.title);
         if (bellRef.current) pushNotify("Journey updated", payload.new?.title);
       }).subscribe();
 
