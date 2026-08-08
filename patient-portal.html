@@ -935,59 +935,14 @@ function fmtTimeI18n(lang, ts) {
 }
 
 function InfoTab({ invitation, lang = "en" }) {
-  const priority   = invitation.priority || "Standard";
-  const pillClass  = priority === "Attention" ? "pp-pill--danger" : priority === "High" ? "pp-pill--warn" : "pp-pill--teal";
-  const statusPill = invitation.status === "active" ? "pp-pill--ok" : "pp-pill--navy";
+  const priority    = invitation.priority || "Standard";
+  const pillClass   = priority === "Attention" ? "pp-pill--danger" : priority === "High" ? "pp-pill--warn" : "pp-pill--teal";
+  const statusPill  = invitation.status === "active" ? "pp-pill--ok" : "pp-pill--navy";
   const hasHospital = invitation.hospital || invitation.doctor || invitation.specialty || invitation.condition || invitation.country;
-
-  /* Documents state */
-  const [docs, setDocs]       = useState([]);
-  const [docsLoading, setDL]  = useState(true);
-
-  /* Checklist state */
-  const STORE_KEY = "cb_checklist_" + invitation.patient_id;
-  const DEFAULT_CL = [
-    { id: "passport",  label: "Passport valid (6+ months)" },
-    { id: "visa",      label: "Visa obtained" },
-    { id: "medical",   label: "Medical records ready" },
-    { id: "insurance", label: "Insurance confirmed" },
-    { id: "flight",    label: "Flight booked" },
-    { id: "hotel",     label: "Hotel confirmed" },
-  ];
-  const [clItems,  setClItems]  = useState(DEFAULT_CL);
-  const [checked,  setChecked]  = useState({});
-  const [clLoad,   setClLoad]   = useState(true);
-
-  useEffect(() => {
-    sb.from("patient_documents").select("*").eq("patient_id", invitation.patient_id)
-      .order("created_at", { ascending: false })
-      .then(({ data }) => { setDocs(data || []); setDL(false); })
-      .catch(() => setDL(false));
-    const saved = {};
-    try { Object.assign(saved, JSON.parse(localStorage.getItem(STORE_KEY) || "{}")); } catch(e) {}
-    setChecked(saved);
-    sb.from("portal_state").select("state").eq("id", "checklist_" + invitation.patient_id).single()
-      .then(({ data }) => { if (data?.state?.items?.length) setClItems(data.state.items); setClLoad(false); })
-      .catch(() => setClLoad(false));
-  }, [invitation.patient_id]);
-
-  const toggleCheck = (id) => {
-    setChecked(prev => {
-      const next = { ...prev, [id]: !prev[id] };
-      try { localStorage.setItem(STORE_KEY, JSON.stringify(next)); } catch(e) {}
-      return next;
-    });
-  };
-
-  const iconCls  = (ft) => !ft ? "pp-doc-icon--other" : ft.includes("pdf") ? "pp-doc-icon--pdf" : (ft.includes("image") || ft.includes("img")) ? "pp-doc-icon--img" : ft.includes("doc") ? "pp-doc-icon--doc" : "pp-doc-icon--other";
-  const iconName = (ft) => !ft ? "file" : ft.includes("pdf") ? "file-type-pdf" : (ft.includes("image") || ft.includes("img")) ? "photo" : "file-text";
-  const fmtD     = (ts) => new Date(ts).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-
-  const clDone  = clItems.filter(it => checked[it.id]).length;
-  const clTotal = clItems.length;
 
   return (
     <div className="pp-content">
+
       {/* My information */}
       <div className="pp-card">
         <div className="pp-card-header">
@@ -997,7 +952,7 @@ function InfoTab({ invitation, lang = "en" }) {
         <div className="pp-card-body">
           <div className="pp-row-info">
             <div className="pp-row-item"><span className="pp-row-label">{t(lang, "Full name")}</span><span className="pp-row-val">{invitation.patient_name}</span></div>
-            <div className="pp-row-item"><span className="pp-row-label">{t(lang, "Patient ID")}</span><span className="pp-row-val" style={{ fontFamily: "monospace" }}>{invitation.patient_id}</span></div>
+            <div className="pp-row-item"><span className="pp-row-label">{t(lang, "Patient ID")}</span><span className="pp-row-val" style={{ fontFamily: "monospace", letterSpacing: "0.04em" }}>{invitation.patient_id}</span></div>
             <div className="pp-row-item"><span className="pp-row-label">{t(lang, "Priority")}</span><span className="pp-row-val"><span className={"pp-pill " + pillClass}>{t(lang, priority)}</span></span></div>
             <div className="pp-row-item"><span className="pp-row-label">{t(lang, "Portal expires")}</span><span className="pp-row-val">{new Date(invitation.expires_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</span></div>
           </div>
@@ -1023,7 +978,7 @@ function InfoTab({ invitation, lang = "en" }) {
       {/* Coordinator */}
       {invitation.coordinator_name && (
         <div className="pp-card">
-          <div className="pp-card-header"><div className="pp-card-title"><Icon name="user" /> {t(lang, "Your Coordinator")}</div></div>
+          <div className="pp-card-header"><div className="pp-card-title"><Icon name="shield-check" /> {t(lang, "Your Coordinator")}</div></div>
           <div className="pp-coord-row">
             <div className="pp-coord-av">{(invitation.coordinator_name || "?").split(" ").map(w => w[0]).join("").slice(0,2).toUpperCase()}</div>
             <div><div className="pp-coord-name">{invitation.coordinator_name}</div><div className="pp-coord-sub">{t(lang, "Carebridge International")}</div></div>
@@ -1035,52 +990,6 @@ function InfoTab({ invitation, lang = "en" }) {
         </div>
       )}
 
-      {/* Documents */}
-      <div className="pp-card">
-        <div className="pp-card-header">
-          <div className="pp-card-title"><Icon name="file-text" /> {t(lang, "Documents")}</div>
-        </div>
-        <div className="pp-card-body">
-          {docsLoading ? <div style={{ padding: "12px 0", color: "var(--text-faint)", fontSize: 13 }}>Loading…</div>
-          : docs.length === 0 ? (
-            <div className="pp-empty"><Icon name="folder" /><p style={{ marginTop: 8 }}>{t(lang, "No documents yet. Your coordinator will upload files here.")}</p></div>
-          ) : docs.map(doc => (
-            <div key={doc.id} className="pp-doc-item">
-              <div className={"pp-doc-icon " + iconCls(doc.file_type)}>
-                <Icon name={iconName(doc.file_type)} />
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div className="pp-doc-name" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{doc.name}</div>
-                <div className="pp-doc-sub">{doc.uploaded_by === "patient" ? "Uploaded" : "From coordinator"} · {fmtD(doc.created_at)}</div>
-              </div>
-              {doc.url && (
-                <a href={doc.url} target="_blank" rel="noopener noreferrer" className="pp-doc-dl">
-                  <Icon name="download" />
-                </a>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Pre-travel checklist */}
-      <div className="pp-card">
-        <div className="pp-card-header">
-          <div className="pp-card-title"><Icon name="checklist" /> {t(lang, "Pre-travel checklist")}</div>
-          {clTotal > 0 && <span style={{ fontSize: 13, fontWeight: 600, color: "var(--teal)" }}>{clDone} / {clTotal} done</span>}
-        </div>
-        <div className="pp-card-body">
-          {clLoad ? <div style={{ padding: "12px 0", color: "var(--text-faint)", fontSize: 13 }}>Loading…</div>
-          : clItems.map(it => (
-            <div key={it.id} className="pp-check-item" onClick={() => toggleCheck(it.id)}>
-              <div className={"pp-check-box" + (checked[it.id] ? " done" : "")}>
-                {checked[it.id] && <Icon name="check" />}
-              </div>
-              <span className={"pp-check-label" + (checked[it.id] ? " done" : "")}>{it.label}</span>
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }
