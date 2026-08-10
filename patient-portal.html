@@ -37,8 +37,8 @@
       --teal-pale: rgba(28,168,156,0.1);
     }
   }
-  html, body { min-height: 100%; background: var(--bg); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: var(--text); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
-  #root { min-height: 100vh; min-height: 100dvh; }
+  html, body { min-height: 100%; background: var(--bg); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: var(--text); -webkit-font-smoothing: antialiased; }
+  #root { min-height: 100vh; }
 
   /* ---- Splash ---- */
   #pp-splash {
@@ -131,7 +131,7 @@
   .pp-gate-icon { font-size: 48px; margin-bottom: 12px; }
 
   /* ---- App shell ---- */
-  .pp-app { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; max-width: 640px; margin: 0 auto; }
+  .pp-app { min-height: 100vh; display: flex; flex-direction: column; max-width: 640px; margin: 0 auto; }
 
   /* ---- Header ---- */
   .pp-header {
@@ -225,7 +225,7 @@
   .pp-empty p { font-size: 14px; line-height: 1.6; }
 
   /* ---- Content ---- */
-  .pp-content { flex: 1; padding: 20px 16px calc(env(safe-area-inset-bottom, 0px) + 80px); display: flex; flex-direction: column; gap: 16px; }
+  .pp-content { flex: 1; padding: 20px 16px 40px; display: flex; flex-direction: column; gap: 16px; }
 
   /* ---- Cards ---- */
   .pp-card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
@@ -343,146 +343,11 @@
     z-index: 2;
   }
 
-  /* ---- Responsive (tablet) ---- */
+  /* ---- Responsive ---- */
   @media (min-width: 480px) {
     .pp-content { padding: 24px 20px 48px; }
     .pp-header { padding: 24px 24px 28px; }
     .pp-tabs { top: 120px; }
-  }
-
-  /* ================================================================
-     DESKTOP LAYOUT — sidebar + content (≥ 1024px)
-     ================================================================ */
-  @media (min-width: 1024px) {
-    html, body { height: 100vh; height: 100dvh; overflow: hidden; }
-    #root { height: 100vh; height: 100dvh; overflow: hidden; }
-
-    /* App shell: 2-column grid — sidebar | content */
-    .pp-app {
-      display: grid;
-      grid-template-columns: 256px 1fr;
-      grid-template-rows: auto 1fr;
-      max-width: none;
-      height: 100vh;
-      height: 100dvh;
-      overflow: hidden;
-    }
-
-    /* ── Sidebar top (brand + patient info) ── */
-    .pp-header {
-      position: static;
-      grid-column: 1;
-      grid-row: 1;
-      padding: 22px 20px 18px;
-      box-shadow: none;
-      border-right: 1px solid rgba(255,255,255,0.07);
-    }
-
-    .pp-header-patient-name { font-size: 18px; }
-    .pp-header-patient-meta { font-size: 12px; margin-top: 3px; }
-    .pp-progress-wrap { margin-top: 12px; }
-
-    /* ── Sidebar nav (vertical tab list) ── */
-    .pp-tabs {
-      position: static;
-      top: unset;
-      grid-column: 1;
-      grid-row: 2;
-      flex-direction: column;
-      align-items: stretch;
-      border-bottom: none;
-      border-right: 1px solid rgba(0,0,0,0.12);
-      background: linear-gradient(180deg, #17295a 0%, #0e1d40 100%);
-      overflow-y: auto;
-      overflow-x: hidden;
-      padding: 8px 0 24px;
-      scrollbar-width: none;
-    }
-    .pp-tabs::-webkit-scrollbar { display: none; }
-
-    /* Vertical tab item */
-    .pp-tab {
-      flex-direction: row;
-      justify-content: flex-start;
-      align-items: center;
-      min-width: unset;
-      width: 100%;
-      padding: 11px 18px 11px 20px;
-      gap: 12px;
-      font-size: 13px;
-      font-weight: 500;
-      color: rgba(255,255,255,0.52);
-      border-bottom: none;
-      border-left: 3px solid transparent;
-      text-align: left;
-      letter-spacing: 0.01em;
-      border-radius: 0;
-      transition: background 0.15s, color 0.15s, border-color 0.15s;
-    }
-    .pp-tab svg { width: 16px; height: 16px; flex-shrink: 0; }
-
-    .pp-tab.active {
-      color: #fff;
-      background: rgba(28,168,156,0.18);
-      border-left-color: #1CA89C;
-      border-bottom-color: transparent;
-      font-weight: 600;
-    }
-    .pp-tab:hover:not(.active) {
-      color: rgba(255,255,255,0.85);
-      background: rgba(255,255,255,0.06);
-    }
-
-    /* Nav section divider */
-    .pp-tabs::before {
-      content: "NAVIGATION";
-      display: block;
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      color: rgba(255,255,255,0.25);
-      padding: 10px 20px 6px;
-    }
-
-    /* ── Main content area ── */
-    .pp-content {
-      grid-column: 2;
-      grid-row: 1 / -1;
-      overflow-y: auto;
-      height: 100vh;
-      height: 100dvh;
-      padding: 28px 36px 28px;
-      background: var(--bg);
-      /* Remove mobile bottom-nav padding */
-      padding-bottom: 28px;
-    }
-
-    /* Wider cards look better with more breathing room */
-    .pp-card { border-radius: 16px; }
-    .pp-card-header { padding: 18px 22px 14px; }
-    .pp-card-body { padding: 18px 22px; }
-
-    /* Info grid — 3 cols on desktop */
-    .pp-info-grid { grid-template-columns: 1fr 1fr 1fr; }
-
-    /* Travel grid — 3 cols on desktop */
-    .pp-travel-grid { grid-template-columns: 1fr 1fr 1fr; }
-
-    /* Taller message chat on desktop */
-    .pp-messages-list { max-height: 55vh; }
-
-    /* Coordinator actions — row layout */
-    .pp-coord-actions { gap: 12px; }
-    .pp-coord-btn { padding: 11px 16px; font-size: 14px; }
-
-    /* Auth card — larger on desktop */
-    .pp-auth-card { max-width: 460px; padding: 48px 44px; }
-  }
-
-  /* Extra wide screens */
-  @media (min-width: 1440px) {
-    .pp-app { grid-template-columns: 272px 1fr; }
-    .pp-content { padding: 32px 52px; }
   }
 </style>
 </head>
@@ -1115,6 +980,10 @@ function InfoTab({ invitation, lang = "en" }) {
             <div className="pp-coord-av">{(invitation.coordinator_name || "?").split(" ").map(w => w[0]).join("").slice(0,2).toUpperCase()}</div>
             <div><div className="pp-coord-name">{invitation.coordinator_name}</div><div className="pp-coord-sub">{t(lang, "Carebridge International")}</div></div>
           </div>
+          <div className="pp-coord-actions">
+            <button className="pp-coord-btn" onClick={() => showToast("Opening conversation with your coordinator…")}><Icon name="message-square" size={16} /> {t(lang, "Message")}</button>
+            <button className="pp-coord-btn" onClick={() => showToast("Contact your coordinator via your invitation email.")}><Icon name="mail" size={16} /> {t(lang, "Email")}</button>
+          </div>
         </div>
       )}
 
@@ -1512,28 +1381,6 @@ function useLocation(invitation) {
 }
 
 /* ================================================================
-   Error boundary — prevents any tab crash from wiping the whole page
-   ================================================================ */
-class AiErrorBoundary extends React.Component {
-  constructor(props) { super(props); this.state = { err: null }; }
-  static getDerivedStateFromError(e) { return { err: e }; }
-  componentDidCatch(e) { console.error("AiTab crashed:", e); }
-  render() {
-    if (this.state.err) return (
-      <div style={{ padding: 40, textAlign: "center" }}>
-        <div style={{ fontSize: 40, marginBottom: 12 }}>⚠️</div>
-        <div style={{ fontWeight: 700, fontSize: 16, color: "var(--text)", marginBottom: 8 }}>AI Assistant unavailable</div>
-        <div style={{ fontSize: 13, color: "var(--text-faint)", marginBottom: 20, lineHeight: 1.6 }}>
-          Please refresh the page and try again.<br/>If the problem continues, contact your coordinator.
-        </div>
-        <button className="pp-btn pp-btn--ghost pp-btn--sm" onClick={() => window.location.reload()}>Refresh page</button>
-      </div>
-    );
-    return this.props.children;
-  }
-}
-
-/* ================================================================
    AI Help Tab — bilingual English / Somali (Af-Soomaali)
    ================================================================ */
 const AI_STRINGS = {
@@ -1563,55 +1410,43 @@ const AI_STRINGS = {
   },
 };
 
-function AiTab({ invitation, lang: initialLang }) {
-  var safeInitLang = (initialLang === "so") ? "so" : "en";
-  var initStrings = AI_STRINGS[safeInitLang] || AI_STRINGS["en"] || {};
-  const [lang, setLang] = useState(safeInitLang);
-  const [messages, setMessages] = useState([{ role: "assistant", content: initStrings.welcome || "" }]);
+function AiTab({ invitation }) {
+  const [lang, setLang] = useState("en");
+  const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const bottomRef = useRef(null);
   const inputRef  = useRef(null);
 
-  const t = AI_STRINGS[lang] || AI_STRINGS["en"] || {};
+  const t = AI_STRINGS[lang];
 
-  // Reset welcome message when language switches
-  useEffect(function() {
-    try {
-      var strings = AI_STRINGS[lang] || AI_STRINGS["en"] || {};
-      setMessages([{ role: "assistant", content: strings.welcome || "" }]);
-      setInput("");
-    } catch(e) { console.warn("AiTab lang effect error", e); }
+  const patientContext = {
+    name:            invitation.patient_name     || "",
+    patientId:       invitation.patient_id       || "",
+    specialty:       invitation.specialty        || "",
+    condition:       invitation.condition        || "",
+    hospital:        invitation.hospital         || "",
+    country:         invitation.country          || invitation.destination || "",
+    coordinatorName: invitation.coordinator_name || "",
+    priority:        invitation.priority         || "Standard",
+  };
+
+  // Reset chat with welcome message when language switches
+  useEffect(() => {
+    setMessages([{ role: "assistant", content: t.welcome }]);
+    setInput("");
   }, [lang]);
 
   // Auto-scroll to bottom
-  useEffect(function() {
-    try {
-      var el = bottomRef.current;
-      if (el && typeof el.scrollIntoView === "function") {
-        el.scrollIntoView({ behavior: "smooth" });
-      }
-    } catch(e) {}
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, busy]);
-
-  var inv = invitation || {};
-  const patientContext = {
-    name:            inv.patient_name     || "",
-    patientId:       inv.patient_id       || "",
-    specialty:       inv.specialty        || "",
-    condition:       inv.condition        || "",
-    hospital:        inv.hospital         || "",
-    country:         inv.country          || inv.destination || "",
-    coordinatorName: inv.coordinator_name || "",
-    priority:        inv.priority         || "Standard",
-    stage:           inv.stage            || "",
-  };
 
   const send = async () => {
     const text = input.trim();
     if (!text || busy) return;
     setInput("");
-    if (inputRef.current) inputRef.current.focus();
+    inputRef.current?.focus();
     const history = [...messages, { role: "user", content: text }];
     setMessages(history);
     setBusy(true);
@@ -1637,7 +1472,7 @@ function AiTab({ invitation, lang: initialLang }) {
   const switchLang = () => setLang(l => l === "en" ? "so" : "en");
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0, height: "calc(100dvh - 160px)" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 158px)" }}>
 
       {/* ── Top bar ── */}
       <div style={{
@@ -1870,112 +1705,41 @@ function DocumentsTab({ invitation, lang = "en" }) {
   };
   const iconName = (ft) => {
     if (!ft) return "file";
-    if (ft.includes("pdf"))   return "file-text";
-    if (ft.includes("image") || ft.includes("img")) return "image";
+    if (ft.includes("pdf"))   return "file-type-pdf";
+    if (ft.includes("image") || ft.includes("img")) return "photo";
     return "file-text";
   };
   const fmtD = (ts) => new Date(ts).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-  const extractFilename = (url) => {
-    if (!url) return null;
-    try {
-      const part = url.split("/patient-documents/")[1] || url.split("/").pop();
-      const decoded = decodeURIComponent(part.split("?")[0]);
-      // Strip leading timestamp prefix "1234567890_"
-      return decoded.replace(/^\d+_/, "");
-    } catch(e) { return null; }
-  };
-  const fmtLabel = (ft) => {
-    if (!ft) return "FILE";
-    if (ft.includes("pdf")) return "PDF";
-    if (ft.includes("image") || ft.includes("img") || ft.includes("jpeg") || ft.includes("jpg") || ft.includes("png")) return "IMG";
-    if (ft.includes("doc") || ft.includes("word")) return "DOC";
-    if (ft.includes("xls") || ft.includes("sheet")) return "XLS";
-    return "FILE";
-  };
 
   return (
     <div className="pp-content">
       <div className="pp-card">
         <div className="pp-card-header">
           <div className="pp-card-title"><Icon name="file-text" /> {t(lang, "Documents")}</div>
-          {docs.length > 0 && <div style={{ fontSize: 12, color: "var(--text-secondary)", fontWeight: 500 }}>{docs.length} file{docs.length !== 1 ? "s" : ""}</div>}
         </div>
-        <div className="pp-card-body" style={{ padding: docs.length > 0 ? "0" : undefined }}>
+        <div className="pp-card-body">
           {loading ? <div className="pp-no-messages">Loading…</div>
           : docs.length === 0 ? (
             <div className="pp-empty">
               <Icon name="folder" />
               <p>{t(lang, "No documents yet. Your coordinator will upload files here.")}</p>
             </div>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-              {docs.map((doc, i) => (
-                <a
-                  key={doc.id}
-                  href={doc.url || "#"}
-                  target={doc.url ? "_blank" : undefined}
-                  rel="noopener noreferrer"
-                  style={{
-                    display: "flex", alignItems: "center", gap: 14,
-                    padding: "14px 18px",
-                    borderBottom: i < docs.length - 1 ? "1px solid var(--border-subtle, rgba(0,0,0,0.07))" : "none",
-                    textDecoration: "none", color: "inherit",
-                    cursor: doc.url ? "pointer" : "default",
-                    transition: "background 0.15s",
-                  }}
-                  onMouseEnter={e => e.currentTarget.style.background = "var(--bg-hover, rgba(28,168,156,0.06))"}
-                  onMouseLeave={e => e.currentTarget.style.background = ""}
-                >
-                  {/* Type badge */}
-                  <div style={{
-                    width: 46, height: 52, borderRadius: 8, flexShrink: 0,
-                    display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3,
-                    background: doc.file_type?.includes("pdf") ? "rgba(220,38,38,0.1)"
-                              : doc.file_type?.includes("image") || doc.file_type?.includes("img") ? "rgba(34,197,94,0.1)"
-                              : "rgba(59,130,246,0.1)",
-                    border: `1px solid ${doc.file_type?.includes("pdf") ? "rgba(220,38,38,0.2)"
-                              : doc.file_type?.includes("image") || doc.file_type?.includes("img") ? "rgba(34,197,94,0.2)"
-                              : "rgba(59,130,246,0.2)"}`,
-                  }}>
-                    <Icon name={iconName(doc.file_type)} style={{
-                      width: 18, height: 18,
-                      color: doc.file_type?.includes("pdf") ? "#dc2626"
-                           : doc.file_type?.includes("image") || doc.file_type?.includes("img") ? "#16a34a"
-                           : "#2563eb",
-                    }} />
-                    <span style={{
-                      fontSize: 9, fontWeight: 700, letterSpacing: "0.04em",
-                      color: doc.file_type?.includes("pdf") ? "#dc2626"
-                           : doc.file_type?.includes("image") || doc.file_type?.includes("img") ? "#16a34a"
-                           : "#2563eb",
-                    }}>{fmtLabel(doc.file_type)}</span>
-                  </div>
-                  {/* Info */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 600, fontSize: 14, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 2 }}>{doc.name}</div>
-                    {extractFilename(doc.url) && (
-                      <div style={{ fontSize: 11.5, color: "var(--color-teal,#1CA89C)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 3, fontWeight: 500 }}>
-                        {extractFilename(doc.url)}
-                      </div>
-                    )}
-                    <div style={{ fontSize: 12, color: "var(--text-secondary)", display: "flex", gap: 6, alignItems: "center" }}>
-                      <Icon name="calendar" style={{ width: 11, height: 11 }} />
-                      {fmtD(doc.created_at)}
-                      <span style={{ opacity: 0.4 }}>·</span>
-                      <Icon name="user" style={{ width: 11, height: 11 }} />
-                      {doc.uploaded_by === "patient" ? t(lang, "You") : t(lang, "Coordinator")}
-                    </div>
-                  </div>
-                  {/* Open arrow */}
-                  {doc.url && (
-                    <div style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 8, background: "var(--color-teal, #1CA89C)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <Icon name="external-link" style={{ width: 15, height: 15, color: "#fff" }} />
-                    </div>
-                  )}
+          ) : docs.map(doc => (
+            <div key={doc.id} className="pp-doc-item">
+              <div className={"pp-doc-icon " + iconCls(doc.file_type)}>
+                <Icon name={iconName(doc.file_type)} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="pp-doc-name" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{doc.name}</div>
+                <div className="pp-doc-sub">{doc.uploaded_by === "patient" ? "Uploaded by you" : "From coordinator"} · {fmtD(doc.created_at)}</div>
+              </div>
+              {doc.url && (
+                <a href={doc.url} target="_blank" rel="noopener noreferrer" className="pp-doc-dl">
+                  <Icon name="download" />
                 </a>
-              ))}
+              )}
             </div>
-          )}
+          ))}
         </div>
       </div>
     </div>
@@ -1988,7 +1752,6 @@ function DocumentsTab({ invitation, lang = "en" }) {
 function TravelTab({ invitation, lang = "en" }) {
   const [travel, setTravel]   = useState(null);
   const [loading, setLoading] = useState(true);
-  const [tick, setTick]       = useState(0);
   const travelKey = "travel_" + invitation.patient_id;
 
   const loadTravel = () => {
@@ -2008,112 +1771,16 @@ function TravelTab({ invitation, lang = "en" }) {
     return () => { sb.removeChannel(ch); };
   }, [invitation.patient_id]);
 
-  /* Parse date-only strings at LOCAL noon to avoid UTC-midnight timezone shift */
-  const parseLocalDate = (d) => { if (!d) return null; return d.includes("T") ? new Date(d) : new Date(d + "T12:00:00"); };
-  const fmtShort = (d) => { try { const dt = parseLocalDate(d); return dt ? dt.toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : ""; } catch(e) { return ""; } };
-  const fmtLong  = (d) => { try { const dt = parseLocalDate(d); return dt ? dt.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" }) : ""; } catch(e) { return ""; } };
-
-  /* Convert local time in an IANA timezone to a UTC Date */
-  const tzToUTC = (dateStr, timeStr, tzId) => {
-    try {
-      const parts = String(timeStr).split(":");
-      const padded = parts.map((p, i) => i === 0 ? String(p).padStart(2,"0") : p).join(":");
-      const naiveUTC = new Date(dateStr + "T" + padded + ":00Z");
-      const fmt = new Intl.DateTimeFormat("en-US", { timeZone: tzId, year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit", second:"2-digit", hour12:false });
-      const p = fmt.formatToParts(naiveUTC).reduce((a, x) => { a[x.type] = x.value; return a; }, {});
-      const h = p.hour === "24" ? "00" : p.hour;
-      const tzLocal = new Date(`${p.year}-${p.month}-${p.day}T${h}:${p.minute}:${p.second}Z`);
-      return new Date(2 * naiveUTC.getTime() - tzLocal.getTime());
-    } catch(e) { return null; }
+  const countdown = (dateStr) => {
+    if (!dateStr) return null;
+    const days = Math.ceil((new Date(dateStr) - new Date()) / 86400000);
+    if (days < 0) return null;
+    if (days === 0) return "Today";
+    if (days === 1) return "Tomorrow";
+    return days + " days until departure";
   };
-
-  const getCountdownState = (dateStr, timeStr, tzId) => {
-    try {
-      if (!dateStr) return null;
-      let depDt;
-      if (timeStr) {
-        const parts = String(timeStr).split(":");
-        const padded = parts.map((p, i) => i === 0 ? String(p).padStart(2, "0") : p).join(":");
-        if (tzId) {
-          depDt = tzToUTC(dateStr, padded, tzId);
-        }
-        if (!depDt || isNaN(depDt.getTime())) depDt = new Date(dateStr + "T" + padded + ":00");
-      } else {
-        depDt = new Date(dateStr + "T12:00:00");
-      }
-      if (!depDt || isNaN(depDt.getTime())) depDt = new Date(dateStr);
-      if (!depDt || isNaN(depDt.getTime())) return null;
-
-      const now = new Date();
-      const diffMs = depDt - now;
-      const diffH  = diffMs / 3600000;
-      const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const depMidnight   = new Date(depDt.getFullYear(), depDt.getMonth(), depDt.getDate());
-      const calDays = Math.round((depMidnight - todayMidnight) / 86400000);
-
-      if (diffMs < 0) {
-        const pastH = Math.abs(diffH);
-        const pastD = Math.abs(calDays);
-        if (pastH < 4) return { phase: "journey", label: "Have a good journey!", sub: fmtLong(dateStr) };
-        if (pastD === 0) return { phase: "past", label: "Departed today", sub: fmtLong(dateStr) };
-        if (pastD === 1) return { phase: "past", label: "1 day since departure", sub: fmtLong(dateStr) };
-        return { phase: "past", label: pastD + " days since departure", sub: fmtLong(dateStr) };
-      }
-      if (diffH <= 6) {
-        const h = Math.floor(diffH);
-        const m = Math.floor((diffH - h) * 60);
-        const label = h > 0 ? h + "h " + m + "m remaining" : m + " minutes remaining";
-        return { phase: "urgent", label, sub: fmtLong(dateStr) };
-      }
-      if (diffH <= 24) {
-        const h = Math.floor(diffH);
-        const m = Math.floor((diffH - h) * 60);
-        return { phase: "warning", label: h + "h " + m + "m to departure", sub: fmtLong(dateStr) };
-      }
-      let label;
-      if (calDays === 0) label = "Today";
-      else if (calDays === 1) label = "Tomorrow";
-      else label = "In " + calDays + " days";
-      return { phase: "normal", label, sub: fmtLong(dateStr) };
-    } catch(e) { return null; }
-  };
-
-  /* Live tick + notifications — all in useEffect, never during render */
-  useEffect(() => {
-    const doNotif = () => {
-      try {
-        if (!travel || !travel.departure_date) return;
-        if (!("Notification" in window) || Notification.permission !== "granted") return;
-        const cd = getCountdownState(travel.departure_date, travel.departure_time, travel.departure_tz);
-        if (!cd) return;
-        const pid = invitation.patient_id;
-        const dep = fmtLong(travel.departure_date);
-        if (cd.phase === "warning") {
-          const k = "cb_notif_24h_" + pid;
-          if (!localStorage.getItem(k)) { try { new Notification("Departure in 24 hours", { body: "Get ready! You depart " + dep }); } catch(e){} localStorage.setItem(k, "1"); }
-        }
-        if (cd.phase === "urgent") {
-          const k = "cb_notif_6h_" + pid;
-          if (!localStorage.getItem(k)) { try { new Notification("Departing soon!", { body: "Your flight departs in a few hours" }); } catch(e){} localStorage.setItem(k, "1"); }
-        }
-      } catch(e) {}
-    };
-    if ("Notification" in window && Notification.permission === "default") {
-      try { Notification.requestPermission().then(doNotif).catch(() => {}); } catch(e) {}
-    } else {
-      doNotif();
-    }
-    const interval = setInterval(() => { setTick(n => n + 1); doNotif(); }, 60000);
-    return () => clearInterval(interval);
-  }, [travel]);
-
-  const phaseStyle = {
-    normal:  { bg: "linear-gradient(135deg,#1B3A6B 0%,#1CA89C 100%)",  topLabel: "Departure" },
-    warning: { bg: "linear-gradient(135deg,#92400e 0%,#d97706 100%)",  topLabel: "Departure" },
-    urgent:  { bg: "linear-gradient(135deg,#7f1d1d 0%,#dc2626 100%)",  topLabel: "Departing Soon" },
-    journey: { bg: "linear-gradient(135deg,#065f46 0%,#10b981 100%)",  topLabel: "Bon Voyage" },
-    past:    { bg: "linear-gradient(135deg,#374151 0%,#6b7280 100%)",  topLabel: "Departed" },
-  };
+  const fmtShort = (d) => d ? new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "";
+  const fmtLong  = (d) => d ? new Date(d).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" }) : "";
 
   if (loading) return null;
   if (!travel) return (
@@ -2127,15 +1794,14 @@ function TravelTab({ invitation, lang = "en" }) {
     </div>
   );
 
-  const cd = getCountdownState(travel.departure_date, travel.departure_time, travel.departure_tz);
-  const ps = cd ? (phaseStyle[cd.phase] || phaseStyle.normal) : null;
+  const cd = countdown(travel.departure_date);
   return (
     <div className="pp-content">
       {cd && (
-        <div style={{ background: ps.bg, borderRadius: 14, padding: "18px", color: "white", textAlign: "center", transition: "background 1s ease" }}>
-          <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.08em" }}>{ps.topLabel}</div>
-          <div style={{ fontSize: 26, fontWeight: 700 }}>{cd.label}</div>
-          <div style={{ fontSize: 13, opacity: 0.85, marginTop: 3 }}>{cd.sub}</div>
+        <div style={{ background: "linear-gradient(135deg,var(--navy),var(--teal))", borderRadius: 14, padding: "18px", color: "white", textAlign: "center" }}>
+          <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 4 }}>Departure</div>
+          <div style={{ fontSize: 26, fontWeight: 700 }}>{cd}</div>
+          <div style={{ fontSize: 13, opacity: 0.85, marginTop: 3 }}>{fmtLong(travel.departure_date)}</div>
         </div>
       )}
       {(travel.flight_number || travel.departure_date || travel.from_city || travel.to_city) && (
@@ -2146,8 +1812,7 @@ function TravelTab({ invitation, lang = "en" }) {
               {travel.flight_number  && <div className="pp-travel-card"><div className="pp-travel-card-label">Flight</div><div className="pp-travel-card-value">{travel.flight_number}</div></div>}
               {travel.departure_date && <div className="pp-travel-card"><div className="pp-travel-card-label">Date</div><div className="pp-travel-card-value">{fmtShort(travel.departure_date)}</div><div className="pp-travel-card-sub">{travel.departure_time || ""}</div></div>}
               {travel.from_city      && <div className="pp-travel-card"><div className="pp-travel-card-label">From</div><div className="pp-travel-card-value">{travel.from_city}</div></div>}
-              {travel.to_city        && <div className="pp-travel-card"><div className="pp-travel-card-label">To</div><div className="pp-travel-card-value">{travel.to_city}</div></div>}
-              {travel.arrival_date   && <div className="pp-travel-card"><div className="pp-travel-card-label">Arrival</div><div className="pp-travel-card-value">{fmtShort(travel.arrival_date)}</div><div className="pp-travel-card-sub">{travel.arrival_time || ""}</div></div>}
+              {travel.to_city        && <div className="pp-travel-card"><div className="pp-travel-card-label">To</div><div className="pp-travel-card-value">{travel.to_city}</div><div className="pp-travel-card-sub">{travel.arrival_time || ""}</div></div>}
             </div>
           </div>
         </div>
@@ -2255,22 +1920,6 @@ function EmergencyTab({ invitation, lang = "en" }) {
           ))}
         </div>
       </div>
-
-      {/* Important notice */}
-      <div style={{
-        background: "linear-gradient(135deg, #1B3A6B 0%, #1e4d8c 100%)",
-        borderRadius: 14, padding: "20px 18px",
-        display: "flex", gap: 14, alignItems: "flex-start",
-      }}>
-        <div style={{ flexShrink: 0, width: 38, height: 38, borderRadius: 10, background: "rgba(255,255,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <Icon name="shield-alert" style={{ width: 20, height: 20, color: "#fff" }} />
-        </div>
-        <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.7, color: "rgba(255,255,255,0.92)", fontWeight: 400 }}>
-          In a medical emergency, contact your nearest emergency department or local emergency services immediately.{" "}
-          <strong style={{ color: "#fff" }}>Do not wait for CareBridge.</strong>{" "}
-          Once safe, notify your CareBridge coordinator for further assistance.
-        </p>
-      </div>
     </div>
   );
 }
@@ -2294,29 +1943,20 @@ function ChecklistTab({ invitation, lang = "en" }) {
   const [items,   setItems]   = useState([]);
   const [checked, setChecked] = useState({});
   const [loading, setLoading] = useState(true);
-  const TICKED_KEY = "checklist_ticked_" + invitation.patient_id;
 
   useEffect(() => {
-    // Load items definition + ticked state from Supabase
-    Promise.all([
-      sb.from("portal_state").select("state").eq("id", "checklist_" + invitation.patient_id).single(),
-      sb.from("portal_state").select("state").eq("id", TICKED_KEY).single(),
-    ]).then(([itemsRes, tickedRes]) => {
-      setItems(itemsRes.data?.state?.items?.length ? itemsRes.data.state.items : DEFAULT_ITEMS);
-      const saved = {};
-      try { Object.assign(saved, JSON.parse(localStorage.getItem(STORE_KEY) || "{}")); } catch(e) {}
-      if (tickedRes.data?.state) Object.assign(saved, tickedRes.data.state);
-      setChecked(saved);
-      setLoading(false);
-    }).catch(() => { setItems(DEFAULT_ITEMS); setLoading(false); });
+    const saved = {};
+    try { Object.assign(saved, JSON.parse(localStorage.getItem(STORE_KEY) || "{}")); } catch(e) {}
+    setChecked(saved);
+    sb.from("portal_state").select("state").eq("id", "checklist_" + invitation.patient_id).single()
+      .then(({ data }) => { setItems(data?.state?.items?.length ? data.state.items : DEFAULT_ITEMS); setLoading(false); })
+      .catch(() => { setItems(DEFAULT_ITEMS); setLoading(false); });
   }, [invitation.patient_id]);
 
   const toggle = (id) => {
     setChecked(prev => {
       const next = { ...prev, [id]: !prev[id] };
       try { localStorage.setItem(STORE_KEY, JSON.stringify(next)); } catch(e) {}
-      // Sync to Supabase so coordinators can see it
-      sb.from("portal_state").upsert({ id: TICKED_KEY, state: next }, { onConflict: "id" }).catch(() => {});
       return next;
     });
   };
@@ -2408,7 +2048,7 @@ function NotificationsTab({ patientId, lang = "en" }) {
 /* ================================================================
    Dashboard shell
    ================================================================ */
-function Dashboard({ invitation, locationLabel, tab, setTab, onLogout, unreadMsgs, newJourney, newTravel, newDocs, clearBadge, newMsgIds, newActIds, bellOn, onToggleBell }) {
+function Dashboard({ invitation, locationLabel, tab, setTab, onLogout, unreadMsgs, newJourney, clearBadge, newMsgIds, newActIds, bellOn, onToggleBell }) {
   const [lang, setLang] = useState(() => localStorage.getItem("pp_lang") || "en");
   const toggleLang = () => {
     const next = lang === "en" ? "so" : "en";
@@ -2427,8 +2067,8 @@ function Dashboard({ invitation, locationLabel, tab, setTab, onLogout, unreadMsg
     { id: "info",      label: t(lang, "My Info"),    icon: "user",           badge: 0          },
     { id: "messages",  label: t(lang, "Messages"),   icon: "message-square", badge: unreadMsgs },
     { id: "journey",   label: t(lang, "Journey"),    icon: "route",          badge: newJourney },
-    { id: "travel",    label: t(lang, "Travel"),     icon: "plane",          badge: newTravel  },
-    { id: "documents", label: t(lang, "Documents"),  icon: "file-text",      badge: newDocs    },
+    { id: "travel",    label: t(lang, "Travel"),     icon: "plane",          badge: 0          },
+    { id: "documents", label: t(lang, "Documents"),  icon: "file-text",      badge: 0          },
     { id: "emergency", label: t(lang, "Emergency"),  icon: "phone-call",     badge: 0          },
     { id: "checklist", label: t(lang, "Checklist"),  icon: "checklist",      badge: 0          },
     { id: "ai",        label: t(lang, "AI Help"),    icon: "cpu",            badge: 0          },
@@ -2462,6 +2102,15 @@ function Dashboard({ invitation, locationLabel, tab, setTab, onLogout, unreadMsg
             style={{ marginTop: 6, alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "rgba(255,255,255,0.12)", border: "1.5px solid rgba(255,255,255,0.22)", borderRadius: 20, padding: "4px 12px", cursor: "pointer", color: "#fff", fontSize: 12, fontWeight: 700, letterSpacing: "0.03em" }}>
             {lang === "en" ? <><span style={{ opacity: 0.55 }}>🇬🇧 EN</span><span style={{ margin: "0 4px", opacity: 0.4 }}>·</span><span style={{ color: "#1CA89C" }}>🇸🇴 SO</span></> : <><span style={{ color: "#1CA89C" }}>🇬🇧 EN</span><span style={{ margin: "0 4px", opacity: 0.4 }}>·</span><span style={{ opacity: 0.55 }}>🇸🇴 SO</span></>}
           </button>
+          {progress > 0 && (
+            <div className="pp-progress-wrap">
+              <div className="pp-progress-bar"><div className="pp-progress-fill" style={{ width: progress + "%" }} /></div>
+              <div className="pp-progress-meta">
+                <span>Treatment progress</span>
+                <span style={{ fontWeight: 700, color: "#7eeee8" }}>{progress}%</span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -2484,7 +2133,7 @@ function Dashboard({ invitation, locationLabel, tab, setTab, onLogout, unreadMsg
       {tab === "documents" && <DocumentsTab  invitation={invitation} lang={lang} />}
       {tab === "emergency" && <EmergencyTab  invitation={invitation} lang={lang} />}
       {tab === "checklist" && <ChecklistTab  invitation={invitation} lang={lang} />}
-      {tab === "ai"        && <AiErrorBoundary><AiTab invitation={invitation} lang={lang} /></AiErrorBoundary>}
+      {tab === "ai"        && <AiTab         invitation={invitation} />}
       {tab === "rate"      && <RateTab       invitation={invitation} />}
     </div>
   );
@@ -2501,15 +2150,11 @@ function App() {
   const [tab,        setTab]        = useState("info");
   const [unreadMsgs, setUnreadMsgs] = useState(0);
   const [newJourney, setNewJourney] = useState(0);
-  const [newTravel,  setNewTravel]  = useState(0);
-  const [newDocs,    setNewDocs]    = useState(0);
   const [newMsgIds,  setNewMsgIds]  = useState(new Set());
   const [newActIds,  setNewActIds]  = useState(new Set());
   const [bellOn,     setBellOn]     = useState(() => localStorage.getItem("cb_bell") !== "off");
   const bellRef = useRef(bellOn);
-  const tabRef  = useRef(tab);
   useEffect(() => { bellRef.current = bellOn; }, [bellOn]);
-  useEffect(() => { tabRef.current  = tab;    }, [tab]);
   const locationLabel = useLocation(invitation);
 
   const toggleBell = useCallback(() => {
@@ -2581,33 +2226,10 @@ function App() {
         }
       }).subscribe();
 
-    const travelKey = "travel_" + invitation.patient_id;
-    const travelCh = sb.channel("pp-travel-badge-" + invitation.patient_id)
-      .on("postgres_changes", { event: "*", schema: "public", table: "portal_state" }, (payload) => {
-        if ((payload.new?.id || payload.old?.id) !== travelKey) return;
-        if (tabRef.current !== "travel") {
-          setNewTravel(n => n + 1);
-          saveNotif("travel", "Travel details updated", "Your coordinator updated your travel information");
-          if (bellRef.current) pushNotify("Travel updated", "Your travel details have been updated");
-        }
-      }).subscribe();
-
-    const docsCh = sb.channel("pp-docs-badge-" + invitation.patient_id)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "patient_documents" }, (payload) => {
-        if (payload.new?.patient_id !== invitation.patient_id) return;
-        if (tabRef.current !== "documents") {
-          setNewDocs(n => n + 1);
-          saveNotif("docs", "New document", payload.new?.name);
-          if (bellRef.current) pushNotify("New document available", payload.new?.name || "A file was added by your coordinator");
-        }
-      }).subscribe();
-
     return () => {
       sb.removeChannel(msgCh);
       sb.removeChannel(actCh);
       sb.removeChannel(invCh);
-      sb.removeChannel(travelCh);
-      sb.removeChannel(docsCh);
     };
   }, [screen, invitation?.patient_id, invitation?.id]);
 
@@ -2620,45 +2242,7 @@ function App() {
       setNewJourney(0); setNewActIds(new Set());
       if (invitation?.patient_id) localStorage.setItem("cb_act_seen_" + invitation.patient_id, Date.now().toString());
     }
-    if (tabId === "travel") {
-      setNewTravel(0);
-      if (invitation?.patient_id) localStorage.setItem("cb_travel_seen_" + invitation.patient_id, Date.now().toString());
-    }
-    if (tabId === "documents") {
-      setNewDocs(0);
-      if (invitation?.patient_id) localStorage.setItem("cb_docs_seen_" + invitation.patient_id, Date.now().toString());
-    }
   }, [invitation?.patient_id]);
-
-  /* ---- On-load badge check (reliable: doesn't need realtime) ---- */
-  useEffect(() => {
-    if (screen !== "dashboard" || !invitation?.patient_id) return;
-    const pid = invitation.patient_id;
-
-    // Documents: count files uploaded after last seen
-    const docsSeen = parseInt(localStorage.getItem("cb_docs_seen_" + pid) || "0");
-    const seenIso = docsSeen ? new Date(docsSeen).toISOString() : null;
-    sb.from("patient_documents").select("id").eq("patient_id", pid)
-      .then(({ data }) => {
-        if (!data || !data.length) return;
-        // If we have a last-seen time, count only newer ones; otherwise count all
-        if (seenIso) {
-          sb.from("patient_documents").select("id").eq("patient_id", pid).gt("created_at", seenIso)
-            .then(({ data: newer }) => { if (newer?.length) setNewDocs(newer.length); });
-        } else {
-          setNewDocs(data.length);
-        }
-      });
-
-    // Travel: check if portal_state travel row was updated after last seen
-    const travelSeen = parseInt(localStorage.getItem("cb_travel_seen_" + pid) || "0");
-    sb.from("portal_state").select("updated_at").eq("id", "travel_" + pid).single()
-      .then(({ data }) => {
-        if (!data?.updated_at) return;
-        const updatedTs = new Date(data.updated_at).getTime();
-        if (updatedTs > travelSeen) setNewTravel(1);
-      });
-  }, [screen, invitation?.patient_id]);
 
   useEffect(() => {
     if (screen !== "loading") {
@@ -2764,8 +2348,8 @@ function App() {
   const validateToken = useCallback(async (token) => {
     const { data, error } = await sb.from("patient_invitations").select("*").eq("token", token).single();
     if (error || !data) { setInvalidMsg("This invitation link is invalid or has already been used."); setScreen("invalid"); return; }
-    if (data.status === "expired") {
-      setInvalidMsg("This invitation link has been revoked. Please contact your Carebridge coordinator.");
+    if (data.status === "expired" || (data.expires_at && new Date(data.expires_at) < new Date())) {
+      setInvalidMsg("This invitation link has expired. Please contact your Carebridge coordinator for a new link.");
       setScreen("invalid"); return;
     }
     if (!data.patient_email) {
@@ -2864,7 +2448,7 @@ function App() {
   if (screen === "create-account") return <CreateAccountScreen invitation={tokenInv} onSubmit={handleSignup} />;
   if (screen === "login")          return <LoginScreen onLogin={handleLogin} />;
   if (screen === "reset-password") return <ResetPasswordScreen onSubmit={handlePasswordReset} />;
-  if (screen === "dashboard")      return <Dashboard invitation={invitation} locationLabel={locationLabel} tab={tab} setTab={setTab} onLogout={handleLogout} unreadMsgs={unreadMsgs} newJourney={newJourney} newTravel={newTravel} newDocs={newDocs} clearBadge={clearBadge} newMsgIds={newMsgIds} newActIds={newActIds} bellOn={bellOn} onToggleBell={toggleBell} />;
+  if (screen === "dashboard")      return <Dashboard invitation={invitation} locationLabel={locationLabel} tab={tab} setTab={setTab} onLogout={handleLogout} unreadMsgs={unreadMsgs} newJourney={newJourney} clearBadge={clearBadge} newMsgIds={newMsgIds} newActIds={newActIds} bellOn={bellOn} onToggleBell={toggleBell} />;
   return null;
 }
 
