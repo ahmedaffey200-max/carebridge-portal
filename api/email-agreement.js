@@ -119,7 +119,7 @@ module.exports = async function handler(req, res) {
   }
 
   const fromEmail = process.env.RESEND_FROM_EMAIL || "noreply@carebridgeinternational.ca";
-  const toEmail   = process.env.ADMIN_EMAIL         || "ahmedaffey200@gmail.com";
+  const toEmail   = process.env.ADMIN_EMAIL         || "carebridgeinter@gmail.com";
 
   const emailPayload = {
     from:    `Carebridge Portal <${fromEmail}>`,
