@@ -714,10 +714,22 @@ function submitAgreement() {
     version: "1.0",
   };
 
+  // Generate PDF first so we can attach it to the email
+  var pdfDoc = null;
+  var pdfBase64 = null;
+  try {
+    pdfDoc = generateSignedPDF(payload);
+    if (pdfDoc) pdfBase64 = pdfDoc.output("datauristring").split(",")[1];
+  } catch(e) { console.error("PDF error:", e); }
+  payload.pdfBase64 = pdfBase64;
+  _signedPayload = payload;
+
   saveToSupabase(payload, function () {
-    sendEmailNotification(payload, function () {
-      _signedPayload = payload;
-      try { var pdfDoc = generateSignedPDF(payload); if (pdfDoc) pdfDoc.save("Carebridge-Agreement-" + payload.id + ".pdf"); } catch(e) { console.error("PDF error:", e); }
+    sendEmailWithPDF(payload, function () {
+      // Auto-download the signed PDF for the patient
+      if (pdfDoc) {
+        try { pdfDoc.save("Carebridge-Agreement-" + payload.id + ".pdf"); } catch(e) {}
+      }
       showPhase("ph-done");
     });
   });
@@ -738,19 +750,20 @@ function saveToSupabase(payload, callback) {
   .catch(function() { callback(); });
 }
 
-function sendEmailNotification(payload, callback) {
-  fetch("https://api.web3forms.com/submit", {
-    method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      access_key: WEB3FORMS_KEY,
-      subject: "✅ Agreement Signed — " + payload.patientName + " (" + payload.id + ")",
-      from_name: "Carebridge Portal",
-      to: ADMIN_EMAIL,
-      message: "AGREEMENT SIGNED\n================\n\nAgreement ID: " + payload.id + "\nPatient: " + payload.patientName + "\nRep: " + payload.repName + " (" + (payload.repRelationship||"—") + ")\nWitness: " + (payload.witnesName||"—") + "\nDate: " + payload.dateSigned + "\nTimestamp: " + payload.timestamp + "\n\nAll 14 pages initialled. Download PDF from portal → Patient Agreements."
-    })
+function sendEmailWithPDF(payload, callback) {
+  fetch("/api/email-agreement", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
   })
-  .then(function() { callback(); })
-  .catch(function() { callback(); });
+  .then(function(r) {
+    if (!r.ok) console.warn("[CB] email-agreement responded", r.status);
+    callback();
+  })
+  .catch(function(err) {
+    console.warn("[CB] email-agreement failed:", err);
+    callback(); // always proceed to success screen
+  });
 }
 
 function showError(msg) {
