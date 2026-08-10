@@ -1564,60 +1564,24 @@ const AI_STRINGS = {
 };
 
 function AiTab({ invitation, lang: initialLang }) {
-  const [lang, setLang] = useState(initialLang || "en");
-  const [messages, setMessages] = useState([]);
+  var safeInitLang = (initialLang === "so") ? "so" : "en";
+  var initStrings = AI_STRINGS[safeInitLang] || AI_STRINGS["en"] || {};
+  const [lang, setLang] = useState(safeInitLang);
+  const [messages, setMessages] = useState([{ role: "assistant", content: initStrings.welcome || "" }]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
-  const [travel, setTravel] = useState(null);
   const bottomRef = useRef(null);
   const inputRef  = useRef(null);
 
   const t = AI_STRINGS[lang] || AI_STRINGS["en"] || {};
 
-  // Load patient travel data for richer AI context
-  useEffect(function() {
-    try {
-      if (!invitation || !invitation.patient_id) return;
-      sb.from("portal_state").select("state").eq("id", "travel_" + invitation.patient_id).single()
-        .then(function(res) { if (res && res.data) setTravel(res.data.state || null); })
-        .catch(function() {});
-    } catch(e) {}
-  }, [invitation ? invitation.patient_id : null]);
-
-  var tr = travel || {};
-  const patientContext = {
-    name:            invitation.patient_name     || "",
-    patientId:       invitation.patient_id       || "",
-    specialty:       invitation.specialty        || "",
-    condition:       invitation.condition        || "",
-    hospital:        invitation.hospital         || "",
-    country:         invitation.country          || invitation.destination || "",
-    coordinatorName: invitation.coordinator_name || "",
-    priority:        invitation.priority         || "Standard",
-    stage:           invitation.stage            || "",
-    flightNumber:    tr.flight_number   || "",
-    departureDate:   tr.departure_date  || "",
-    departureTime:   tr.departure_time  || "",
-    arrivalDate:     tr.arrival_date    || "",
-    arrivalTime:     tr.arrival_time    || "",
-    fromCity:        tr.from_city       || "",
-    toCity:          tr.to_city         || "",
-    hotelName:       tr.hotel_name      || "",
-    hotelNights:     tr.hotel_nights    || "",
-    hotelAddress:    tr.hotel_address   || "",
-    taxiDriver:      tr.taxi_driver     || "",
-    taxiCell:        tr.taxi_cell       || "",
-    pickupInfo:      tr.pickup          || "",
-    travelNotes:     tr.notes           || "",
-  };
-
-  // Reset chat with welcome message when language switches
+  // Reset welcome message when language switches
   useEffect(function() {
     try {
       var strings = AI_STRINGS[lang] || AI_STRINGS["en"] || {};
       setMessages([{ role: "assistant", content: strings.welcome || "" }]);
       setInput("");
-    } catch(e) {}
+    } catch(e) { console.warn("AiTab lang effect error", e); }
   }, [lang]);
 
   // Auto-scroll to bottom
@@ -1629,6 +1593,19 @@ function AiTab({ invitation, lang: initialLang }) {
       }
     } catch(e) {}
   }, [messages, busy]);
+
+  var inv = invitation || {};
+  const patientContext = {
+    name:            inv.patient_name     || "",
+    patientId:       inv.patient_id       || "",
+    specialty:       inv.specialty        || "",
+    condition:       inv.condition        || "",
+    hospital:        inv.hospital         || "",
+    country:         inv.country          || inv.destination || "",
+    coordinatorName: inv.coordinator_name || "",
+    priority:        inv.priority         || "Standard",
+    stage:           inv.stage            || "",
+  };
 
   const send = async () => {
     const text = input.trim();
