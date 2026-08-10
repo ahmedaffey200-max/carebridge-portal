@@ -2003,6 +2003,7 @@ function TravelTab({ invitation, lang = "en" }) {
   const [travel, setTravel]   = useState(null);
   const [loading, setLoading] = useState(true);
   const [tick, setTick]       = useState(0);
+  const [showDua, setShowDua] = useState(false);
   const travelKey = "travel_" + invitation.patient_id;
 
   const loadTravel = () => {
@@ -2021,6 +2022,19 @@ function TravelTab({ invitation, lang = "en" }) {
       }).subscribe();
     return () => { sb.removeChannel(ch); };
   }, [invitation.patient_id]);
+
+  /* Show dua 1 min after journey phase mounts, hide after 2 more minutes */
+  useEffect(() => {
+    if (!travel || !travel.departure_date) { setShowDua(false); return; }
+    try {
+      const cd2 = getCountdownState(travel.departure_date, travel.departure_time, travel.departure_tz);
+      if (!cd2 || cd2.phase !== "journey") { setShowDua(false); return; }
+      setShowDua(false);
+      const t1 = setTimeout(() => setShowDua(true),  60000);
+      const t2 = setTimeout(() => setShowDua(false), 180000);
+      return () => { clearTimeout(t1); clearTimeout(t2); };
+    } catch(e) {}
+  }, [travel]);
 
   /* Parse date-only strings at LOCAL noon to avoid UTC-midnight timezone shift */
   const parseLocalDate = (d) => { if (!d) return null; return d.includes("T") ? new Date(d) : new Date(d + "T12:00:00"); };
@@ -2150,6 +2164,19 @@ function TravelTab({ invitation, lang = "en" }) {
           <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.08em" }}>{ps.topLabel}</div>
           <div style={{ fontSize: 26, fontWeight: 700 }}>{cd.label}</div>
           <div style={{ fontSize: 13, opacity: 0.85, marginTop: 3 }}>{cd.sub}</div>
+        </div>
+      )}
+      {cd && cd.phase === "journey" && showDua && (
+        <div style={{ background: "linear-gradient(135deg,#0d3321 0%,#145c38 45%,#1a6b40 100%)", borderRadius: 16, padding: "24px 20px", color: "white", textAlign: "center", boxShadow: "0 8px 32px rgba(0,0,0,0.35)", border: "2px solid rgba(212,175,55,0.45)" }}>
+          <div style={{ fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase", color: "#f6c94e", marginBottom: 16, fontWeight: 700 }}>✦ &nbsp;Dua for Travel&nbsp; ✦</div>
+          <div style={{ fontFamily: "Georgia,serif", fontSize: 19, lineHeight: 2.0, direction: "rtl", color: "#fde68a", marginBottom: 18, textShadow: "0 1px 4px rgba(0,0,0,0.4)", padding: "0 4px" }}>
+            سُبْحَانَ الَّذِي سَخَّرَ لَنَا هَٰذَا وَمَا كُنَّا لَهُ مُقْرِنِينَ ۝ وَإِنَّا إِلَىٰ رَبِّنَا لَمُنقَلِبُونَ
+          </div>
+          <div style={{ width: 56, height: 2, background: "rgba(212,175,55,0.55)", margin: "0 auto 18px" }} />
+          <div style={{ fontSize: 13, lineHeight: 1.75, color: "rgba(255,255,255,0.92)", fontStyle: "italic", maxWidth: 340, margin: "0 auto" }}>
+            "Glory be to Him who has subjected this to us, and we could not have controlled it ourselves. And surely, to our Lord we will return."
+          </div>
+          <div style={{ marginTop: 14, fontSize: 11, color: "rgba(212,175,55,0.75)", letterSpacing: "0.05em" }}>Quran 43:13–14</div>
         </div>
       )}
       {(travel.flight_number || travel.departure_date || travel.from_city || travel.to_city) && (
