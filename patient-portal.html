@@ -1383,23 +1383,6 @@ function useLocation(invitation) {
 /* ================================================================
    AI Help Tab — bilingual English / Somali (Af-Soomaali)
    ================================================================ */
-class AiErrorBoundary extends React.Component {
-  constructor(props) { super(props); this.state = { err: null }; }
-  static getDerivedStateFromError(e) { return { err: e }; }
-  componentDidCatch(e) { console.error("AiTab error:", e); }
-  render() {
-    if (this.state.err) return (
-      <div style={{ padding: 40, textAlign: "center", color: "var(--text)" }}>
-        <div style={{ fontSize: 32, marginBottom: 12 }}>⚠️</div>
-        <div style={{ fontWeight: 700, marginBottom: 8 }}>AI Assistant unavailable</div>
-        <div style={{ fontSize: 13, color: "var(--text-faint)", marginBottom: 20 }}>Please refresh the page and try again.</div>
-        <button className="pp-btn pp-btn--ghost pp-btn--sm" onClick={() => window.location.reload()}>Refresh</button>
-      </div>
-    );
-    return this.props.children;
-  }
-}
-
 const AI_STRINGS = {
   en: {
     title:       "Carebridge AI Assistant",
@@ -1449,19 +1432,14 @@ function AiTab({ invitation }) {
   };
 
   // Reset chat with welcome message when language switches
-  useEffect(function() {
-    try {
-      setMessages([{ role: "assistant", content: t.welcome }]);
-      setInput("");
-    } catch(e) {}
+  useEffect(() => {
+    setMessages([{ role: "assistant", content: t.welcome }]);
+    setInput("");
   }, [lang]);
 
   // Auto-scroll to bottom
-  useEffect(function() {
-    try {
-      var el = bottomRef.current;
-      if (el && el.scrollIntoView) el.scrollIntoView({ behavior: "smooth" });
-    } catch(e) {}
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, busy]);
 
   const send = async () => {
@@ -2155,7 +2133,7 @@ function Dashboard({ invitation, locationLabel, tab, setTab, onLogout, unreadMsg
       {tab === "documents" && <DocumentsTab  invitation={invitation} lang={lang} />}
       {tab === "emergency" && <EmergencyTab  invitation={invitation} lang={lang} />}
       {tab === "checklist" && <ChecklistTab  invitation={invitation} lang={lang} />}
-      {tab === "ai"        && <AiErrorBoundary><AiTab invitation={invitation} /></AiErrorBoundary>}
+      {tab === "ai"        && <AiTab         invitation={invitation} />}
       {tab === "rate"      && <RateTab       invitation={invitation} />}
     </div>
   );
