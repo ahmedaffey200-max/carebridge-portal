@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=0.25, maximum-scale=5.0, user-scalable=yes" />
 <title>Carebridge International — Patient Service Agreement</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
@@ -57,17 +57,23 @@ html, body { height: 100%; overflow: hidden; font-family: 'Segoe UI', Arial, san
 .doc-viewer { flex: 1; overflow: hidden; position: relative; }
 .doc-viewer iframe { width: 100%; height: 100%; border: none; display: block; }
 
-.sign-panel { background: var(--card); border-top: 3px solid var(--teal); padding: 14px 20px 20px; flex-shrink: 0; box-shadow: 0 -4px 20px rgba(27,58,107,0.10); }
-.sign-panel__row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.init-label { font-size: 12px; font-weight: 700; color: var(--sub); text-transform: uppercase; letter-spacing: 0.6px; white-space: nowrap; }
-.init-badge { background: var(--teal); color: #fff; border-radius: 8px; padding: 8px 18px; font-size: 18px; font-weight: 900; letter-spacing: 3px; }
+/* ── ZOOM CONTROLS ── */
+.zoom-ctrl { display: flex; align-items: center; gap: 2px; background: rgba(255,255,255,0.13); border-radius: 8px; padding: 3px 6px; flex-shrink: 0; }
+.zoom-btn { width: 30px; height: 30px; border: none; background: transparent; color: #fff; font-size: 22px; font-weight: 300; line-height: 1; cursor: pointer; border-radius: 6px; display: flex; align-items: center; justify-content: center; padding: 0; touch-action: manipulation; }
+.zoom-btn:active { background: rgba(255,255,255,0.2); }
+.zoom-lbl { font-size: 11px; font-weight: 800; color: rgba(255,255,255,0.88); min-width: 34px; text-align: center; letter-spacing: 0.02em; }
+
+.sign-panel { background: var(--card); border-top: 3px solid var(--teal); padding: 12px 16px 18px; flex-shrink: 0; box-shadow: 0 -6px 32px rgba(27,58,107,0.18); position: relative; z-index: 10; }
+.sign-panel__row { display: flex; align-items: center; gap: 10px; flex-wrap: nowrap; }
+.init-label { font-size: 12px; font-weight: 700; color: var(--sub); text-transform: uppercase; letter-spacing: 0.6px; white-space: nowrap; flex-shrink: 0; }
+.init-badge { background: var(--teal); color: #fff; border-radius: 8px; padding: 8px 16px; font-size: 17px; font-weight: 900; letter-spacing: 3px; flex-shrink: 0; }
 .init-input { border: 2px solid var(--border); border-radius: 8px; padding: 10px 14px; font-size: 16px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; width: 110px; text-align: center; outline: none; font-family: inherit; transition: border-color 0.15s; }
 .init-input:focus { border-color: var(--teal); }
 .init-error { font-size: 12px; color: var(--red); display: none; margin-top: 6px; }
-.btn-prev { padding: 10px 18px; border: 1.5px solid var(--border); border-radius: 8px; background: transparent; font-size: 14px; font-weight: 600; color: var(--sub); cursor: pointer; display: flex; align-items: center; gap: 6px; }
-.btn-next-pg { padding: 10px 22px; border: none; border-radius: 8px; background: var(--navy); color: #fff; font-size: 14px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 8px; margin-left: auto; }
-.btn-next-pg:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn-next-pg.teal { background: linear-gradient(135deg, var(--teal), var(--navy)); }
+.btn-prev { padding: 10px 16px; border: 1.5px solid var(--border); border-radius: 10px; background: transparent; font-size: 14px; font-weight: 600; color: var(--sub); cursor: pointer; display: flex; align-items: center; gap: 6px; flex-shrink: 0; touch-action: manipulation; }
+.btn-next-pg { padding: 13px 22px; border: none; border-radius: 10px; background: linear-gradient(135deg, var(--teal) 0%, var(--navy) 100%); color: #fff; font-size: 15px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 8px; margin-left: auto; flex-shrink: 0; box-shadow: 0 4px 14px rgba(28,168,156,0.40); min-height: 48px; touch-action: manipulation; }
+.btn-next-pg:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+.btn-next-pg.teal { background: linear-gradient(135deg, #18c4b6 0%, var(--navy) 100%); box-shadow: 0 4px 18px rgba(28,168,156,0.50); }
 
 /* ── PHASE 3: SIGNATURES ── */
 .ph-sigs { overflow-y: auto; padding: 20px 16px 80px; }
@@ -127,16 +133,20 @@ html, body { height: 100%; overflow: hidden; font-family: 'Segoe UI', Arial, san
   .notice { font-size: 11.5px; padding: 10px 12px; }
 
   /* Phase 2: Reading */
-  .doc-topbar { padding: 8px 12px; gap: 8px; flex-wrap: nowrap; }
+  .doc-topbar { padding: 8px 10px; gap: 6px; flex-wrap: nowrap; }
   .doc-prog-label { font-size: 9px; margin-bottom: 3px; }
+  .doc-prog-wrap { flex: 1; min-width: 0; }
   .doc-page-badge { font-size: 11px; padding: 4px 10px; white-space: nowrap; }
   .doc-page-name { display: none; }
-  .sign-panel { padding: 10px 14px 14px; }
+  .zoom-ctrl { padding: 2px 4px; }
+  .zoom-btn { width: 26px; height: 26px; font-size: 20px; }
+  .zoom-lbl { font-size: 10px; min-width: 30px; }
+  .sign-panel { padding: 10px 12px 16px; }
   .sign-panel__row { gap: 8px; }
   .init-label { font-size: 11px; }
-  .init-badge { font-size: 15px; padding: 7px 14px; }
-  .btn-prev { padding: 9px 14px; font-size: 13px; }
-  .btn-next-pg { padding: 9px 16px; font-size: 13px; min-height: 42px; }
+  .init-badge { font-size: 15px; padding: 7px 12px; letter-spacing: 2px; }
+  .btn-prev { padding: 10px 12px; font-size: 13px; }
+  .btn-next-pg { padding: 12px 18px; font-size: 14px; min-height: 46px; }
 
   /* Phase 3: Signatures */
   .ph-sigs { padding: 16px 12px 60px; }
@@ -159,10 +169,10 @@ html, body { height: 100%; overflow: hidden; font-family: 'Segoe UI', Arial, san
 @media (max-width: 380px) {
   .prefill-grid { grid-template-columns: 1fr; }
   .welcome-card__head h1 { font-size: 16px; }
-  .init-badge { font-size: 13px; }
+  .init-badge { font-size: 13px; letter-spacing: 1.5px; }
   .doc-page-badge { font-size: 10px; padding: 3px 8px; }
-  .sign-panel__row { flex-wrap: wrap; }
-  .btn-next-pg { flex: 1; justify-content: center; }
+  .init-label { display: none; }
+  .btn-next-pg { font-size: 13px; padding: 11px 14px; }
 }
 </style>
 </head>
@@ -222,7 +232,11 @@ html, body { height: 100%; overflow: hidden; font-family: 'Segoe UI', Arial, san
       <div class="doc-prog-bar"><div class="doc-prog-fill" id="prog-fill" style="width:0%"></div></div>
     </div>
     <div class="doc-page-badge" id="page-badge">Page 1 / 14</div>
-    <div class="doc-page-name" id="page-name">Cover Page</div>
+    <div class="zoom-ctrl">
+      <button class="zoom-btn" onclick="zoomOut()" title="Zoom out" aria-label="Zoom out">−</button>
+      <span class="zoom-lbl" id="zoom-lbl">100%</span>
+      <button class="zoom-btn" onclick="zoomIn()" title="Zoom in" aria-label="Zoom in">+</button>
+    </div>
   </div>
 
   <div class="doc-viewer">
@@ -342,6 +356,76 @@ html, body { height: 100%; overflow: hidden; font-family: 'Segoe UI', Arial, san
 </div><!-- /.app -->
 
 <script>
+// ── ZOOM ──────────────────────────────────────────────────────
+var zoomLevel = 1.0;
+var ZOOM_MIN = 0.4, ZOOM_MAX = 3.0, ZOOM_STEP = 0.15;
+var _ifrObserver = null;
+
+function applyZoom() {
+  var fr = document.getElementById("doc-frame");
+  try {
+    var ifrDoc = fr.contentDocument || fr.contentWindow.document;
+    ifrDoc.documentElement.style.zoom = zoomLevel;
+  } catch(e) {}
+  document.getElementById("zoom-lbl").textContent = Math.round(zoomLevel * 100) + "%";
+}
+
+function zoomIn() {
+  zoomLevel = Math.min(ZOOM_MAX, Math.round((zoomLevel + ZOOM_STEP) * 100) / 100);
+  applyZoom();
+}
+
+function zoomOut() {
+  zoomLevel = Math.max(ZOOM_MIN, Math.round((zoomLevel - ZOOM_STEP) * 100) / 100);
+  applyZoom();
+}
+
+function injectIframeCSS(fr) {
+  try {
+    var ifrDoc = fr.contentDocument || fr.contentWindow.document;
+    var existing = ifrDoc.getElementById("cb-responsive-fix");
+    if (existing) existing.remove();
+    var s = ifrDoc.createElement("style");
+    s.id = "cb-responsive-fix";
+    s.textContent = [
+      "html { overflow-x: hidden !important; }",
+      "body {",
+      "  display: block !important;",
+      "  background: #f6f8fa !important;",
+      "  min-height: auto !important;",
+      "  width: 100% !important;",
+      "  max-width: 100% !important;",
+      "  margin: 0 !important;",
+      "  padding: 0 !important;",
+      "  overflow-x: hidden !important;",
+      "}",
+      "body > * {",
+      "  width: 100% !important;",
+      "  max-width: 100% !important;",
+      "  min-width: 0 !important;",
+      "  box-sizing: border-box !important;",
+      "  margin-left: 0 !important;",
+      "  margin-right: 0 !important;",
+      "}",
+      "img, table, pre, video { max-width: 100% !important; }",
+      "#__bundler_loading, #__bundler_thumbnail { display: none !important; }"
+    ].join("\n");
+    ifrDoc.head.appendChild(s);
+    ifrDoc.documentElement.style.zoom = zoomLevel;
+  } catch(e) {}
+}
+
+function setupIframeObserver(fr) {
+  try {
+    if (_ifrObserver) { _ifrObserver.disconnect(); _ifrObserver = null; }
+    var ifrDoc = fr.contentDocument || fr.contentWindow.document;
+    _ifrObserver = new MutationObserver(function() {
+      injectIframeCSS(fr);
+    });
+    _ifrObserver.observe(ifrDoc.body, { childList: true });
+  } catch(e) {}
+}
+
 // ============================================================
 var SB_URL  = "https://htvjjwfenvittdritjni.supabase.co";
 var SB_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh0dmpqd2ZlbnZpdHRkcml0am5pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2NTQ3OTAsImV4cCI6MjA5OTIzMDc5MH0.AMKUctPj49ahqXAFZbzJ341ZFH5XTckBUQaDmF5ZLj8";
@@ -539,6 +623,12 @@ function updatePageUI() {
 document.getElementById("doc-frame").addEventListener("load", function() {
   frameReady = true;
   PAGES[docPageIdx].scroll(this);
+  var fr = this;
+  injectIframeCSS(fr);
+  setupIframeObserver(fr);
+  // Re-inject after the async bundler finishes unpacking content
+  setTimeout(function() { injectIframeCSS(fr); }, 800);
+  setTimeout(function() { injectIframeCSS(fr); }, 2500);
 });
 
 function nextDocPage() {
