@@ -114,6 +114,21 @@ function SendInvitationModal({ onClose, onSent }) {
       const emailFailed = res.status === 207 || !!data.emailError;
       setResult({ link, sentEmail: patientEmail.trim(), emailFailed, emailError: data.emailError });
       try { await navigator.clipboard.writeText(link); setCopied(true); setTimeout(() => setCopied(false), 3000); } catch (e) {}
+
+      // Auto-wipe ALL portal data for this patient so they always start clean
+      const sbClear = getSB();
+      if (sbClear && selPatient?.id) {
+        const pid = selPatient.id;
+        try {
+          await Promise.all([
+            sbClear.from("patient_messages").delete().eq("patient_id", pid),
+            sbClear.from("patient_activities").delete().eq("patient_id", pid),
+            sbClear.from("patient_documents").delete().eq("patient_id", pid),
+            sbClear.from("portal_state").delete().eq("id", "travel_" + pid),
+          ]);
+        } catch(e) {}
+      }
+
       onSent && onSent();
 
     } catch (err) {
@@ -133,7 +148,7 @@ function SendInvitationModal({ onClose, onSent }) {
       "Dear " + (selPatient?.name || "Patient") + ",\n\n" +
       "Please use this secure link to access your Carebridge Patient Portal:\n\n" +
       result.link + "\n\n" +
-      "This link expires in 30 days.\n\nCarebridge International"
+      "Carebridge International"
     );
     window.open("https://wa.me/?text=" + msg, "_blank");
   };
@@ -185,7 +200,7 @@ function SendInvitationModal({ onClose, onSent }) {
                     <div style={{ display: "flex", gap: 8 }}><span style={{ color: "var(--text-faint)", width: 110 }}>Patient:</span><strong>{selPatient.name}</strong></div>
                     <div style={{ display: "flex", gap: 8 }}><span style={{ color: "var(--text-faint)", width: 110 }}>Case ID:</span><span style={{ fontFamily: "monospace" }}>{selPatient.id}</span></div>
                     {coordName && <div style={{ display: "flex", gap: 8 }}><span style={{ color: "var(--text-faint)", width: 110 }}>Coordinator:</span><span>{coordName}</span></div>}
-                    <div style={{ display: "flex", gap: 8 }}><span style={{ color: "var(--text-faint)", width: 110 }}>Expires:</span><span>30 days from now</span></div>
+                    <div style={{ display: "flex", gap: 8 }}><span style={{ color: "var(--text-faint)", width: 110 }}>Expires:</span><span>Never</span></div>
                   </div>
                 </>
               )}
@@ -318,51 +333,73 @@ function MessagePanel({ invitation, onClose, onPatientUpdated }) {
     return (today ? "" : d.toLocaleDateString("en-GB", { day: "numeric", month: "short" }) + " ") + d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
 
-  const PANEL_TABS = [
+  const MAIN_TABS = [
     { id: "messages",  label: "Messages",  icon: "message-square" },
     { id: "journey",   label: "Journey",   icon: "route" },
-    { id: "info",      label: "Edit Info", icon: "edit-3" },
-    { id: "travel",    label: "Travel",    icon: "plane" },
-    { id: "documents", label: "Documents", icon: "file-text" },
     { id: "checklist", label: "Checklist", icon: "check-square" },
-    { id: "emergency", label: "Emergency", icon: "phone-call" },
-    { id: "alerts",    label: "Alerts",    icon: "bell" },
-    { id: "ratings",   label: "Ratings",   icon: "star" },
+    { id: "travel",    label: "Travel",    icon: "plane" },
+    { id: "documents", label: "Docs",      icon: "file-text" },
   ];
+  const MORE_TABS = [
+    { id: "info",      label: "Edit Info",  icon: "edit-3" },
+    { id: "emergency", label: "Emergency",  icon: "phone-call" },
+    { id: "alerts",    label: "Alerts",     icon: "bell" },
+    { id: "ratings",   label: "Ratings",    icon: "star" },
+  ];
+  const PANEL_TABS = [...MAIN_TABS, ...MORE_TABS];
+  const [showMore, setShowMore] = useSt(false);
+  const activeInMore = MORE_TABS.some(t => t.id === panelTab);
 
   return (
-    <div style={{ position: "fixed", right: 0, top: 0, bottom: 0, width: "min(480px, 100vw)", background: "var(--surface)", boxShadow: "-4px 0 32px rgba(0,0,0,0.15)", zIndex: 400, display: "flex", flexDirection: "column" }}>
+    <div style={{ position: "fixed", right: 0, top: 0, bottom: 0, width: "min(500px, 100vw)", background: "#fff", boxShadow: "-8px 0 40px rgba(0,0,0,0.25)", zIndex: 400, display: "flex", flexDirection: "column" }}>
       {/* Header */}
-      <div style={{ padding: "14px 16px 0", borderBottom: "1px solid var(--border)", flexShrink: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", paddingBottom: 10 }}>
+      <div style={{ padding: "16px 16px 0", borderBottom: "1px solid var(--border)", flexShrink: 0, background: "var(--surface)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, paddingBottom: 12 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: 700, fontSize: 15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{invitation.patient_name}</div>
-            <div style={{ fontSize: 12, color: "var(--text-faint)", marginTop: 2 }}>{invitation.patient_id}</div>
+            <div style={{ fontWeight: 700, fontSize: 16, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{invitation.patient_name}</div>
+            <div style={{ fontSize: 12, color: "var(--text-faint)", marginTop: 1 }}>{invitation.patient_id}</div>
           </div>
-          <div style={{ display: "flex", gap: 7, flexShrink: 0 }}>
-            <a href={"https://meet.jit.si/carebridge-call-" + invitation.patient_id + "#config.startWithVideoMuted=true&config.prejoinPageEnabled=false&userInfo.displayName=Carebridge%20Coordinator"}
-               target="_blank" rel="noreferrer" data-real
-               style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "6px 12px", background: "var(--teal-50,#f0fdfa)", color: "var(--teal-700,#0f766e)", border: "1.5px solid var(--teal-300,#5eead4)", borderRadius: 9, fontWeight: 700, fontSize: 12, textDecoration: "none" }}>
-              <i data-lucide="phone" style={{ width: 13, height: 13 }} /> Call
-            </a>
-            <a href={"https://meet.jit.si/carebridge-video-" + invitation.patient_id + "#config.prejoinPageEnabled=false&userInfo.displayName=Carebridge%20Coordinator"}
-               target="_blank" rel="noreferrer" data-real
-               style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "6px 12px", background: "var(--navy-600,#1B3A6B)", color: "#fff", borderRadius: 9, fontWeight: 700, fontSize: 12, textDecoration: "none" }}>
-              <i data-lucide="video" style={{ width: 13, height: 13 }} /> Video
-            </a>
-          </div>
-          <button className="cb-icon-pill" data-real onClick={onClose} style={{ width: 32, height: 32, boxShadow: "none", border: "1px solid var(--border)", background: "var(--bg-page)", flexShrink: 0 }}>
+          <a href={"https://meet.jit.si/carebridge-call-" + invitation.patient_id + "#config.startWithVideoMuted=true&config.prejoinPageEnabled=false&userInfo.displayName=Carebridge%20Coordinator"}
+             target="_blank" rel="noreferrer" data-real
+             style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "7px 13px", background: "var(--teal-50,#f0fdfa)", color: "var(--teal-700,#0f766e)", border: "1.5px solid var(--teal-300,#5eead4)", borderRadius: 9, fontWeight: 700, fontSize: 12, textDecoration: "none", flexShrink: 0 }}>
+            <i data-lucide="phone" style={{ width: 13, height: 13 }} /> Call
+          </a>
+          <a href={"https://meet.jit.si/carebridge-video-" + invitation.patient_id + "#config.prejoinPageEnabled=false&userInfo.displayName=Carebridge%20Coordinator"}
+             target="_blank" rel="noreferrer" data-real
+             style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "7px 13px", background: "var(--navy-600,#1B3A6B)", color: "#fff", borderRadius: 9, fontWeight: 700, fontSize: 12, textDecoration: "none", flexShrink: 0 }}>
+            <i data-lucide="video" style={{ width: 13, height: 13 }} /> Video
+          </a>
+          <button className="cb-icon-pill" data-real onClick={onClose} style={{ width: 34, height: 34, boxShadow: "none", border: "1px solid var(--border)", background: "var(--bg-page)", flexShrink: 0 }}>
             <i data-lucide="x" />
           </button>
         </div>
-        {/* Tab bar — scrollable so all 6 tabs fit on mobile */}
-        <div style={{ display: "flex", gap: 2, overflowX: "auto", scrollbarWidth: "none" }}>
-          {PANEL_TABS.map(t => (
-            <button key={t.id} data-real onClick={() => setPanelTab(t.id)}
-              style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "7px 11px", fontSize: 12, fontWeight: panelTab === t.id ? 700 : 500, color: panelTab === t.id ? "var(--navy-600,#1B3A6B)" : "var(--text-faint)", background: "none", border: "none", borderBottom: panelTab === t.id ? "2.5px solid var(--navy-600,#1B3A6B)" : "2.5px solid transparent", cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0, transition: "color .15s" }}>
-              <i data-lucide={t.icon} style={{ width: 12, height: 12 }} /> {t.label}
+        {/* Single-row tab bar: 5 main tabs + More button */}
+        <div style={{ display: "flex", alignItems: "stretch", gap: 0, position: "relative", background: "linear-gradient(135deg,#1B3A6B 0%,#1CA89C 100%)", padding: "6px 6px 0" }}>
+          {MAIN_TABS.map(t => (
+            <button key={t.id} data-real onClick={() => { setPanelTab(t.id); setShowMore(false); }}
+              style={{ flex: 1, display: "inline-flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3, padding: "7px 4px 8px", fontSize: 11, fontWeight: panelTab === t.id ? 700 : 500, color: panelTab === t.id ? "#1B3A6B" : "rgba(255,255,255,0.75)", background: panelTab === t.id ? "#fff" : "transparent", border: "none", borderRadius: panelTab === t.id ? "8px 8px 0 0" : 0, cursor: "pointer", transition: "color .15s,background .15s", whiteSpace: "nowrap" }}>
+              <i data-lucide={t.icon} style={{ width: 15, height: 15 }} />
+              {t.label}
             </button>
           ))}
+          {/* More button */}
+          <div style={{ position: "relative" }}>
+            <button data-real onClick={() => setShowMore(s => !s)}
+              style={{ display: "inline-flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3, padding: "7px 12px 8px", fontSize: 11, fontWeight: activeInMore ? 700 : 500, color: activeInMore ? "#1B3A6B" : "rgba(255,255,255,0.75)", background: activeInMore ? "#fff" : "transparent", border: "none", borderRadius: activeInMore ? "8px 8px 0 0" : 0, cursor: "pointer", whiteSpace: "nowrap" }}>
+              <i data-lucide="more-horizontal" style={{ width: 15, height: 15 }} />
+              More
+            </button>
+            {showMore && (
+              <div style={{ position: "absolute", right: 0, top: "100%", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.12)", zIndex: 10, minWidth: 150, overflow: "hidden" }}>
+                {MORE_TABS.map(t => (
+                  <button key={t.id} data-real onClick={() => { setPanelTab(t.id); setShowMore(false); }}
+                    style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "11px 16px", fontSize: 13, fontWeight: panelTab === t.id ? 700 : 500, color: panelTab === t.id ? "var(--navy-600,#1B3A6B)" : "var(--text)", background: panelTab === t.id ? "rgba(27,58,107,0.06)" : "transparent", border: "none", borderBottom: "1px solid var(--border)", cursor: "pointer", textAlign: "left" }}>
+                    <i data-lucide={t.icon} style={{ width: 14, height: 14, color: "var(--text-faint)" }} /> {t.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -458,9 +495,58 @@ function MessagePanel({ invitation, onClose, onPatientUpdated }) {
   );
 }
 
+const TZ_LIST = [
+  { label: "Edmonton / Calgary — Canada (MT)",   tz: "America/Edmonton" },
+  { label: "Toronto / Ottawa — Canada (ET)",      tz: "America/Toronto" },
+  { label: "Vancouver — Canada (PT)",             tz: "America/Vancouver" },
+  { label: "Winnipeg — Canada (CT)",              tz: "America/Winnipeg" },
+  { label: "Halifax — Canada (AT)",               tz: "America/Halifax" },
+  { label: "New York / Miami — USA (ET)",         tz: "America/New_York" },
+  { label: "Los Angeles — USA (PT)",              tz: "America/Los_Angeles" },
+  { label: "London — United Kingdom",             tz: "Europe/London" },
+  { label: "Paris / Berlin / Rome — Europe",      tz: "Europe/Paris" },
+  { label: "Istanbul — Turkey",                   tz: "Europe/Istanbul" },
+  { label: "Moscow — Russia",                     tz: "Europe/Moscow" },
+  { label: "Cairo — Egypt",                       tz: "Africa/Cairo" },
+  { label: "Mogadishu — Somalia",                 tz: "Africa/Mogadishu" },
+  { label: "Nairobi — Kenya",                     tz: "Africa/Nairobi" },
+  { label: "Addis Ababa — Ethiopia",              tz: "Africa/Addis_Ababa" },
+  { label: "Lagos — Nigeria",                     tz: "Africa/Lagos" },
+  { label: "Johannesburg — South Africa",         tz: "Africa/Johannesburg" },
+  { label: "Riyadh — Saudi Arabia",               tz: "Asia/Riyadh" },
+  { label: "Dubai — UAE",                         tz: "Asia/Dubai" },
+  { label: "Doha — Qatar",                        tz: "Asia/Qatar" },
+  { label: "Kuwait City — Kuwait",                tz: "Asia/Kuwait" },
+  { label: "Baghdad — Iraq",                      tz: "Asia/Baghdad" },
+  { label: "Amman — Jordan",                      tz: "Asia/Amman" },
+  { label: "Beirut — Lebanon",                    tz: "Asia/Beirut" },
+  { label: "Karachi — Pakistan",                  tz: "Asia/Karachi" },
+  { label: "Mumbai / Delhi — India",              tz: "Asia/Kolkata" },
+  { label: "Dhaka — Bangladesh",                  tz: "Asia/Dhaka" },
+  { label: "Bangkok — Thailand",                  tz: "Asia/Bangkok" },
+  { label: "Kuala Lumpur — Malaysia",             tz: "Asia/Kuala_Lumpur" },
+  { label: "Singapore",                           tz: "Asia/Singapore" },
+  { label: "Beijing / Shanghai — China",          tz: "Asia/Shanghai" },
+  { label: "Tokyo — Japan",                       tz: "Asia/Tokyo" },
+  { label: "Seoul — South Korea",                 tz: "Asia/Seoul" },
+  { label: "Sydney — Australia (ET)",             tz: "Australia/Sydney" },
+];
+
+const SectionCard = ({ iconPath, title, children }) => (
+  <div style={{ borderRadius:12, overflow:"hidden", border:"1.5px solid #1B3A6B22", marginBottom:14, background:"var(--bg-card,#fff)", boxShadow:"0 1px 6px rgba(27,58,107,0.12)" }}>
+    <div style={{ background:"linear-gradient(135deg,#1B3A6B 0%,#1CA89C 100%)", padding:"10px 14px", display:"flex", alignItems:"center", gap:8 }}>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d={iconPath} /></svg>
+      <span style={{ color:"#fff", fontWeight:700, fontSize:12, textTransform:"uppercase", letterSpacing:"0.07em" }}>{title}</span>
+    </div>
+    <div style={{ padding:"14px 14px 10px", display:"grid", gridTemplateColumns:"1fr 1fr", gap:"12px 10px" }}>
+      {children}
+    </div>
+  </div>
+);
+
 /* ---- Travel details panel ---- */
 function TravelPanel({ invitation }) {
-  const BLANK = { flight_number:"", departure_date:"", departure_time:"", from_city:"", to_city:"", arrival_time:"", taxi_driver:"", taxi_cell:"", taxi_vehicle:"", taxi_notes:"", hotel_name:"", hotel_nights:"", hotel_reservation:"", hotel_address:"", pickup:"", notes:"" };
+  const BLANK = { flight_number:"", departure_date:"", departure_time:"", departure_tz:"", arrival_date:"", arrival_time:"", from_city:"", to_city:"", taxi_driver:"", taxi_cell:"", taxi_vehicle:"", taxi_notes:"", hotel_name:"", hotel_nights:"", hotel_reservation:"", hotel_address:"", pickup:"", notes:"" };
   const [form, setForm] = useSt(BLANK);
   const [saving, setSaving] = useSt(false);
   const [loaded, setLoaded] = useSt(false);
@@ -482,48 +568,90 @@ function TravelPanel({ invitation }) {
     window.cbToast && window.cbToast("Travel details saved for " + invitation.patient_name, { icon: "plane" });
   };
 
-  const Field = ({ label, k, type="text", placeholder="" }) => (
-    <div style={{ marginBottom: 12 }}>
-      <label style={{ display:"block", fontSize:11, fontWeight:700, color:"var(--text-faint)", textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:4 }}>{label}</label>
-      <input className="cb-input" type={type} value={form[k]} onChange={set(k)} placeholder={placeholder} style={{ width:"100%", minHeight:38 }} data-real />
+  const todayStr = new Date().toISOString().split("T")[0];
+
+  const timeParts = (v) => { const p = (v||"").split(":"); const h = p[0] ? String(p[0]).padStart(2,"0") : ""; const m = p[1] ? String(p[1]).padStart(2,"0") : ""; return [h, m]; };
+
+  /* Called as functions (not JSX tags) so React never re-mounts inputs on state change */
+  const f_ = (label, k, type="text", placeholder="", span=1, min) => (
+    <div key={k} style={{ gridColumn: span === 2 ? "1 / -1" : undefined, marginBottom: 0 }}>
+      <label style={{ display:"block", fontSize:10, fontWeight:700, color:"#8a9bb0", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:5 }}>{label}</label>
+      <input className="cb-input" type={type} value={form[k]||""} onChange={set(k)} placeholder={placeholder} min={min}
+        style={{ width:"100%", minHeight:36, fontSize:13, background:"var(--bg-card,#fff)", border:"1.5px solid var(--border,#e2e8f0)", borderRadius:8, padding:"0 10px", boxSizing:"border-box" }} data-real />
+    </div>
+  );
+  const t_ = (label, k) => {
+    const [hh, mm] = timeParts(form[k]);
+    const sel = { flex:1, minHeight:36, fontSize:13, background:"var(--bg-card,#fff)", border:"1.5px solid var(--border,#e2e8f0)", borderRadius:8, padding:"0 8px", appearance:"none", cursor:"pointer" };
+    return (
+      <div key={k}>
+        <label style={{ display:"block", fontSize:10, fontWeight:700, color:"#8a9bb0", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:5 }}>{label}</label>
+        <div style={{ display:"flex", gap:6, alignItems:"center" }}>
+          <select value={hh} onChange={e => setForm(f => ({ ...f, [k]: e.target.value + ":" + (mm||"00") }))} style={sel} data-real>
+            <option value="">HH</option>
+            {Array.from({length:24},(_,i)=>String(i).padStart(2,"0")).map(h=><option key={h} value={h}>{h}</option>)}
+          </select>
+          <span style={{ fontWeight:700, color:"#8a9bb0", fontSize:16 }}>:</span>
+          <select value={mm} onChange={e => setForm(f => ({ ...f, [k]: (hh||"00") + ":" + e.target.value }))} style={sel} data-real>
+            <option value="">MM</option>
+            {["00","05","10","15","20","25","30","35","40","45","50","55"].map(m=><option key={m} value={m}>{m}</option>)}
+          </select>
+        </div>
+      </div>
+    );
+  };
+  const tz_ = () => (
+    <div key="tz" style={{ gridColumn:"1 / -1" }}>
+      <label style={{ display:"block", fontSize:10, fontWeight:700, color:"#8a9bb0", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:5 }}>Departure city timezone</label>
+      <select value={form.departure_tz||""} onChange={e => setForm(f => ({ ...f, departure_tz: e.target.value }))} data-real
+        style={{ width:"100%", minHeight:36, fontSize:13, background:"var(--bg-card,#fff)", border:"1.5px solid var(--border,#e2e8f0)", borderRadius:8, padding:"0 10px", appearance:"none", cursor:"pointer", boxSizing:"border-box" }}>
+        <option value="">— Select country / city timezone —</option>
+        {TZ_LIST.map(t => <option key={t.tz} value={t.tz}>{t.label}</option>)}
+      </select>
     </div>
   );
 
   if (!loaded) return <div style={{ padding:24, color:"var(--text-faint)", textAlign:"center" }}>Loading…</div>;
 
   return (
-    <div style={{ padding:16 }}>
-      <div style={{ fontSize:12, fontWeight:700, color:"var(--text-faint)", textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:14 }}>Flight</div>
-      <Field label="Flight number" k="flight_number" placeholder="e.g. TK 092" />
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
-        <Field label="Departure date" k="departure_date" type="date" />
-        <Field label="Departure time" k="departure_time" placeholder="e.g. 09:30" />
-        <Field label="From city" k="from_city" placeholder="e.g. Edmonton" />
-        <Field label="To city" k="to_city" placeholder="e.g. Istanbul" />
-        <Field label="Arrival time" k="arrival_time" placeholder="e.g. 18:45" />
-      </div>
-      <div style={{ fontSize:12, fontWeight:700, color:"var(--text-faint)", textTransform:"uppercase", letterSpacing:"0.05em", margin:"16px 0 14px" }}>Taxi / Transfer</div>
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
-        <Field label="Driver name" k="taxi_driver" placeholder="e.g. Mohammed Ali" />
-        <Field label="Cell / WhatsApp" k="taxi_cell" type="tel" placeholder="e.g. +91 98765 43210" />
-        <Field label="Vehicle type" k="taxi_vehicle" placeholder="e.g. Toyota Innova" />
-        <Field label="Pickup notes" k="taxi_notes" placeholder="e.g. Arrivals exit B" />
-      </div>
-      <div style={{ fontSize:12, fontWeight:700, color:"var(--text-faint)", textTransform:"uppercase", letterSpacing:"0.05em", margin:"16px 0 14px" }}>Accommodation</div>
-      <Field label="Hotel name" k="hotel_name" placeholder="e.g. Grand Istanbul Hotel" />
-      <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr", gap:10 }}>
-        <Field label="Hotel address" k="hotel_address" placeholder="Street, City" />
-        <Field label="Nights" k="hotel_nights" placeholder="e.g. 5" />
-      </div>
-      <Field label="Reservation number" k="hotel_reservation" placeholder="e.g. RES-123456" />
-      <div style={{ fontSize:12, fontWeight:700, color:"var(--text-faint)", textTransform:"uppercase", letterSpacing:"0.05em", margin:"16px 0 14px" }}>Other</div>
-      <Field label="Airport pickup arrangement" k="pickup" placeholder="e.g. Driver meets at arrivals — flight board name" />
-      <div style={{ marginBottom:12 }}>
-        <label style={{ display:"block", fontSize:11, fontWeight:700, color:"var(--text-faint)", textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:4 }}>Notes</label>
-        <textarea className="cb-input" value={form.notes} onChange={set("notes")} placeholder="Any important notes for the patient…" style={{ width:"100%", minHeight:80, resize:"vertical" }} data-real />
-      </div>
-      <button className="cb-btn cb-btn--primary" data-real onClick={save} disabled={saving} style={{ width:"100%" }}>
-        <i data-lucide="save" style={{ width:14, height:14 }} /> {saving ? "Saving…" : "Save Travel Details"}
+    <div style={{ padding:"14px 14px 20px" }}>
+
+      <SectionCard iconPath="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" title="Flight">
+        {f_("Flight number", "flight_number", "text", "e.g. TK 092", 2)}
+        {tz_()}
+        {f_("Departure date", "departure_date", "date", "", 1, todayStr)}
+        {t_("Departure time", "departure_time")}
+        {f_("Arrival date", "arrival_date", "date", "", 1, todayStr)}
+        {t_("Arrival time", "arrival_time")}
+        {f_("From city", "from_city", "text", "e.g. Edmonton")}
+        {f_("To city", "to_city", "text", "e.g. Istanbul")}
+      </SectionCard>
+
+      <SectionCard iconPath="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v5a2 2 0 0 1-2 2h-2M14 17H9m-4 0a2 2 0 1 0 4 0 2 2 0 0 0-4 0m9 0a2 2 0 1 0 4 0 2 2 0 0 0-4 0" title="Taxi / Transfer">
+        {f_("Driver name", "taxi_driver", "text", "e.g. Mohammed Ali")}
+        {f_("Cell / WhatsApp", "taxi_cell", "tel", "+91 987 654")}
+        {f_("Vehicle type", "taxi_vehicle", "text", "e.g. Toyota Innova")}
+        {f_("Pickup notes", "taxi_notes", "text", "Arrivals exit B")}
+      </SectionCard>
+
+      <SectionCard iconPath="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z M9 22V12h6v10" title="Accommodation">
+        {f_("Hotel name", "hotel_name", "text", "e.g. Grand Istanbul Hotel", 2)}
+        {f_("Hotel address", "hotel_address", "text", "Street, City")}
+        {f_("Nights", "hotel_nights", "text", "e.g. 5")}
+        {f_("Reservation number", "hotel_reservation", "text", "RES-123456", 2)}
+      </SectionCard>
+
+      <SectionCard iconPath="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M16 13H8 M16 17H8 M10 9H8" title="Other">
+        {f_("Airport pickup arrangement", "pickup", "text", "Driver meets at arrivals — flight board name", 2)}
+        <div style={{ gridColumn:"1 / -1" }}>
+          <label style={{ display:"block", fontSize:10, fontWeight:700, color:"#8a9bb0", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:5 }}>Notes</label>
+          <textarea className="cb-input" value={form.notes} onChange={set("notes")} placeholder="Any important notes for the patient…"
+            style={{ width:"100%", minHeight:72, resize:"vertical", fontSize:13, background:"var(--bg-card,#fff)", border:"1.5px solid var(--border,#e2e8f0)", borderRadius:8, padding:"8px 10px", boxSizing:"border-box" }} data-real />
+        </div>
+      </SectionCard>
+
+      <button className="cb-btn cb-btn--primary" data-real onClick={save} disabled={saving} style={{ width:"100%", height:42, fontSize:14, borderRadius:10 }}>
+        {saving ? "Saving…" : "Save Travel Details"}
       </button>
     </div>
   );
@@ -632,97 +760,111 @@ function DocumentsPanel({ invitation }) {
   const FILE_TYPES = ["document","pdf","image","medical","visa","insurance","other"];
   const docIcon = (ft) => ft==="pdf" ? "file-type-pdf" : ft==="image" ? "image" : ft==="medical" ? "activity" : ft==="visa" ? "stamp" : "file-text";
 
+  const DocLabel = ({ children }) => (
+    <label style={{ display:"block", fontSize:10, fontWeight:700, color:"#8a9bb0", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:5 }}>{children}</label>
+  );
+
   return (
-    <div style={{ padding:16, display:"flex", flexDirection:"column", gap:16 }}>
+    <div style={{ padding:"14px 14px 20px", display:"flex", flexDirection:"column", gap:14 }}>
 
-      {/* Mode switcher */}
-      <div style={{ display:"flex", background:"var(--bg-page)", border:"1px solid var(--border)", borderRadius:10, overflow:"hidden" }}>
-        {[["file","Upload File from Computer","upload-cloud"],["link","Paste Link (Drive/Dropbox)","link"]].map(([m, lbl, icon]) => (
-          <button key={m} data-real onClick={() => setUploadMode(m)}
-            style={{ flex:1, padding:"11px 8px", fontSize:13, fontWeight: uploadMode===m ? 700 : 500, color: uploadMode===m ? "#fff" : "var(--text-faint)", background: uploadMode===m ? "var(--navy-600,#1B3A6B)" : "transparent", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:7, transition:"all .15s" }}>
-            <i data-lucide={icon} style={{ width:14, height:14 }} /> {lbl}
-          </button>
-        ))}
-      </div>
+      {/* Upload card */}
+      <div style={{ borderRadius:12, overflow:"hidden", border:"1.5px solid #0f766e33", boxShadow:"0 1px 4px #0f766e18" }}>
+        {/* Mode toggle as colored header */}
+        <div style={{ display:"flex", background:"#0f766e" }}>
+          {[["file","Upload File","upload-cloud"],["link","Paste Link","link"]].map(([m, lbl, icon]) => (
+            <button key={m} data-real onClick={() => setUploadMode(m)}
+              style={{ flex:1, padding:"10px 8px", fontSize:12, fontWeight:700, color: uploadMode===m ? "#0f766e" : "rgba(255,255,255,0.75)", background: uploadMode===m ? "#fff" : "transparent", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:6, transition:"all .15s", borderRadius: uploadMode===m ? "0" : 0 }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                {icon === "upload-cloud" ? <><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></> : <><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></>}
+              </svg>
+              {lbl}
+            </button>
+          ))}
+        </div>
 
-      {/* Upload file from computer */}
-      {uploadMode === "file" && (
-        <div style={{ background:"var(--bg-page)", border:"2px dashed var(--border)", borderRadius:12, padding:20, textAlign:"center" }}>
-          <div style={{ marginBottom:12 }}>
-            <label style={{ display:"block", fontSize:11, fontWeight:600, color:"var(--text-faint)", marginBottom:6 }}>Document name (optional — uses filename if blank)</label>
-            <input className="cb-input" value={name} onChange={e=>setName(e.target.value)} placeholder="e.g. Passport copy…" style={{ width:"100%", minHeight:38 }} data-real />
-          </div>
-          <input ref={fileRef} type="file" id="doc-file-input" style={{ display:"none" }} data-real
-            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.xlsx,.xls,.ppt,.pptx,.txt"
-            onChange={uploadFile} />
-          {uploading ? (
-            <div style={{ padding:"12px 0" }}>
-              <div style={{ height:6, background:"var(--border)", borderRadius:20, overflow:"hidden", marginBottom:10 }}>
-                <div style={{ width: uploadPct+"%", height:"100%", background:"var(--teal-600,#1CA89C)", borderRadius:20, transition:"width .3s" }} />
+        {/* File upload body */}
+        {uploadMode === "file" && (
+          <div style={{ background:"var(--bg-card,#fff)", padding:14 }}>
+            <DocLabel>Document name (optional — uses filename if blank)</DocLabel>
+            <input className="cb-input" value={name} onChange={e=>setName(e.target.value)} placeholder="e.g. Passport copy…" style={{ width:"100%", minHeight:38, marginBottom:14, boxSizing:"border-box" }} data-real />
+            <input ref={fileRef} type="file" id="doc-file-input" style={{ display:"none" }} data-real
+              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.xlsx,.xls,.ppt,.pptx,.txt"
+              onChange={uploadFile} />
+            {uploading ? (
+              <div style={{ padding:"8px 0" }}>
+                <div style={{ height:8, background:"#e2e8f0", borderRadius:20, overflow:"hidden", marginBottom:8 }}>
+                  <div style={{ width: uploadPct+"%", height:"100%", background:"#0f766e", borderRadius:20, transition:"width .3s" }} />
+                </div>
+                <div style={{ fontSize:12, color:"#8a9bb0", textAlign:"center" }}>Uploading… {uploadPct}%</div>
               </div>
-              <div style={{ fontSize:13, color:"var(--text-faint)" }}>Uploading… {uploadPct}%</div>
+            ) : (
+              <label htmlFor="doc-file-input" data-real style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:8, padding:"12px", background:"#0f766e", color:"#fff", borderRadius:10, fontWeight:700, fontSize:14, cursor:"pointer" }}>
+                ↑ Choose File to Upload
+              </label>
+            )}
+            <div style={{ fontSize:11, color:"#8a9bb0", marginTop:8, textAlign:"center" }}>PDF, Word, Excel, Images — patient gets a download button</div>
+          </div>
+        )}
+
+        {/* Link paste body */}
+        {uploadMode === "link" && (
+          <div style={{ background:"var(--bg-card,#fff)", padding:14, display:"flex", flexDirection:"column", gap:10 }}>
+            <div>
+              <DocLabel>Document name *</DocLabel>
+              <input className="cb-input" value={name} onChange={e=>setName(e.target.value)} placeholder="e.g. Authorization letter…" style={{ width:"100%", minHeight:38, boxSizing:"border-box" }} data-real />
             </div>
-          ) : (
-            <label htmlFor="doc-file-input" data-real style={{ display:"inline-flex", alignItems:"center", gap:8, padding:"12px 24px", background:"var(--teal-600,#1CA89C)", color:"#fff", borderRadius:10, fontWeight:700, fontSize:14, cursor:"pointer" }}>
-              <i data-lucide="upload-cloud" style={{ width:18, height:18 }} /> Choose File to Upload
-            </label>
-          )}
-          <div style={{ fontSize:11, color:"var(--text-faint)", marginTop:10 }}>PDF, Word, Excel, Images — patient gets a download button</div>
-        </div>
-      )}
-
-      {/* Paste a link */}
-      {uploadMode === "link" && (
-        <div style={{ background:"var(--bg-page)", border:"1px solid var(--border)", borderRadius:10, padding:14 }}>
-          <div style={{ marginBottom:10 }}>
-            <label style={{ display:"block", fontSize:11, fontWeight:600, color:"var(--text-faint)", marginBottom:4 }}>Document name *</label>
-            <input className="cb-input" value={name} onChange={e=>setName(e.target.value)} placeholder="e.g. Authorization letter…" style={{ width:"100%", minHeight:38 }} data-real />
+            <div>
+              <DocLabel>Link (Google Drive, Dropbox, OneDrive…)</DocLabel>
+              <input className="cb-input" value={url} onChange={e=>setUrl(e.target.value)} placeholder="https://drive.google.com/…" style={{ width:"100%", minHeight:38, boxSizing:"border-box" }} data-real />
+            </div>
+            <div>
+              <DocLabel>Type</DocLabel>
+              <select className="cb-input" value={fileType} onChange={e=>setFileType(e.target.value)} style={{ width:"100%", minHeight:38 }} data-real>
+                {FILE_TYPES.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase()+t.slice(1)}</option>)}
+              </select>
+            </div>
+            <button className="cb-btn cb-btn--primary" data-real onClick={addLink} disabled={adding || !name.trim() || !url.trim()} style={{ width:"100%", height:42, borderRadius:10, fontSize:14 }}>
+              {adding ? "Saving…" : "Add Link"}
+            </button>
           </div>
-          <div style={{ marginBottom:10 }}>
-            <label style={{ display:"block", fontSize:11, fontWeight:600, color:"var(--text-faint)", marginBottom:4 }}>Link (Google Drive, Dropbox, OneDrive…)</label>
-            <input className="cb-input" value={url} onChange={e=>setUrl(e.target.value)} placeholder="https://drive.google.com/…" style={{ width:"100%", minHeight:38 }} data-real />
-          </div>
-          <div style={{ marginBottom:12 }}>
-            <label style={{ display:"block", fontSize:11, fontWeight:600, color:"var(--text-faint)", marginBottom:4 }}>Type</label>
-            <select className="cb-input" value={fileType} onChange={e=>setFileType(e.target.value)} style={{ width:"100%", minHeight:38 }} data-real>
-              {FILE_TYPES.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase()+t.slice(1)}</option>)}
-            </select>
-          </div>
-          <button className="cb-btn cb-btn--primary" data-real onClick={addLink} disabled={adding || !name.trim() || !url.trim()} style={{ width:"100%" }}>
-            <i data-lucide="link" style={{ width:14, height:14 }} /> {adding ? "Saving…" : "Add Link"}
-          </button>
-        </div>
-      )}
-
-      {/* Document list */}
-      <div style={{ fontSize:12, fontWeight:700, color:"var(--text-faint)", textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:-8 }}>
-        Patient can see & download ({docs.length})
+        )}
       </div>
-      {loading ? <div style={{ textAlign:"center", color:"var(--text-faint)", padding:16 }}>Loading…</div>
-      : docs.length === 0 ? (
-        <div style={{ textAlign:"center", color:"var(--text-faint)", padding:24, fontSize:13, border:"1px dashed var(--border)", borderRadius:10 }}>
-          No documents yet — upload a file or add a link above.
+
+      {/* Document list card */}
+      <div style={{ borderRadius:12, overflow:"hidden", border:"1.5px solid #1B3A6B33", boxShadow:"0 1px 4px #1B3A6B18" }}>
+        <div style={{ background:"linear-gradient(135deg,#1B3A6B 0%,#1CA89C 100%)", padding:"10px 14px", display:"flex", alignItems:"center", gap:8 }}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          <span style={{ color:"#fff", fontWeight:700, fontSize:12, textTransform:"uppercase", letterSpacing:"0.07em" }}>Patient Can See & Download</span>
+          <span style={{ marginLeft:"auto", background:"rgba(255,255,255,0.2)", color:"#fff", fontSize:11, fontWeight:700, padding:"2px 8px", borderRadius:20 }}>{docs.length}</span>
         </div>
-      ) : docs.map(doc => (
-        <div key={doc.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 14px", background:"var(--bg-page)", border:"1px solid var(--border)", borderRadius:10 }}>
-          <div style={{ width:36, height:36, borderRadius:8, background:"var(--teal-pale,rgba(28,168,156,0.1))", display:"grid", placeItems:"center", flexShrink:0 }}>
-            <i data-lucide={docIcon(doc.file_type)} style={{ width:16, height:16, color:"var(--teal-600,#1CA89C)" }} />
-          </div>
-          <div style={{ flex:1, minWidth:0 }}>
-            <div style={{ fontWeight:600, fontSize:13, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{doc.name}</div>
-            <div style={{ fontSize:11, color:"var(--text-faint)", marginTop:2 }}>{doc.file_type} · {fmtD(doc.created_at)}</div>
-          </div>
-          {doc.url && (
-            <a href={doc.url} target="_blank" rel="noopener noreferrer" data-real
-              style={{ display:"inline-flex", alignItems:"center", gap:5, padding:"5px 10px", background:"var(--teal-pale,rgba(28,168,156,0.1))", color:"var(--teal-600,#1CA89C)", border:"1px solid rgba(28,168,156,0.3)", borderRadius:7, fontSize:12, fontWeight:700, textDecoration:"none", flexShrink:0 }}>
-              <i data-lucide="download" style={{ width:13, height:13 }} /> Open
-            </a>
-          )}
-          <button data-real onClick={() => remove(doc.id)} style={{ background:"none", border:"none", color:"var(--text-faint)", cursor:"pointer", padding:4, flexShrink:0 }}>
-            <i data-lucide="trash-2" style={{ width:15, height:15 }} />
-          </button>
+        <div style={{ background:"var(--bg-card,#fff)" }}>
+          {loading ? <div style={{ textAlign:"center", color:"#8a9bb0", padding:20 }}>Loading…</div>
+          : docs.length === 0 ? (
+            <div style={{ textAlign:"center", color:"#8a9bb0", padding:24, fontSize:13 }}>
+              No documents yet — upload a file or add a link above.
+            </div>
+          ) : docs.map((doc, i) => (
+            <div key={doc.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"12px 14px", borderBottom: i < docs.length-1 ? "1px solid #f0f4f8" : "none" }}>
+              <div style={{ width:38, height:38, borderRadius:10, background:"#e8f5f4", display:"grid", placeItems:"center", flexShrink:0 }}>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#0f766e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              </div>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontWeight:700, fontSize:13, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", color:"#1e293b" }}>{doc.name}</div>
+                <div style={{ fontSize:11, color:"#8a9bb0", marginTop:2 }}>{doc.file_type} · {fmtD(doc.created_at)}</div>
+              </div>
+              {doc.url && (
+                <a href={doc.url} target="_blank" rel="noopener noreferrer" data-real
+                  style={{ display:"inline-flex", alignItems:"center", gap:5, padding:"6px 12px", background:"#0f766e", color:"#fff", borderRadius:8, fontSize:12, fontWeight:700, textDecoration:"none", flexShrink:0 }}>
+                  ↓ Open
+                </a>
+              )}
+              <button data-real onClick={() => remove(doc.id)} style={{ background:"#fee2e2", border:"none", color:"#dc2626", cursor:"pointer", padding:"6px 8px", borderRadius:7, flexShrink:0 }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+              </button>
+            </div>
+          ))}
         </div>
-      ))}
+      </div>
     </div>
   );
 }
@@ -801,63 +943,106 @@ function JourneyPanel({ invitation, onPatientUpdated }) {
   const fmtT = (ts) => new Date(ts).toLocaleDateString("en-GB", { day:"numeric", month:"short" }) + " " + new Date(ts).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" });
   const IS = { width:"100%", minHeight:38 };
 
-  return (
-    <div style={{ padding:16, display:"flex", flexDirection:"column", gap:14 }}>
-      {/* Quick stage update */}
-      <div style={{ background:"var(--bg-page)", border:"1px solid var(--border)", borderRadius:10, padding:14 }}>
-        <div style={{ fontSize:12, fontWeight:700, color:"var(--text-faint)", textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:10 }}>Treatment Stage</div>
-        <div style={{ display:"flex", gap:8 }}>
-          <select className="cb-input" value={stage} onChange={e=>setStage(e.target.value)} style={{ flex:1, minHeight:38 }} data-real>
-            <option value="">— Select stage —</option>
-            {STAGES.map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
-          <button className="cb-btn cb-btn--primary" data-real onClick={updateStage} disabled={updatingStage || !stage} style={{ whiteSpace:"nowrap" }}>
-            <i data-lucide="check" style={{ width:14, height:14 }} /> {updatingStage ? "Saving…" : "Update"}
-          </button>
-        </div>
-        {invitation.stage && <div style={{ fontSize:11, color:"var(--text-faint)", marginTop:6 }}>Current: <strong>{invitation.stage}</strong></div>}
-      </div>
+  const CardLabel = ({ children }) => (
+    <label style={{ display:"block", fontSize:10, fontWeight:700, color:"#8a9bb0", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:5 }}>{children}</label>
+  );
 
-      {/* Add activity */}
-      <div style={{ background:"var(--bg-page)", border:"1px solid var(--border)", borderRadius:10, padding:14 }}>
-        <div style={{ fontSize:12, fontWeight:700, color:"var(--text-faint)", textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:10 }}>Add Journey Update</div>
-        <div style={{ marginBottom:10 }}>
-          <label style={{ display:"block", fontSize:11, fontWeight:600, color:"var(--text-faint)", marginBottom:4 }}>Type</label>
-          <select className="cb-input" value={form.activity_type} onChange={set("activity_type")} style={IS} data-real>
-            {ACT_TYPES.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
-          </select>
+  return (
+    <div style={{ padding:"14px 14px 20px", display:"flex", flexDirection:"column", gap:14 }}>
+
+      {/* Treatment Stage card */}
+      <div style={{ borderRadius:12, overflow:"hidden", border:"1.5px solid #0f766e33", boxShadow:"0 1px 4px #0f766e18" }}>
+        <div style={{ background:"linear-gradient(135deg,#1B3A6B 0%,#1CA89C 100%)", padding:"10px 14px", display:"flex", alignItems:"center", gap:8 }}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span style={{ color:"#fff", fontWeight:700, fontSize:12, textTransform:"uppercase", letterSpacing:"0.07em" }}>Treatment Stage</span>
+          {invitation.stage && <span style={{ marginLeft:"auto", background:"rgba(255,255,255,0.2)", color:"#fff", fontSize:11, fontWeight:600, padding:"2px 8px", borderRadius:20 }}>{invitation.stage}</span>}
         </div>
-        {form.activity_type === "stage_change" && (
-          <div style={{ marginBottom:10 }}>
-            <label style={{ display:"block", fontSize:11, fontWeight:600, color:"var(--text-faint)", marginBottom:4 }}>New Stage</label>
-            <select className="cb-input" value={form.new_value} onChange={set("new_value")} style={IS} data-real>
-              <option value="">— Select —</option>
+        <div style={{ padding:"14px", background:"var(--bg-card,#fff)" }}>
+          <div style={{ display:"flex", gap:8 }}>
+            <select className="cb-input" value={stage} onChange={e=>setStage(e.target.value)} style={{ flex:1, minHeight:38 }} data-real>
+              <option value="">— Select stage —</option>
               {STAGES.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
+            <button className="cb-btn cb-btn--primary" data-real onClick={updateStage} disabled={updatingStage || !stage} style={{ whiteSpace:"nowrap", background:"#0f766e", border:"none" }}>
+              ✓ {updatingStage ? "Saving…" : "Update"}
+            </button>
           </div>
-        )}
-        <div style={{ marginBottom:10 }}>
-          <label style={{ display:"block", fontSize:11, fontWeight:600, color:"var(--text-faint)", marginBottom:4 }}>Title</label>
-          <input className="cb-input" value={form.title} onChange={set("title")} placeholder="e.g. Visa application submitted" style={IS} data-real />
         </div>
-        <div style={{ marginBottom:12 }}>
-          <label style={{ display:"block", fontSize:11, fontWeight:600, color:"var(--text-faint)", marginBottom:4 }}>Description (optional)</label>
-          <textarea className="cb-input" value={form.description} onChange={set("description")} placeholder="Additional details…" style={{ width:"100%", minHeight:60, resize:"vertical" }} data-real />
-        </div>
-        <button className="cb-btn cb-btn--primary" data-real onClick={addActivity} disabled={saving || !form.title.trim()} style={{ width:"100%" }}>
-          <i data-lucide="plus" style={{ width:14, height:14 }} /> {saving ? "Adding…" : "Add to Journey"}
-        </button>
       </div>
 
-      {/* Recent activities */}
-      <div style={{ fontSize:12, fontWeight:700, color:"var(--text-faint)", textTransform:"uppercase", letterSpacing:"0.05em" }}>Recent Updates</div>
+      {/* Add Journey Update card */}
+      <div style={{ borderRadius:12, overflow:"hidden", border:"1.5px solid #1B3A6B33", boxShadow:"0 1px 4px #1B3A6B18" }}>
+        <div style={{ background:"linear-gradient(135deg,#1B3A6B 0%,#1CA89C 100%)", padding:"10px 14px", display:"flex", alignItems:"center", gap:8 }}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <span style={{ color:"#fff", fontWeight:700, fontSize:12, textTransform:"uppercase", letterSpacing:"0.07em" }}>Add Journey Update</span>
+        </div>
+        <div style={{ padding:"14px", background:"var(--bg-card,#fff)", display:"flex", flexDirection:"column", gap:10 }}>
+          <div>
+            <CardLabel>Type</CardLabel>
+            <select className="cb-input" value={form.activity_type} onChange={set("activity_type")} style={IS} data-real>
+              {ACT_TYPES.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+            </select>
+          </div>
+          {form.activity_type === "stage_change" && (
+            <div>
+              <CardLabel>New Stage</CardLabel>
+              <select className="cb-input" value={form.new_value} onChange={set("new_value")} style={IS} data-real>
+                <option value="">— Select —</option>
+                {STAGES.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+          )}
+          <div>
+            <CardLabel>Title</CardLabel>
+            <input className="cb-input" value={form.title} onChange={set("title")} placeholder="e.g. Visa application submitted" style={IS} data-real />
+          </div>
+          <div>
+            <CardLabel>Description (optional)</CardLabel>
+            <textarea className="cb-input" value={form.description} onChange={set("description")} placeholder="Additional details…" style={{ width:"100%", minHeight:60, resize:"vertical" }} data-real />
+          </div>
+          <button className="cb-btn cb-btn--primary" data-real onClick={addActivity} disabled={saving || !form.title.trim()} style={{ width:"100%", height:42, borderRadius:10, fontSize:14 }}>
+            + {saving ? "Adding…" : "Add to Journey"}
+          </button>
+        </div>
+      </div>
+
+      {/* Recent activities header */}
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:8, borderBottom:"2px solid #1B3A6B", paddingBottom:8 }}>
+        <div style={{ fontSize:12, fontWeight:700, color:"#1B3A6B", textTransform:"uppercase", letterSpacing:"0.07em" }}>Recent Updates</div>
+        {localStorage.getItem("cb_user_role") === "admin" && acts.length > 0 && (
+          <button onClick={async () => {
+            if (!window.confirm("Clear ALL journey updates for this patient? This cannot be undone.")) return;
+            const sb = getSB(); if (!sb) return;
+            await sb.from("patient_activities").delete().eq("patient_id", invitation.patient_id);
+            setActs([]);
+            window.cbToast && window.cbToast("All journey updates cleared", { icon: "trash-2" });
+          }} style={{ display:"inline-flex", alignItems:"center", gap:5, padding:"5px 10px", background:"#fee2e2", border:"none", borderRadius:7, fontWeight:700, fontSize:11, color:"#dc2626", cursor:"pointer" }}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+            Clear All
+          </button>
+        )}
+      </div>
       {loading ? <div style={{ color:"var(--text-faint)", fontSize:13, textAlign:"center", padding:16 }}>Loading…</div>
       : acts.length === 0 ? <div style={{ color:"var(--text-faint)", fontSize:13, textAlign:"center", padding:16 }}>No journey updates yet.</div>
       : acts.map(a => (
         <div key={a.id} style={{ background:"var(--bg-page)", border:"1px solid var(--border)", borderRadius:10, padding:"10px 14px" }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:8, marginBottom:4 }}>
             <div style={{ fontWeight:600, fontSize:13 }}>{a.title}</div>
-            <div style={{ fontSize:11, color:"var(--text-faint)", flexShrink:0 }}>{fmtT(a.created_at)}</div>
+            <div style={{ display:"flex", alignItems:"center", gap:8, flexShrink:0 }}>
+              <div style={{ fontSize:11, color:"var(--text-faint)" }}>{fmtT(a.created_at)}</div>
+              {localStorage.getItem("cb_user_role") === "admin" && (
+                <button onClick={async () => {
+                  if (!window.confirm("Delete this journey item? The patient will no longer see it.")) return;
+                  const sb = getSB(); if (!sb) return;
+                  await sb.from("patient_activities").delete().eq("id", a.id);
+                  const { data } = await sb.from("patient_activities").select("*").eq("patient_id", invitation.patient_id).order("created_at", { ascending: false }).limit(20);
+                  setActs(data || []);
+                }} title="Delete this update"
+                  style={{ background:"#fee2e2", border:"none", cursor:"pointer", color:"#dc2626", padding:"5px 7px", borderRadius:7, display:"inline-flex", alignItems:"center", minWidth:28, minHeight:28, justifyContent:"center" }}>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                </button>
+              )}
+            </div>
           </div>
           {a.description && <div style={{ fontSize:12, color:"var(--text-faint)" }}>{a.description}</div>}
           {a.new_value && <div style={{ fontSize:11, marginTop:4, color:"var(--teal-600,#1CA89C)", fontWeight:600 }}>{a.old_value ? a.old_value + " → " + a.new_value : a.new_value}</div>}
@@ -867,7 +1052,7 @@ function JourneyPanel({ invitation, onPatientUpdated }) {
   );
 }
 
-/* ---- Checklist panel (coordinator customises per-patient items) ---- */
+/* ---- Checklist panel (coordinator customises per-patient items + sees/toggles patient ticks) ---- */
 function ChecklistPanel({ invitation }) {
   const DEFAULT_ITEMS = [
     { id: "passport",  label: "Passport valid (6+ months)" },
@@ -879,18 +1064,32 @@ function ChecklistPanel({ invitation }) {
     { id: "meds",      label: "Medications list prepared" },
     { id: "contacts",  label: "Emergency contacts saved" },
   ];
-  const rowId = "checklist_" + invitation.patient_id;
-  const [items,   setItems]   = useSt(DEFAULT_ITEMS);
+  const rowId    = "checklist_" + invitation.patient_id;
+  const tickedId = "checklist_ticked_" + invitation.patient_id;
+  const [items,    setItems]    = useSt(DEFAULT_ITEMS);
+  const [ticked,   setTicked]   = useSt({});
   const [newLabel, setNewLabel] = useSt("");
-  const [saving,  setSaving]  = useSt(false);
-  const [loaded,  setLoaded]  = useSt(false);
+  const [saving,   setSaving]   = useSt(false);
+  const [loaded,   setLoaded]   = useSt(false);
 
   useEff(() => {
     const sb = getSB(); if (!sb) return;
-    sb.from("portal_state").select("state").eq("id", rowId).single()
-      .then(({ data }) => { if (data?.state?.items?.length) setItems(data.state.items); setLoaded(true); })
-      .catch(() => setLoaded(true));
+    Promise.all([
+      sb.from("portal_state").select("state").eq("id", rowId).single(),
+      sb.from("portal_state").select("state").eq("id", tickedId).single(),
+    ]).then(([itemsRes, tickedRes]) => {
+      if (itemsRes.data?.state?.items?.length) setItems(itemsRes.data.state.items);
+      if (tickedRes.data?.state) setTicked(tickedRes.data.state);
+      setLoaded(true);
+    }).catch(() => setLoaded(true));
   }, [invitation.patient_id]);
+
+  const toggleTick = async (id) => {
+    const next = { ...ticked, [id]: !ticked[id] };
+    setTicked(next);
+    const sb = getSB(); if (!sb) return;
+    await sb.from("portal_state").upsert({ id: tickedId, state: next }, { onConflict: "id" });
+  };
 
   const addItem = () => {
     if (!newLabel.trim()) return;
@@ -908,32 +1107,60 @@ function ChecklistPanel({ invitation }) {
     window.cbToast && window.cbToast("Checklist saved for " + invitation.patient_name, { icon: "check-square" });
   };
 
+  const done  = items.filter(it => ticked[it.id]).length;
+  const total = items.length;
+  const pct   = total ? Math.round(done / total * 100) : 0;
+
   return (
-    <div style={{ padding:16, display:"flex", flexDirection:"column", gap:12 }}>
-      <div style={{ fontSize:12, color:"var(--text-faint)", lineHeight:1.5 }}>
-        Customise the pre-travel checklist for <strong>{invitation.patient_name}</strong>. Changes appear on their portal immediately after saving.
+    <div style={{ padding:16, display:"flex", flexDirection:"column", gap:14 }}>
+      {/* Progress summary */}
+      <div style={{ background:"linear-gradient(135deg,#f0fdfa,#e6f7f6)", border:"1.5px solid rgba(28,168,156,0.3)", borderRadius:12, padding:"14px 18px" }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+          <div style={{ fontSize:14, fontWeight:700, color:"#0f4f4a" }}>{done} of {total} items complete</div>
+          <div style={{ fontSize:22, fontWeight:800, color: pct===100 ? "#16a34a" : "#1CA89C" }}>{pct}%</div>
+        </div>
+        <div style={{ height:8, background:"rgba(28,168,156,0.15)", borderRadius:20, overflow:"hidden" }}>
+          <div style={{ width: pct+"%", height:"100%", background: pct===100 ? "#16a34a" : "#1CA89C", borderRadius:20, transition:"width .4s ease" }} />
+        </div>
+        {pct===100 && <div style={{ fontSize:12, color:"#16a34a", fontWeight:700, marginTop:8, textAlign:"center" }}>All items complete!</div>}
       </div>
+
+      <div style={{ fontSize:12, color:"#64748b", background:"#f8fafc", border:"1px solid #e2e8f0", borderRadius:8, padding:"8px 12px" }}>
+        Click any item to mark it done — patient sees it instantly on their portal.
+      </div>
+
       {!loaded ? <div style={{ color:"var(--text-faint)", fontSize:13, textAlign:"center", padding:16 }}>Loading…</div> : (<>
-        <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+        <div style={{ display:"flex", flexDirection:"column", gap:0, border:"1.5px solid #e2e8f0", borderRadius:12, overflow:"hidden", background:"#fff" }}>
           {items.map((it, idx) => (
-            <div key={it.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 14px", background:"var(--bg-page)", border:"1px solid var(--border)", borderRadius:10 }}>
-              <i data-lucide="check-square" style={{ width:16, height:16, color:"var(--teal-600,#1CA89C)", flexShrink:0 }} />
-              <span style={{ flex:1, fontSize:14 }}>{it.label}</span>
-              <button data-real onClick={() => removeItem(it.id)} style={{ background:"none", border:"none", color:"var(--text-faint)", cursor:"pointer", padding:4 }}>
+            <div key={it.id} onClick={() => toggleTick(it.id)} data-real
+              style={{ display:"flex", alignItems:"center", gap:12, padding:"13px 16px", background: ticked[it.id] ? "#f0fdf4" : "#fff", borderBottom: idx < items.length-1 ? "1px solid #f1f5f9" : "none", cursor:"pointer", transition:"background .15s" }}>
+              {/* Checkbox */}
+              <div style={{ width:24, height:24, borderRadius:7, border: ticked[it.id] ? "none" : "2px solid #94a3b8", background: ticked[it.id] ? "#1CA89C" : "#fff", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, transition:"all .2s", boxShadow: ticked[it.id] ? "0 2px 8px rgba(28,168,156,0.3)" : "none" }}>
+                {ticked[it.id] && (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                )}
+              </div>
+              {/* Label */}
+              <span style={{ flex:1, fontSize:14, fontWeight: ticked[it.id] ? 400 : 600, color: ticked[it.id] ? "#64748b" : "#0f172a", textDecoration: ticked[it.id] ? "line-through" : "none", letterSpacing:"0.01em" }}>{it.label}</span>
+              {/* Done badge */}
+              {ticked[it.id] && <span style={{ fontSize:10, fontWeight:700, color:"#1CA89C", background:"rgba(28,168,156,0.1)", padding:"2px 7px", borderRadius:20, flexShrink:0 }}>DONE</span>}
+              {/* Remove button */}
+              <button data-real onClick={e => { e.stopPropagation(); removeItem(it.id); }}
+                style={{ background:"none", border:"none", color:"#cbd5e1", cursor:"pointer", padding:"2px 4px", borderRadius:4, display:"flex", alignItems:"center", flexShrink:0 }}>
                 <i data-lucide="x" style={{ width:14, height:14 }} />
               </button>
             </div>
           ))}
         </div>
         <div style={{ display:"flex", gap:8 }}>
-          <input className="cb-input" value={newLabel} onChange={e=>setNewLabel(e.target.value)} placeholder="New item…" style={{ flex:1, minHeight:38 }}
+          <input className="cb-input" value={newLabel} onChange={e=>setNewLabel(e.target.value)} placeholder="Add new item…" style={{ flex:1, minHeight:38 }}
             onKeyDown={e => { if (e.key === "Enter") addItem(); }} data-real />
           <button className="cb-btn cb-btn--ghost" data-real onClick={addItem} disabled={!newLabel.trim()} style={{ whiteSpace:"nowrap" }}>
             <i data-lucide="plus" style={{ width:14, height:14 }} /> Add
           </button>
         </div>
         <button className="cb-btn cb-btn--primary" data-real onClick={save} disabled={saving} style={{ width:"100%" }}>
-          <i data-lucide="save" style={{ width:14, height:14 }} /> {saving ? "Saving…" : "Save Checklist"}
+          <i data-lucide="save" style={{ width:14, height:14 }} /> {saving ? "Saving…" : "Save Checklist Items"}
         </button>
       </>)}
     </div>
@@ -980,8 +1207,9 @@ function EditInfoPanel({ invitation, onPatientUpdated }) {
     }
   };
 
-  const Field = ({ label, k, placeholder="" }) => (
-    <div style={{ marginBottom:12 }}>
+  /* Called as a function (not a JSX tag) so React never re-mounts the input on state change */
+  const field_ = (label, k, placeholder="") => (
+    <div key={k} style={{ marginBottom:12 }}>
       <label style={{ display:"block", fontSize:11, fontWeight:700, color:"var(--text-faint)", textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:4 }}>{label}</label>
       <input className="cb-input" value={form[k]} onChange={set(k)} placeholder={placeholder} style={IS} data-real />
     </div>
@@ -997,13 +1225,13 @@ function EditInfoPanel({ invitation, onPatientUpdated }) {
           {STAGES.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
       </div>
-      <Field label="Hospital" k="hospital" placeholder="e.g. Royal Medical Centre" />
-      <Field label="Doctor" k="doctor" placeholder="e.g. Dr. K. Patel" />
-      <Field label="Specialty" k="specialty" placeholder="e.g. Cardiology" />
-      <Field label="Condition / Procedure" k="condition" placeholder="e.g. Cardiac bypass" />
-      <Field label="Destination country / city" k="country" placeholder="e.g. Istanbul, Turkey" />
+      {field_("Hospital", "hospital", "e.g. Royal Medical Centre")}
+      {field_("Doctor", "doctor", "e.g. Dr. K. Patel")}
+      {field_("Specialty", "specialty", "e.g. Cardiology")}
+      {field_("Condition / Procedure", "condition", "e.g. Cardiac bypass")}
+      {field_("Destination country / city", "country", "e.g. Istanbul, Turkey")}
       <div style={{ fontSize:12, fontWeight:700, color:"var(--text-faint)", textTransform:"uppercase", letterSpacing:"0.05em", margin:"16px 0 14px" }}>Coordinator & Priority</div>
-      <Field label="Coordinator name" k="coordinator_name" placeholder="e.g. A Afey" />
+      {field_("Coordinator name", "coordinator_name", "e.g. A Afey")}
       <div style={{ marginBottom:16 }}>
         <label style={{ display:"block", fontSize:11, fontWeight:700, color:"var(--text-faint)", textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:4 }}>Priority</label>
         <select className="cb-input" value={form.priority} onChange={set("priority")} style={IS} data-real>
@@ -1291,11 +1519,6 @@ function PatientInvitationsView() {
   const loadAll = useCb(async () => {
     const sb = getSB();
     if (!sb) { setLoading(false); return; }
-    // Auto-delete pending invitations past their expiry date
-    await sb.from("patient_invitations")
-      .delete()
-      .eq("status", "pending")
-      .lt("expires_at", new Date().toISOString());
     const { data: invs } = await sb.from("patient_invitations").select("*").order("created_at", { ascending: false });
     if (invs) {
       setInvitations(invs);
@@ -1406,7 +1629,6 @@ function PatientInvitationsView() {
                   <th>Coordinator</th>
                   <th>Status</th>
                   <th>Created</th>
-                  <th>Expires</th>
                   <th>Last location</th>
                   <th>Actions</th>
                 </tr>
@@ -1427,9 +1649,6 @@ function PatientInvitationsView() {
                         {inv.password_set && <div style={{ fontSize: 10, color: "var(--text-faint)", marginTop: 2 }}>Password set</div>}
                       </td>
                       <td style={{ fontSize: 13, color: "var(--text-faint)" }}>{fmtDate(inv.created_at)}</td>
-                      <td style={{ fontSize: 13, color: inv.status === "expired" ? "var(--danger-600, #dc2626)" : "var(--text-faint)" }}>
-                        {fmtDate(inv.expires_at)}
-                      </td>
                       <td>
                         {loc ? (
                           <div>
@@ -1468,7 +1687,10 @@ function PatientInvitationsView() {
       </div>
 
       {showModal  && <SendInvitationModal onClose={() => setShowModal(false)} onSent={loadAll} />}
-      {panelInv   && <MessagePanel invitation={panelInv} onClose={() => setPanelInv(null)} onPatientUpdated={loadAll} />}
+      {panelInv   && <>
+        <div onClick={() => setPanelInv(null)} style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.75)", zIndex:399 }} />
+        <MessagePanel invitation={panelInv} onClose={() => setPanelInv(null)} onPatientUpdated={loadAll} />
+      </>}
       {showEmerg  && <EmergencyContactsPanel onClose={() => setShowEmerg(false)} />}
     </div>
   );
