@@ -2089,8 +2089,17 @@ function TravelTab({ invitation, lang = "en" }) {
       if (diffH <= 6) {
         const h = Math.floor(diffH);
         const m = Math.floor((diffH - h) * 60);
-        const label = h > 0 ? h + "h " + m + "m remaining" : m + " minutes remaining";
-        return { phase: "urgent", label, sub: fmtLong(dateStr) };
+        if (h === 0) {
+          /* Within 1 hour — show real-time MM:SS countdown */
+          const totalSecs = Math.max(0, Math.floor(diffMs / 1000));
+          const mins = Math.floor(totalSecs / 60);
+          const secs = totalSecs % 60;
+          const label = mins > 0
+            ? mins + "m " + String(secs).padStart(2, "0") + "s remaining"
+            : secs + "s remaining";
+          return { phase: "urgent", label, sub: fmtLong(dateStr) };
+        }
+        return { phase: "urgent", label: h + "h " + m + "m remaining", sub: fmtLong(dateStr) };
       }
       if (diffH <= 24) {
         const h = Math.floor(diffH);
@@ -2130,8 +2139,9 @@ function TravelTab({ invitation, lang = "en" }) {
     } else {
       doNotif();
     }
-    const interval = setInterval(() => { setTick(n => n + 1); doNotif(); }, 60000);
-    return () => clearInterval(interval);
+    const tickInt  = setInterval(() => setTick(n => n + 1), 1000);
+    const notifInt = setInterval(doNotif, 60000);
+    return () => { clearInterval(tickInt); clearInterval(notifInt); };
   }, [travel]);
 
   const phaseStyle = {
