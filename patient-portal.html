@@ -2023,16 +2023,15 @@ function TravelTab({ invitation, lang = "en" }) {
     return () => { sb.removeChannel(ch); };
   }, [invitation.patient_id]);
 
-  /* Show dua 1 min after journey phase mounts, hide after 2 more minutes */
+  /* Show dua immediately at departure time, hide after 5 minutes */
   useEffect(() => {
     if (!travel || !travel.departure_date) { setShowDua(false); return; }
     try {
       const cd2 = getCountdownState(travel.departure_date, travel.departure_time, travel.departure_tz);
       if (!cd2 || cd2.phase !== "journey") { setShowDua(false); return; }
-      setShowDua(false);
-      const t1 = setTimeout(() => setShowDua(true),  60000);
-      const t2 = setTimeout(() => setShowDua(false), 180000);
-      return () => { clearTimeout(t1); clearTimeout(t2); };
+      setShowDua(true);
+      const t1 = setTimeout(() => setShowDua(false), 300000);
+      return () => { clearTimeout(t1); };
     } catch(e) {}
   }, [travel]);
 
