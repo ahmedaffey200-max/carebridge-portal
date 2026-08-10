@@ -2444,7 +2444,6 @@ function Dashboard({ invitation, locationLabel, tab, setTab, onLogout, unreadMsg
     { id: "travel",    label: t(lang, "Travel"),     icon: "plane",          badge: newTravel  },
     { id: "documents", label: t(lang, "Documents"),  icon: "file-text",      badge: newDocs    },
     { id: "emergency", label: t(lang, "Emergency"),  icon: "phone-call",     badge: 0          },
-    { id: "checklist", label: t(lang, "Checklist"),  icon: "checklist",      badge: 0          },
     { id: "ai",        label: t(lang, "AI Help"),    icon: "cpu",            badge: 0          },
     { id: "rate",      label: t(lang, "Rate Us"),    icon: "star",           badge: 0          },
   ];
@@ -2497,7 +2496,6 @@ function Dashboard({ invitation, locationLabel, tab, setTab, onLogout, unreadMsg
       {tab === "travel"    && <TravelTab     invitation={invitation} lang={lang} />}
       {tab === "documents" && <DocumentsTab  invitation={invitation} lang={lang} />}
       {tab === "emergency" && <EmergencyTab  invitation={invitation} lang={lang} />}
-      {tab === "checklist" && <ChecklistTab  invitation={invitation} lang={lang} />}
       {tab === "ai"        && <AiErrorBoundary><AiTab invitation={invitation} lang={lang} /></AiErrorBoundary>}
       {tab === "rate"      && <RateTab       invitation={invitation} />}
     </div>
