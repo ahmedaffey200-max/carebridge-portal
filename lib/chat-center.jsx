@@ -396,7 +396,11 @@ function ChatCenterView() {
   });
   var noteDates = Object.keys(notesByDate).sort().reverse();
 
-  var onlineCount = Object.keys(onlineMap).length;
+  // Only count/show staff who are registered in portal_users (filters out test/stale sessions)
+  var onlineStaff = Object.keys(onlineMap).filter(function(name) {
+    return staff.some(function(s) { return s.name === name; });
+  });
+  var onlineCount = onlineStaff.length;
 
   return (
     <div style={{ display: "flex", gap: 18, height: "calc(100vh - 136px)", minHeight: 480 }}>
@@ -421,7 +425,7 @@ function ChatCenterView() {
           </div>
           {/* Mini presence avatars with tooltip */}
           <div style={{ display: "flex" }}>
-            {Object.keys(onlineMap).slice(0, 5).map(function(name, i) {
+            {onlineStaff.slice(0, 5).map(function(name, i) {
               var s = staff.find(function(x) { return x.name === name; });
               return (
                 <div key={name} style={{
