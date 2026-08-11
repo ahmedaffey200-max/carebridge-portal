@@ -451,27 +451,28 @@ function ChatCenterView() {
                   }}>
                     {_initials(name)}
                   </div>
-                  {/* Tooltip */}
+                  {/* Tooltip — appears below so it's never clipped */}
                   <div className="cc-tip" style={{
                     opacity: 0, pointerEvents: "none", transition: "opacity 0.15s",
-                    position: "absolute", bottom: "calc(100% + 8px)", left: "50%",
+                    position: "absolute", top: "calc(100% + 8px)", left: "50%",
                     transform: "translateX(-50%)",
-                    background: "var(--navy-700,#1B3A6B)", color: "#fff",
+                    background: "#1B3A6B", color: "#fff",
                     fontSize: 12, fontWeight: 700, whiteSpace: "nowrap",
                     padding: "5px 10px", borderRadius: 8,
                     boxShadow: "0 4px 14px rgba(0,0,0,0.22)",
-                    zIndex: 999,
+                    zIndex: 9999,
                   }}>
-                    {name}
-                    <span style={{ fontWeight: 400, opacity: 0.75, marginLeft: 5 }}>· online</span>
+                    {/* Arrow pointing up */}
                     <div style={{
-                      position: "absolute", top: "100%", left: "50%",
+                      position: "absolute", bottom: "100%", left: "50%",
                       transform: "translateX(-50%)",
                       width: 0, height: 0,
                       borderLeft: "5px solid transparent",
                       borderRight: "5px solid transparent",
-                      borderTop: "5px solid var(--navy-700,#1B3A6B)",
+                      borderBottom: "5px solid #1B3A6B",
                     }} />
+                    {name}
+                    <span style={{ fontWeight: 400, opacity: 0.75, marginLeft: 5 }}>· online</span>
                   </div>
                 </div>
               );
