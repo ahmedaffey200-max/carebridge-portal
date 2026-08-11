@@ -32,6 +32,7 @@ const NAV = [
     { id: "ai-assistant", label: "AI Intelligence", icon: "brain-circuit", adminOnly: true },
     { id: "agreements", label: "Patient Agreements", icon: "file-signature", adminOnly: true },
     { id: "patient-portal", label: "Patient Invitations", icon: "send" },
+    { id: "chat-center", label: "Chat Center", icon: "message-square" },
     { id: "security", label: "Security & access", icon: "shield-check" },
     { id: "settings", label: "Settings & admin", icon: "settings" },
   ]},
@@ -57,6 +58,7 @@ const META = {
   "ai-assistant": { title: "AI Intelligence Assistant", crumb: "Administration" },
   "agreements": { title: "Patient Agreements", crumb: "Administration" },
   "patient-portal": { title: "Patient Invitations", crumb: "Administration" },
+  "chat-center": { title: "Chat Center", crumb: "Administration" },
   security: { title: "Security & access center", crumb: "Administration" },
   settings: { title: "Settings & administration", crumb: "Administration" },
 };
@@ -417,6 +419,7 @@ function App() {
       case "ai-assistant": content = <AIAssistantView />; break;
       case "agreements": content = <AgreementsView />; break;
       case "patient-portal": content = <PatientInvitationsView />; break;
+      case "chat-center": content = <ChatCenterView />; break;
       case "security": content = <SecurityView />; break;
       case "settings": content = <SettingsView />; break;
       default: content = <Dashboard direction={t.dashboard} go={go} />;
