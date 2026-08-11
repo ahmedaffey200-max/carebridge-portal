@@ -507,29 +507,30 @@ function ChatCenterView() {
               var msg = item.msg;
               var isMe = msg.sender_name === me.name;
               return (
-                <div key={msg.id || idx} style={{ display: "flex", gap: 10, marginBottom: 6, flexDirection: isMe ? "row-reverse" : "row", alignItems: "flex-end" }}>
-                  {!isMe && (
-                    <div style={{
-                      width: 32, height: 32, borderRadius: "50%",
-                      background: _roleColor(msg.sender_role),
-                      display: "grid", placeItems: "center",
-                      fontSize: 11, fontWeight: 800, color: "#fff",
-                      flexShrink: 0,
-                    }} title={msg.sender_name}>
-                      {_initials(msg.sender_name)}
+                <div key={msg.id || idx} style={{ display: "flex", gap: 10, marginBottom: 8, flexDirection: "row", alignItems: "flex-start" }}>
+                  {/* Avatar — always on the left */}
+                  <div style={{
+                    width: 34, height: 34, borderRadius: "50%",
+                    background: _roleColor(msg.sender_role),
+                    display: "grid", placeItems: "center",
+                    fontSize: 11, fontWeight: 800, color: "#fff",
+                    flexShrink: 0, marginTop: 2,
+                    boxShadow: isMe ? "0 2px 8px rgba(27,58,107,0.25)" : "none",
+                  }} title={msg.sender_name}>
+                    {_initials(msg.sender_name)}
+                  </div>
+                  <div style={{ maxWidth: "75%", display: "flex", flexDirection: "column", gap: 3 }}>
+                    {/* Always show sender name */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, paddingLeft: 2 }}>
+                      <span style={{ fontSize: 12, fontWeight: 800, color: isMe ? "var(--teal-600)" : _roleColor(msg.sender_role) }}>
+                        {msg.sender_name}{isMe ? " (you)" : ""}
+                      </span>
+                      <span style={{ fontSize: 11, color: "var(--text-faint)", textTransform: "capitalize" }}>{msg.sender_role}</span>
+                      <OnlineDot online={!!onlineMap[msg.sender_name]} />
                     </div>
-                  )}
-                  <div style={{ maxWidth: "70%", display: "flex", flexDirection: "column", gap: 3, alignItems: isMe ? "flex-end" : "flex-start" }}>
-                    {!isMe && (
-                      <div style={{ display: "flex", alignItems: "center", gap: 6, paddingLeft: 2 }}>
-                        <span style={{ fontSize: 12, fontWeight: 800, color: _roleColor(msg.sender_role) }}>{msg.sender_name}</span>
-                        <span style={{ fontSize: 11, color: "var(--text-faint)", textTransform: "capitalize" }}>{msg.sender_role}</span>
-                        <OnlineDot online={!!onlineMap[msg.sender_name]} />
-                      </div>
-                    )}
                     <div style={{
                       padding: "9px 14px",
-                      borderRadius: isMe ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
+                      borderRadius: "4px 18px 18px 18px",
                       background: isMe ? "linear-gradient(135deg,var(--navy-600),var(--teal-600))" : "var(--sky-100)",
                       color: isMe ? "#fff" : "var(--text-body)",
                       fontSize: 14, lineHeight: 1.55,
