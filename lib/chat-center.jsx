@@ -419,21 +419,60 @@ function ChatCenterView() {
                 : (<span>Staff group chat</span>)}
             </div>
           </div>
-          {/* Mini presence avatars */}
+          {/* Mini presence avatars with tooltip */}
           <div style={{ display: "flex" }}>
             {Object.keys(onlineMap).slice(0, 5).map(function(name, i) {
               var s = staff.find(function(x) { return x.name === name; });
               return (
-                <div key={name} title={name + " · online"} style={{
-                  width: 30, height: 30, borderRadius: "50%",
-                  background: _roleColor(s ? s.role : "coordinator"),
-                  border: "2px solid var(--bg-card)",
-                  display: "grid", placeItems: "center",
-                  fontSize: 10, fontWeight: 800, color: "#fff",
-                  marginLeft: i > 0 ? -8 : 0,
-                  zIndex: 10 - i, position: "relative",
-                }}>
-                  {_initials(name)}
+                <div key={name} style={{
+                  position: "relative", marginLeft: i > 0 ? -8 : 0,
+                  zIndex: 10 - i,
+                }}
+                  onMouseEnter={function(e) {
+                    var tip = e.currentTarget.querySelector(".cc-tip");
+                    if (tip) tip.style.opacity = "1";
+                  }}
+                  onMouseLeave={function(e) {
+                    var tip = e.currentTarget.querySelector(".cc-tip");
+                    if (tip) tip.style.opacity = "0";
+                  }}
+                  onTouchStart={function(e) {
+                    var tip = e.currentTarget.querySelector(".cc-tip");
+                    if (tip) tip.style.opacity = tip.style.opacity === "1" ? "0" : "1";
+                  }}
+                >
+                  <div style={{
+                    width: 30, height: 30, borderRadius: "50%",
+                    background: _roleColor(s ? s.role : "coordinator"),
+                    border: "2px solid var(--bg-card)",
+                    display: "grid", placeItems: "center",
+                    fontSize: 10, fontWeight: 800, color: "#fff",
+                    cursor: "default",
+                  }}>
+                    {_initials(name)}
+                  </div>
+                  {/* Tooltip */}
+                  <div className="cc-tip" style={{
+                    opacity: 0, pointerEvents: "none", transition: "opacity 0.15s",
+                    position: "absolute", bottom: "calc(100% + 8px)", left: "50%",
+                    transform: "translateX(-50%)",
+                    background: "var(--navy-700,#1B3A6B)", color: "#fff",
+                    fontSize: 12, fontWeight: 700, whiteSpace: "nowrap",
+                    padding: "5px 10px", borderRadius: 8,
+                    boxShadow: "0 4px 14px rgba(0,0,0,0.22)",
+                    zIndex: 999,
+                  }}>
+                    {name}
+                    <span style={{ fontWeight: 400, opacity: 0.75, marginLeft: 5 }}>· online</span>
+                    <div style={{
+                      position: "absolute", top: "100%", left: "50%",
+                      transform: "translateX(-50%)",
+                      width: 0, height: 0,
+                      borderLeft: "5px solid transparent",
+                      borderRight: "5px solid transparent",
+                      borderTop: "5px solid var(--navy-700,#1B3A6B)",
+                    }} />
+                  </div>
                 </div>
               );
             })}
