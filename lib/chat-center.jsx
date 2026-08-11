@@ -98,6 +98,7 @@ function ChatCenterView() {
   const [mentionAnchor, setMentionAnchor] = useCCState(null); // {start, end}
   const [sending, setSending] = useCCState(false);
   const [noteSaving, setNoteSaving] = useCCState(false);
+  const [notePriority, setNotePriority] = useCCState("normal");
   const [ready, setReady] = useCCState(false);
 
   const msgsEndRef = useCCRef(null);
@@ -186,10 +187,23 @@ function ChatCenterView() {
       })
       .subscribe();
 
-    /* Notes */
+    /* Notes — handle events directly to avoid wiping optimistic state */
     noteChannelRef.current = sb.channel("cc-notes-rt")
-      .on("postgres_changes", { event: "*", schema: "public", table: "chat_notes" }, function() {
-        loadNotes(sb);
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "chat_notes" }, function(payload) {
+        var n = payload.new;
+        setNotes(function(prev) {
+          if (prev.some(function(x) { return x.id === n.id; })) return prev;
+          var next = [n, ...prev];
+          lsSaveNotes(next);
+          return next;
+        });
+      })
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "chat_notes" }, function(payload) {
+        setNotes(function(prev) {
+          var next = prev.filter(function(x) { return String(x.id) !== String(payload.old.id); });
+          lsSaveNotes(next);
+          return next;
+        });
       })
       .subscribe();
 
@@ -334,37 +348,44 @@ function ChatCenterView() {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   }
 
-  /* ---- Save note ---- */
+  /* ---- Save note — always optimistic so it never disappears ---- */
   async function saveNote() {
     var text = noteInput.trim();
     if (!text || noteSaving) return;
     setNoteSaving(true);
     var today = new Date().toISOString().split("T")[0];
+    var priority = notePriority;
+    var tempId = "opt-" + Date.now();
+
+    // Add immediately to UI and localStorage — never disappears
+    var optNote = { id: tempId, author_name: me.name, content: text, note_date: today, priority: priority, created_at: new Date().toISOString() };
+    setNotes(function(prev) {
+      var next = [optNote, ...prev];
+      lsSaveNotes(next);
+      return next;
+    });
+    setNoteInput("");
+    setNotePriority("normal");
+
     var sb = window.CB_SB;
     if (sb) {
       var res = await sb.from("chat_notes").insert({
         author_name: me.name,
         content: text,
         note_date: today,
-      });
-      if (res.error) {
-        var n = { id: "ls-" + Date.now(), author_name: me.name, content: text, note_date: today, created_at: new Date().toISOString() };
+        priority: priority,
+      }).select().single();
+      if (!res.error && res.data) {
+        // Swap optimistic entry for real Supabase row
         setNotes(function(prev) {
-          var next = [n, ...prev];
+          var next = prev.filter(function(n) { return n.id !== tempId; });
+          next.unshift(res.data);
           lsSaveNotes(next);
           return next;
         });
       }
-      // realtime will refresh otherwise
-    } else {
-      var lsNote = { id: "ls-" + Date.now(), author_name: me.name, content: text, note_date: today, created_at: new Date().toISOString() };
-      setNotes(function(prev) {
-        var next = [lsNote, ...prev];
-        lsSaveNotes(next);
-        return next;
-      });
+      // If Supabase fails, optimistic note stays — already in localStorage
     }
-    setNoteInput("");
     setNoteSaving(false);
   }
 
@@ -636,25 +657,48 @@ function ChatCenterView() {
 
         {/* ---- Note input ---- */}
         <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border-subtle)", flexShrink: 0 }}>
+          {/* Priority selector */}
+          <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
+            {[
+              { val: "normal", label: "Normal", icon: "📝" },
+              { val: "urgent", label: "Urgent", icon: "🔴" },
+            ].map(function(opt) {
+              var active = notePriority === opt.val;
+              return (
+                <button key={opt.val} data-real onClick={function() { setNotePriority(opt.val); }}
+                  style={{
+                    flex: 1, padding: "7px 0", borderRadius: 8, cursor: "pointer",
+                    border: active ? "none" : "1.5px solid var(--border-default)",
+                    background: active ? (opt.val === "urgent" ? "#dc2626" : "var(--teal-600)") : "transparent",
+                    color: active ? "#fff" : "var(--text-muted)",
+                    fontSize: 12, fontWeight: 700, transition: "all 0.15s",
+                  }}>
+                  {opt.icon} {opt.label}
+                </button>
+              );
+            })}
+          </div>
           <textarea
             value={noteInput}
             onChange={function(e) { setNoteInput(e.target.value); }}
             onKeyDown={function(e) { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) saveNote(); }}
-            placeholder="Write a note for the team today…"
+            placeholder={notePriority === "urgent" ? "Write an urgent note…" : "Write a note for the team today…"}
             rows={3}
             style={{
               width: "100%", resize: "none", padding: "10px 12px", borderRadius: 10,
-              border: "1.5px solid var(--border-default)", background: "var(--sky-50)",
-              fontSize: 13, lineHeight: 1.55, color: "var(--text-body)", outline: "none",
-              boxSizing: "border-box", fontFamily: "var(--font-body)", transition: "border-color 0.15s",
+              border: notePriority === "urgent" ? "1.5px solid #dc2626" : "1.5px solid var(--border-default)",
+              background: notePriority === "urgent" ? "#fff5f5" : "var(--sky-50)",
+              fontSize: 13, lineHeight: 1.55,
+              color: notePriority === "urgent" ? "#dc2626" : "var(--text-body)",
+              fontWeight: notePriority === "urgent" ? 700 : 400,
+              outline: "none", boxSizing: "border-box",
+              fontFamily: "var(--font-body)", transition: "border-color 0.15s, background 0.15s",
             }}
-            onFocus={function(e) { e.target.style.borderColor = "var(--teal-400)"; }}
-            onBlur={function(e) { e.target.style.borderColor = "var(--border-default)"; }}
           />
           <button onClick={saveNote} data-real disabled={!noteInput.trim() || noteSaving}
             style={{
               marginTop: 8, width: "100%", padding: "9px 0", borderRadius: 9, border: "none",
-              background: noteInput.trim() ? "var(--teal-600)" : "var(--border-subtle)",
+              background: !noteInput.trim() ? "var(--border-subtle)" : (notePriority === "urgent" ? "#dc2626" : "var(--teal-600)"),
               color: noteInput.trim() ? "#fff" : "var(--text-faint)",
               cursor: noteInput.trim() ? "pointer" : "default",
               fontSize: 13, fontWeight: 700, transition: "background 0.2s",
@@ -682,13 +726,21 @@ function ChatCenterView() {
                     {_ccDateLabel(date)}
                   </div>
                   {notesByDate[date].map(function(note) {
+                    var urgent = note.priority === "urgent";
                     return (
                       <div key={note.id} style={{
-                        background: "var(--sky-50)", borderRadius: 10, padding: "10px 12px",
-                        marginBottom: 8, borderLeft: "3px solid var(--teal-400)",
+                        background: urgent ? "#fff5f5" : "var(--sky-50)",
+                        borderRadius: 10, padding: "10px 12px",
+                        marginBottom: 8,
+                        borderLeft: urgent ? "3px solid #dc2626" : "3px solid var(--teal-400)",
                         position: "relative",
                       }}>
-                        <div style={{ fontSize: 13, color: "var(--text-body)", lineHeight: 1.55, whiteSpace: "pre-wrap", wordBreak: "break-word", marginBottom: 7 }}>
+                        {urgent && (
+                          <div style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#dc2626", color: "#fff", borderRadius: 5, padding: "2px 7px", fontSize: 10, fontWeight: 800, letterSpacing: "0.04em", marginBottom: 5 }}>
+                            🔴 URGENT
+                          </div>
+                        )}
+                        <div style={{ fontSize: 13, color: urgent ? "#dc2626" : "var(--text-body)", fontWeight: urgent ? 700 : 400, lineHeight: 1.55, whiteSpace: "pre-wrap", wordBreak: "break-word", marginBottom: 7 }}>
                           {note.content}
                         </div>
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
