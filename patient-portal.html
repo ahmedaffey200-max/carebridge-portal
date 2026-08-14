@@ -2461,6 +2461,26 @@ function NotificationsTab({ patientId, lang = "en" }) {
 /* ================================================================
    Notes Tab — read-only patient view of coordinator/doctor notes
    ================================================================ */
+function downloadAttachment(f) {
+  try {
+    const [meta, b64] = f.data.split(",");
+    const mime = meta.match(/:(.*?);/)[1];
+    const bytes = atob(b64);
+    const arr = new Uint8Array(bytes.length);
+    for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+    const blob = new Blob([arr], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = f.name;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(url); document.body.removeChild(a); }, 1500);
+  } catch(e) {
+    window.open(f.data, "_blank");
+  }
+}
+
 function NotesTab({ invitation, lang = "en" }) {
   const pid = invitation.patient_id;
   const [notes, setNotes]     = useState([]);
@@ -2529,13 +2549,13 @@ function NotesTab({ invitation, lang = "en" }) {
                 <div style={{ marginTop:10, display:"flex", flexWrap:"wrap", gap:6 }}>
                   <span style={{ fontSize:12, color:"var(--text-faint)", width:"100%", marginBottom:2 }}>{t(lang, "Attachments")}:</span>
                   {note.files.map((f, fi) => (
-                    <a key={fi} href={f.data} download={f.name} style={{
-                      display:"inline-flex", alignItems:"center", gap:4, fontSize:12, fontWeight:500,
-                      background:"var(--bg-card,#fff)", border:"1px solid var(--border)", borderRadius:8,
-                      padding:"4px 10px", color:"var(--teal,#1CA89C)", textDecoration:"none"
+                    <button key={fi} onClick={() => downloadAttachment(f)} style={{
+                      display:"inline-flex", alignItems:"center", gap:6, fontSize:13, fontWeight:600,
+                      background:"var(--teal,#1CA89C)", border:"none", borderRadius:8, cursor:"pointer",
+                      padding:"7px 14px", color:"#fff"
                     }}>
-                      <Icon name="paperclip" size={12} /> {f.name}
-                    </a>
+                      <Icon name="download" size={14} /> {f.name}
+                    </button>
                   ))}
                 </div>
               )}
