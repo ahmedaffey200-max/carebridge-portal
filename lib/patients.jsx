@@ -99,7 +99,7 @@ function PatientDetail({ id, go, onEdit }) {
   const [confirmDel, setConfirmDel] = useState(false);
   const p = (window.CBStore.patientById(id)) || PD.PATIENTS.find((x) => x.id === id) || PD.PATIENTS[0];
   const dest = PD.destByCode(p.dest), co = PD.coordById(p.coordinator), hosp = PD.hospitalById(p.hospital);
-  const tabs = ["Overview", "Medical history", "Documents", "Travel", "Workflow", "Communication"];
+  const tabs = ["Overview", "Medical history", "Documents", "Travel", "Workflow", "Communication", "Notes"];
 
   return (
     <div className="cb-grid" style={{ gap: "var(--gap-grid)" }}>
@@ -154,6 +154,7 @@ function PatientDetail({ id, go, onEdit }) {
       {tab === "Travel" ? <PatientTravelCoord pid={p.id} /> : null}
       {tab === "Workflow" ? <PatientWorkflow p={p} hosp={hosp} /> : null}
       {tab === "Communication" ? <PatientComms p={p} co={co} /> : null}
+      {tab === "Notes" ? <PatientNotesTab pid={p.id} /> : null}
       {confirmDel ? (
         <ConfirmDialog
           title="Are you sure you want to delete this patient?"
@@ -707,13 +708,33 @@ function PatientPortalDocs({ pid }) {
 function PatientDocuments({ pid }) {
   const docs = useDocuments(pid);
   const canEdit = window.CBStore.can("patients");
-  usePatients(); // re-render on visa change
+  usePatients();
   const visaApp = window.CBStore.getVisaApp(pid);
   const fileRef = React.useRef(null);
-  const replaceRef = React.useRef(null);
   const [delDoc, setDelDoc] = useState(null);
-  const [replacingId, setReplacingId] = useState(null);
   const [uploadingId, setUploadingId] = useState(null);
+  const [removingId, setRemovingId] = useState(null);
+  // uploadedFiles: map from doc.name → { id, url, file_type, uploaded_by }
+  const [uploadedFiles, setUploadedFiles] = useState({});
+
+  const loadUploaded = async () => {
+    const sb = _getAdminSB(); if (!sb) return;
+    const { data } = await sb.from("patient_documents").select("id, name, url, file_type, uploaded_by").eq("patient_id", pid);
+    if (data) {
+      const map = {};
+      data.forEach(r => { map[r.name] = r; });
+      setUploadedFiles(map);
+    }
+  };
+  useEffect(() => { loadUploaded(); }, [pid]);
+
+  const getFilename = (url) => {
+    if (!url) return "";
+    try {
+      const part = url.split("/patient-documents/")[1] || url.split("/").pop();
+      return decodeURIComponent(part.split("?")[0]).replace(/^\d+_/, "");
+    } catch(e) { return ""; }
+  };
 
   const onReplace = async (e, doc) => {
     const file = e.target.files && e.target.files[0];
@@ -731,23 +752,39 @@ function PatientDocuments({ pid }) {
         if (!upErr) {
           const { data: pub } = sb.storage.from("patient-documents").getPublicUrl(path);
           const autoType = ext === "pdf" ? "pdf" : ["jpg","jpeg","png","gif","webp"].includes(ext) ? "image" : "document";
-          await sb.from("patient_documents").upsert({
-            patient_id: pid,
-            name: doc.name,
-            url: pub?.publicUrl || "",
-            file_type: autoType,
-            uploaded_by: "coordinator",
-          }, { onConflict: "id" });
-          window.cbToast("File uploaded — patient can download it", { icon: "upload-cloud" });
+          await sb.from("patient_documents").delete().eq("patient_id", pid).eq("name", doc.name);
+          await sb.from("patient_documents").insert({
+            patient_id: pid, name: doc.name, url: pub?.publicUrl || "",
+            file_type: autoType, uploaded_by: "coordinator",
+          });
+          await loadUploaded();
+          window.cbToast("File uploaded — patient can see it now", { icon: "upload-cloud" });
         } else {
           window.cbToast("Upload failed: " + upErr.message, { icon: "x-circle" });
         }
       } catch (err) {
-        window.cbToast("Upload error", { icon: "x-circle" });
+        window.cbToast("Upload error: " + (err.message || "unknown"), { icon: "x-circle" });
       }
     }
     setUploadingId(null);
-    setReplacingId(null);
+  };
+
+  const removeFile = async (docName) => {
+    const uf = uploadedFiles[docName]; if (!uf) return;
+    setRemovingId(docName);
+    const sb = _getAdminSB();
+    if (sb) {
+      try {
+        const path = uf.url && uf.url.split("/patient-documents/")[1];
+        if (path) await sb.storage.from("patient-documents").remove([path]);
+        await sb.from("patient_documents").delete().eq("id", uf.id);
+        setUploadedFiles(prev => { const n = {...prev}; delete n[docName]; return n; });
+        window.cbToast("File removed — patient can no longer see it", { icon: "trash-2" });
+      } catch(e) {
+        window.cbToast("Remove failed", { icon: "x-circle" });
+      }
+    }
+    setRemovingId(null);
   };
   const onPick = async (e) => {
     const files = Array.from(e.target.files || []);
@@ -836,46 +873,87 @@ function PatientDocuments({ pid }) {
       ) : <Pill tone="muted" icon="lock">Read-only role — statuses & uploads locked</Pill>}
 
       <div className="cb-docgrid">
-        {docs.map((d) => (
-          <div key={d.id} className="cb-doccard">
-            <div className="cb-row" style={{ gap: 12, minWidth: 0 }}>
-              <div className="cb-chip cb-chip--navy" style={{ width: 42, height: 42, flex: "none" }}><Icon name={d.icon} size={21} /></div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-strong)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{d.name}</div>
-                <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{d.type} · {d.size}{d.updated ? " · " + d.updated : ""}</div>
+        {docs.map((d) => {
+          const uf = uploadedFiles[d.name];
+          const filename = uf ? getFilename(uf.url) : null;
+          return (
+            <div key={d.id} className="cb-doccard">
+              <div className="cb-row" style={{ gap: 12, minWidth: 0 }}>
+                <div style={{ position: "relative", flex: "none" }}>
+                  <div className="cb-chip cb-chip--navy" style={{ width: 42, height: 42 }}><Icon name={d.icon} size={21} /></div>
+                  {uf && <span style={{ position:"absolute", top:-3, right:-3, width:12, height:12, borderRadius:"50%", background:"#16a34a", border:"2px solid var(--bg-card,#fff)" }} />}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-strong)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{d.name}</div>
+                  {uf ? (
+                    <div style={{ fontSize: 11.5, color: "#16a34a", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginTop: 1 }}>
+                      ● {filename || "File attached"}
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{d.type} · {d.size}{d.updated ? " · " + d.updated : ""}</div>
+                  )}
+                </div>
+                <div className="cb-doccard__actions">
+                  {canEdit ? (
+                    <label title={uf ? "Replace file" : "Upload file for patient"} style={{ cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", width:30, height:30, borderRadius:7, background:"rgba(28,168,156,0.1)", color:"var(--teal-600,#1CA89C)", border:"none", flexShrink:0 }}>
+                      {uploadingId === d.id
+                        ? <Icon name="loader" size={15} style={{ animation:"spin 1s linear infinite" }} />
+                        : <Icon name="upload-cloud" size={15} />}
+                      <input type="file" style={{ display:"none" }} accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif" onChange={e => onReplace(e, d)} />
+                    </label>
+                  ) : null}
+                  {uf ? (
+                    <a href={uf.url} target="_blank" rel="noopener noreferrer" className="cb-rowbtn" title="Open file" style={{ display:"flex", alignItems:"center", justifyContent:"center" }}>
+                      <Icon name="external-link" size={16} />
+                    </a>
+                  ) : null}
+                  {uf && canEdit ? (
+                    <button className="cb-rowbtn cb-rowbtn--danger" data-real title="Remove file from patient portal" onClick={() => removeFile(d.name)}>
+                      {removingId === d.name
+                        ? <Icon name="loader" size={15} style={{ animation:"spin 1s linear infinite" }} />
+                        : <Icon name="file-x" size={16} />}
+                    </button>
+                  ) : null}
+                  {canEdit ? <button className="cb-rowbtn cb-rowbtn--danger" data-real aria-label={"Delete " + d.name} title="Delete card" onClick={() => setDelDoc(d)}><Icon name="trash-2" size={16} /></button> : null}
+                </div>
               </div>
-              <div className="cb-doccard__actions">
-                {canEdit ? (
-                  <label title="Upload file for patient" style={{ cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", width:30, height:30, borderRadius:7, background:"rgba(28,168,156,0.1)", color:"var(--teal-600,#1CA89C)", border:"none", flexShrink:0 }}>
-                    {uploadingId === d.id
-                      ? <Icon name="loader" size={15} style={{ animation:"spin 1s linear infinite" }} />
-                      : <Icon name="upload-cloud" size={15} />}
-                    <input type="file" style={{ display:"none" }} accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif" onChange={e => onReplace(e, d)} />
-                  </label>
-                ) : null}
-                <button className="cb-rowbtn" data-real aria-label={"Preview " + d.name} title="Preview" onClick={() => window.cbToast("Opening preview…", { icon: "eye", sub: d.name })}><Icon name="eye" size={16} /></button>
-                <button className="cb-rowbtn" data-real aria-label={"Download " + d.name} title="Download" onClick={() => window.cbToast("Downloading…", { icon: "download", sub: d.name })}><Icon name="download" size={16} /></button>
-                {canEdit ? <button className="cb-rowbtn cb-rowbtn--danger" data-real aria-label={"Delete " + d.name} title="Delete" onClick={() => setDelDoc(d)}><Icon name="trash-2" size={16} /></button> : null}
+              <div className="cb-doccard__status">
+                <span style={{ fontSize: 11.5, color: "var(--text-faint)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Status</span>
+                <StatusSelect value={d.status} options={PD.DOC_STATUSES} readOnly={!canEdit}
+                  onChange={(s) => {
+                    var prev = d.status;
+                    window.CBStore.setDocumentStatus(pid, d.id, s);
+                    window.cbToast("Status updated → " + s, { icon: "refresh-cw" });
+                    window.cbTrackActivity && window.cbTrackActivity(pid, "document_status", d.name + ": " + s, "Document \"" + d.name + "\" status changed from " + prev + " to " + s, prev, s);
+                  }} />
               </div>
             </div>
-            <div className="cb-doccard__status">
-              <span style={{ fontSize: 11.5, color: "var(--text-faint)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Status</span>
-              <StatusSelect value={d.status} options={PD.DOC_STATUSES} readOnly={!canEdit}
-                onChange={(s) => {
-                  var prev = d.status;
-                  window.CBStore.setDocumentStatus(pid, d.id, s);
-                  window.cbToast("Status updated → " + s, { icon: "refresh-cw" });
-                  window.cbTrackActivity && window.cbTrackActivity(pid, "document_status", d.name + ": " + s, "Document \"" + d.name + "\" status changed from " + prev + " to " + s, prev, s);
-                }} />
-            </div>
-          </div>
-        ))}
+          );
+        })}
         {!docs.length ? <div className="cb-empty" style={{ gridColumn: "1 / -1" }}>No documents yet — upload the first file.</div> : null}
       </div>
 
       {delDoc ? (
-        <ConfirmDialog title={"Delete \u201c" + delDoc.name + "\u201d?"} body="This permanently removes the document from secure storage. This cannot be undone." confirmLabel="Delete document" danger
-          onCancel={() => setDelDoc(null)} onConfirm={() => { window.CBStore.deleteDocument(pid, delDoc.id); window.cbToast("Document deleted", { icon: "trash-2" }); setDelDoc(null); }} />
+        <ConfirmDialog title={"Delete \u201c" + delDoc.name + "\u201d?"} body="This permanently removes the document and the patient will no longer see it. This cannot be undone." confirmLabel="Delete document" danger
+          onCancel={() => setDelDoc(null)} onConfirm={async () => {
+            // Remove from local store
+            window.CBStore.deleteDocument(pid, delDoc.id);
+            // Remove from patient_documents table + storage
+            const sb = _getAdminSB();
+            if (sb) {
+              try {
+                const { data: pdDocs } = await sb.from("patient_documents")
+                  .select("id, url").eq("patient_id", pid).eq("name", delDoc.name);
+                if (pdDocs && pdDocs.length) {
+                  const paths = pdDocs.map(d => d.url && d.url.split("/patient-documents/")[1]).filter(Boolean);
+                  if (paths.length) await sb.storage.from("patient-documents").remove(paths);
+                  await sb.from("patient_documents").delete().eq("patient_id", pid).eq("name", delDoc.name);
+                }
+              } catch(e) {}
+            }
+            window.cbToast("Document deleted \u2014 removed from patient portal", { icon: "trash-2" });
+            setDelDoc(null);
+          }} />
       ) : null}
     </Card>
   );
@@ -883,7 +961,7 @@ function PatientDocuments({ pid }) {
 
 /* ---- Travel coordinator tab (saves to portal_state → patient sees it live) ---- */
 function PatientTravelCoord({ pid }) {
-  const BLANK = { flight_number:"", departure_date:"", departure_time:"", from_city:"", to_city:"", arrival_time:"", taxi_driver:"", taxi_cell:"", taxi_vehicle:"", taxi_notes:"", hotel_name:"", hotel_nights:"", hotel_reservation:"", hotel_address:"", pickup:"", notes:"" };
+  const BLANK = { flight_number:"", departure_date:"", departure_time:"", departure_tz:"", arrival_date:"", arrival_time:"", from_city:"", to_city:"", taxi_driver:"", taxi_cell:"", taxi_vehicle:"", taxi_notes:"", hotel_name:"", hotel_nights:"", hotel_reservation:"", hotel_address:"", pickup:"", notes:"" };
   const [form, setForm] = useState({ ...BLANK });
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -901,18 +979,85 @@ function PatientTravelCoord({ pid }) {
   const save = async () => {
     const sb = _getAdminSB(); if (!sb) return;
     setSaving(true);
-    await sb.from("portal_state").upsert({ id: rowId, state: form }, { onConflict: "id" });
+    await sb.from("portal_state").upsert({ id: rowId, state: form, updated_at: new Date().toISOString() }, { onConflict: "id" });
     setSaving(false);
     window.cbToast && window.cbToast("Travel details saved — patient sees this now", { icon: "plane" });
   };
 
+  const todayStr = new Date().toISOString().split("T")[0];
   const INP = { width:"100%", padding:"10px 12px", border:"1.5px solid var(--border)", borderRadius:8, fontSize:14, background:"var(--bg-page,#f4f7fb)", color:"var(--text-strong)", fontFamily:"inherit", outline:"none", boxSizing:"border-box" };
-  const field = (label, key, type, ph) => (
+  const SEL = { ...INP, appearance:"none", cursor:"pointer" };
+  const field = (label, key, type, ph, extra) => (
     <div style={{ display:"flex", flexDirection:"column", gap:5 }}>
       <label style={{ fontSize:11, fontWeight:700, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.06em" }}>{label}</label>
-      <input style={INP} type={type || "text"} value={form[key] || ""} placeholder={ph || ""} onChange={e => set(key, e.target.value)} />
+      <input style={INP} type={type || "text"} value={form[key] || ""} placeholder={ph || ""} onChange={e => set(key, e.target.value)} {...(extra||{})} />
     </div>
   );
+  const TZ_OPTIONS = [
+    { label: "Edmonton / Calgary — Canada (MT)",   tz: "America/Edmonton" },
+    { label: "Toronto / Ottawa — Canada (ET)",      tz: "America/Toronto" },
+    { label: "Vancouver — Canada (PT)",             tz: "America/Vancouver" },
+    { label: "Winnipeg — Canada (CT)",              tz: "America/Winnipeg" },
+    { label: "Halifax — Canada (AT)",               tz: "America/Halifax" },
+    { label: "New York / Miami — USA (ET)",         tz: "America/New_York" },
+    { label: "Los Angeles — USA (PT)",              tz: "America/Los_Angeles" },
+    { label: "London — United Kingdom",             tz: "Europe/London" },
+    { label: "Paris / Berlin / Rome — Europe",      tz: "Europe/Paris" },
+    { label: "Istanbul — Turkey",                   tz: "Europe/Istanbul" },
+    { label: "Moscow — Russia",                     tz: "Europe/Moscow" },
+    { label: "Cairo — Egypt",                       tz: "Africa/Cairo" },
+    { label: "Mogadishu — Somalia",                 tz: "Africa/Mogadishu" },
+    { label: "Nairobi — Kenya",                     tz: "Africa/Nairobi" },
+    { label: "Addis Ababa — Ethiopia",              tz: "Africa/Addis_Ababa" },
+    { label: "Lagos — Nigeria",                     tz: "Africa/Lagos" },
+    { label: "Johannesburg — South Africa",         tz: "Africa/Johannesburg" },
+    { label: "Riyadh — Saudi Arabia",               tz: "Asia/Riyadh" },
+    { label: "Dubai — UAE",                         tz: "Asia/Dubai" },
+    { label: "Doha — Qatar",                        tz: "Asia/Qatar" },
+    { label: "Kuwait City — Kuwait",                tz: "Asia/Kuwait" },
+    { label: "Baghdad — Iraq",                      tz: "Asia/Baghdad" },
+    { label: "Amman — Jordan",                      tz: "Asia/Amman" },
+    { label: "Karachi — Pakistan",                  tz: "Asia/Karachi" },
+    { label: "Mumbai / Delhi — India",              tz: "Asia/Kolkata" },
+    { label: "Dhaka — Bangladesh",                  tz: "Asia/Dhaka" },
+    { label: "Bangkok — Thailand",                  tz: "Asia/Bangkok" },
+    { label: "Kuala Lumpur — Malaysia",             tz: "Asia/Kuala_Lumpur" },
+    { label: "Singapore",                           tz: "Asia/Singapore" },
+    { label: "Beijing / Shanghai — China",          tz: "Asia/Shanghai" },
+    { label: "Tokyo — Japan",                       tz: "Asia/Tokyo" },
+    { label: "Seoul — South Korea",                 tz: "Asia/Seoul" },
+    { label: "Sydney — Australia (ET)",             tz: "Australia/Sydney" },
+  ];
+  const tzField = () => (
+    <div style={{ gridColumn:"1 / -1", display:"flex", flexDirection:"column", gap:5 }}>
+      <label style={{ fontSize:11, fontWeight:700, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.06em" }}>Departure city timezone</label>
+      <select data-real value={form.departure_tz||""} onChange={e => set("departure_tz", e.target.value)} style={{ ...INP, appearance:"none", cursor:"pointer" }}>
+        <option value="">— Select country / city timezone —</option>
+        {TZ_OPTIONS.map(t => <option key={t.tz} value={t.tz}>{t.label}</option>)}
+      </select>
+    </div>
+  );
+
+  const timeParts = (val) => { const p = (val||"").split(":"); const h = p[0] ? String(p[0]).padStart(2,"0") : ""; const m = p[1] ? String(p[1]).padStart(2,"0") : ""; return [h, m]; };
+  const timeField = (label, key) => {
+    const [hh, mm] = timeParts(form[key]);
+    return (
+      <div style={{ display:"flex", flexDirection:"column", gap:5 }}>
+        <label style={{ fontSize:11, fontWeight:700, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.06em" }}>{label}</label>
+        <div style={{ display:"flex", gap:6, alignItems:"center" }}>
+          <select data-real value={hh} onChange={e => set(key, e.target.value + ":" + (mm||"00"))} style={SEL}>
+            <option value="">HH</option>
+            {Array.from({length:24},(_,i)=>String(i).padStart(2,"0")).map(h=><option key={h} value={h}>{h}</option>)}
+          </select>
+          <span style={{ fontWeight:700, color:"#8a9bb0", fontSize:16 }}>:</span>
+          <select data-real value={mm} onChange={e => set(key, (hh||"00") + ":" + e.target.value)} style={SEL}>
+            <option value="">MM</option>
+            {["00","05","10","15","20","25","30","35","40","45","50","55"].map(m=><option key={m} value={m}>{m}</option>)}
+          </select>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <Card>
@@ -925,9 +1070,11 @@ function PatientTravelCoord({ pid }) {
           <div style={{ fontWeight:700, fontSize:12, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.07em" }}>Flight information</div>
           <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(180px,1fr))", gap:12 }}>
             {field("Flight number", "flight_number", "text", "e.g. EK204")}
-            {field("Departure date", "departure_date", "date")}
-            {field("Departure time", "departure_time", "time")}
-            {field("Arrival time", "arrival_time", "time")}
+            {tzField()}
+            {field("Departure date", "departure_date", "date", "", { min: todayStr })}
+            {timeField("Departure time", "departure_time")}
+            {field("Arrival date", "arrival_date", "date", "", { min: todayStr })}
+            {timeField("Arrival time", "arrival_time")}
             {field("From city", "from_city", "text", "e.g. Edmonton")}
             {field("To city", "to_city", "text", "e.g. Delhi")}
           </div>
@@ -962,12 +1109,55 @@ function PatientWorkflow({ p, hosp }) {
   const canEdit = window.CBStore.can("patients");
   const [noteFor, setNoteFor] = useState(null); // stage index being noted
   const [noteText, setNoteText] = useState("");
+  const [clearing, setClearing] = useState(false);
   const stages = PD.STAGES;
   const icons = PD.STAGE_ICONS;
   const byStage = {};
   logRaw.forEach((e) => { byStage[e.stage] = e; });
   const startNote = (i) => { setNoteFor(i); setNoteText((byStage[i] && byStage[i].note) || ""); };
   const saveNote = () => { window.CBStore.setStageNote(p.id, noteFor, noteText.trim()); window.cbToast("Stage note saved", { icon: "check-circle-2" }); setNoteFor(null); };
+
+  const isAdmin = localStorage.getItem("cb_user_role") === "admin";
+
+  const fmtStageTime = (timeStr) => {
+    if (!timeStr) return "";
+    let d = new Date(timeStr);
+    // Handle old stored format like "Jul 06, 00:25" (no year)
+    if (isNaN(d.getTime())) {
+      const yr = new Date().getFullYear();
+      // Replace ", HH:mm" with " YEAR HH:mm" so Date can parse it
+      const attempt = timeStr.replace(/,\s*(\d{2}:\d{2})$/, " " + yr + " $1");
+      d = new Date(attempt);
+      if (isNaN(d.getTime())) d = new Date(timeStr + " " + yr);
+      // If still in future, it must be last year
+      if (!isNaN(d.getTime()) && d.getTime() > Date.now()) d.setFullYear(yr - 1);
+    }
+    if (isNaN(d.getTime())) return timeStr;
+    const diff = Date.now() - d.getTime();
+    const mins  = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days  = Math.floor(diff / 86400000);
+    let rel;
+    if (mins < 1)    rel = "just now";
+    else if (mins < 60)  rel = mins + "m ago";
+    else if (hours < 24) rel = hours + "h ago";
+    else if (days === 1) rel = "yesterday";
+    else                 rel = days + " days ago";
+    const formatted = d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) +
+      ", " + d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
+    return formatted + " · " + rel;
+  };
+
+  const clearPortalJourney = async () => {
+    if (!window.confirm("Clear all patient portal journey updates for " + p.name + "?\n\nThe patient will see a blank Journey tab. This cannot be undone.")) return;
+    setClearing(true);
+    const sb = _getAdminSB();
+    if (sb) {
+      await sb.from("patient_activities").delete().eq("patient_id", p.id);
+    }
+    setClearing(false);
+    window.cbToast("Patient portal journey cleared — " + p.name + " sees a clean screen", { icon: "trash-2" });
+  };
 
   return (
     <Card>
@@ -976,7 +1166,15 @@ function PatientWorkflow({ p, hosp }) {
           <h3 style={{ fontSize: 17, fontWeight: 700 }}>Treatment workflow</h3>
           <div className="cb-sub" style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 2 }}>Eleven stages from first consultation to follow-up — with timestamps and notes</div>
         </div>
-        <Pill tone="navy" icon="route">Stage {p.stage + 1} of {stages.length}</Pill>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {isAdmin && (
+            <button data-real onClick={clearPortalJourney} disabled={clearing}
+              style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px", background: "#fee2e2", border: "1.5px solid #fca5a5", borderRadius: 9, fontWeight: 700, fontSize: 12, color: "#dc2626", cursor: "pointer", whiteSpace: "nowrap" }}>
+              <Icon name="trash-2" size={13} /> {clearing ? "Clearing…" : "Clear Patient Portal Journey"}
+            </button>
+          )}
+          <Pill tone="navy" icon="route">Stage {p.stage + 1} of {stages.length}</Pill>
+        </div>
       </div>
       <div className="cb-divider" />
       <ol className="cb-wf">
@@ -996,7 +1194,7 @@ function PatientWorkflow({ p, hosp }) {
                   {done ? <Pill tone="teal" dot>Completed</Pill> : current ? <Pill tone="navy" dot>Current</Pill> : <Pill tone="muted" dot>Upcoming</Pill>}
                 </div>
                 {entry ? (
-                  <div className="cb-wf__meta"><Icon name="clock" size={13} />{entry.time}{entry.actor ? " · " + entry.actor : ""}</div>
+                  <div className="cb-wf__meta"><Icon name="clock" size={13} />{fmtStageTime(entry.time)}{entry.actor ? " · " + entry.actor : ""}</div>
                 ) : <div className="cb-wf__meta cb-muted">Not started yet</div>}
                 {entry && entry.note ? <p className="cb-wf__note">{entry.note}</p> : null}
 
@@ -1123,21 +1321,62 @@ function PatientComms({ p, co }) {
   };
 
 
+  const deleteMsg = async (id) => {
+    if (!window.confirm("Delete this message? The patient will no longer see it.")) return;
+    const sb = _getAdminSB(); if (!sb) return;
+    await sb.from("patient_messages").delete().eq("id", id);
+    await loadMsgs(invPid);
+  };
+
   const renderMsg = (m) => {
     const me = m.sender_role === "coordinator";
     const c = m.content || "";
-
-
     return (
-      <div key={m.id} style={{ alignSelf: me ? "flex-end" : "flex-start", maxWidth: "78%" }}>
+      <div key={m.id} style={{ alignSelf: me ? "flex-end" : "flex-start", maxWidth: "78%", position: "relative" }} className="cb-msg-wrap">
         <div style={{ padding: "11px 15px", borderRadius: me ? "16px 16px 4px 16px" : "16px 16px 16px 4px", background: me ? "var(--navy-600)" : "var(--sky-100)", color: me ? "#fff" : "var(--text-body)", fontSize: 14, lineHeight: 1.5 }}>{c}</div>
-        <div style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 4, textAlign: me ? "right" : "left" }}>{m.sender_name} · {fmtTime(m.created_at)}</div>
+        <div style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 4, textAlign: me ? "right" : "left", display: "flex", alignItems: "center", justifyContent: me ? "flex-end" : "flex-start", gap: 6 }}>
+          <span>{m.sender_name} · {fmtTime(m.created_at)}</span>
+          {isAdmin && (
+            <button onClick={() => deleteMsg(m.id)} title="Delete message"
+              style={{ background: "#fee2e2", border: "none", cursor: "pointer", color: "#dc2626", padding: "5px 8px", borderRadius: 7, display: "inline-flex", alignItems: "center", minWidth: 30, minHeight: 30, justifyContent: "center" }}>
+              <Icon name="trash-2" size={14} />
+            </button>
+          )}
+        </div>
       </div>
     );
   };
 
+  const isAdmin = localStorage.getItem("cb_user_role") === "admin";
+
+  const clearAllPortalData = async () => {
+    if (!window.confirm(
+      "⚠️ CLEAR ALL PORTAL DATA FOR " + p.name.toUpperCase() + "?\n\n" +
+      "This will permanently delete:\n• All messages\n• All journey updates\n\n" +
+      "The patient will see a completely clean portal. This cannot be undone."
+    )) return;
+    const sb = _getAdminSB(); if (!sb || !invPid) return;
+    await sb.from("patient_messages").delete().eq("patient_id", invPid);
+    await sb.from("patient_activities").delete().eq("patient_id", invPid);
+    await loadMsgs(invPid);
+    window.cbToast("Portal data cleared — " + p.name + " will see a clean screen", { icon: "trash-2" });
+  };
+
   return (
     <Card>
+      {/* Clear All Banner — admin only */}
+      {isAdmin && (
+        <div style={{ background: "linear-gradient(135deg, #fef2f2 0%, #fff7ed 100%)", border: "1.5px solid #fca5a5", borderRadius: 10, padding: "12px 16px", marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 13, color: "#b91c1c" }}>⚠️ Before sending the portal link</div>
+            <div style={{ fontSize: 12, color: "#7f1d1d", marginTop: 2 }}>Clear all test messages and journey items so the patient sees a clean screen.</div>
+          </div>
+          <button onClick={clearAllPortalData}
+            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", background: "#dc2626", border: "none", borderRadius: 9, fontWeight: 700, fontSize: 12, color: "#fff", cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 }}>
+            <Icon name="trash-2" size={13} /> Clear All
+          </button>
+        </div>
+      )}
       <div className="cb-card__head" style={{ flexWrap: "wrap", gap: 10 }}>
         <div style={{ flex: 1 }}>
           <h3>Message patient</h3>

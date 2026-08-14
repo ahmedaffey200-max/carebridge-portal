@@ -27,7 +27,7 @@ function MHeader({ title, sub, name }) {
 }
 
 function MTabBar({ active }) {
-  const tabs = [["home", "Home"], ["route", "Journey"], ["message-circle", "Messages"], ["folder", "Documents"], ["star", "Rate us"]];
+  const tabs = [["home", "Home"], ["route", "Journey"], ["message-circle", "Messages"], ["folder", "Documents"], ["file-text", "Notes"], ["star", "Rate us"]];
   return (
     <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 80, background: "#fff", borderTop: "1px solid var(--border-subtle)", display: "flex", paddingBottom: 18, zIndex: 5 }}>
       {tabs.map((t, i) => (
@@ -274,7 +274,7 @@ function MRating() {
           </button>
         </div>
       </div>
-      <MTabBar active={4} />
+      <MTabBar active={5} />
     </div>
   );
 }
@@ -285,6 +285,7 @@ function MobileView() {
     [<MJourney key="j" />, "Treatment journey", "Nine stages of care"],
     [<MMessages key="m" />, "Secure messages", "Chat with your coordinator"],
     [<MDocuments key="d" />, "Documents", "Upload & track securely"],
+    [<MNotes key="n" />, "Notes", "Daily notices & doctor notes — read only"],
     [<MRating key="r" />, "Rate our service", "Patient can give 0–5 stars + comment"],
   ];
   return (

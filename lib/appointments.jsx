@@ -41,6 +41,122 @@ const COUNTRY_TIMEZONES = {
   ],
 };
 const DEFAULT_TZ = [{ label: "UTC — Coordinated Universal Time", tz: "UTC" }];
+const ALL_TZ_OPTIONS = [
+  { tz: "Etc/GMT+12",                    label: "(UTC-12:00) Baker Island, Howland Island" },
+  { tz: "Pacific/Niue",                  label: "(UTC-11:00) Niue, American Samoa" },
+  { tz: "Pacific/Honolulu",              label: "(UTC-10:00) Hawaii" },
+  { tz: "Pacific/Tahiti",                label: "(UTC-10:00) Tahiti, Cook Islands" },
+  { tz: "Pacific/Marquesas",             label: "(UTC-09:30) Marquesas Islands" },
+  { tz: "America/Anchorage",             label: "(UTC-09:00) Alaska" },
+  { tz: "America/Los_Angeles",           label: "(UTC-08:00) Pacific Time — Los Angeles" },
+  { tz: "America/Vancouver",             label: "(UTC-08:00) Pacific Time — Vancouver" },
+  { tz: "America/Tijuana",               label: "(UTC-08:00) Baja California — Tijuana" },
+  { tz: "America/Denver",                label: "(UTC-07:00) Mountain Time — Denver" },
+  { tz: "America/Edmonton",              label: "(UTC-07:00) Mountain Time — Calgary" },
+  { tz: "America/Phoenix",               label: "(UTC-07:00) Arizona (no DST)" },
+  { tz: "America/Chihuahua",             label: "(UTC-07:00) Chihuahua, Mazatlan" },
+  { tz: "America/Chicago",               label: "(UTC-06:00) Central Time — Chicago" },
+  { tz: "America/Winnipeg",              label: "(UTC-06:00) Central Time — Winnipeg" },
+  { tz: "America/Mexico_City",           label: "(UTC-06:00) Mexico City, Guadalajara" },
+  { tz: "America/Guatemala",             label: "(UTC-06:00) Guatemala, Costa Rica, El Salvador" },
+  { tz: "America/New_York",              label: "(UTC-05:00) Eastern Time — New York" },
+  { tz: "America/Toronto",               label: "(UTC-05:00) Eastern Time — Toronto" },
+  { tz: "America/Bogota",                label: "(UTC-05:00) Bogota, Lima, Quito" },
+  { tz: "America/Port-au-Prince",        label: "(UTC-05:00) Haiti, Jamaica" },
+  { tz: "America/Havana",                label: "(UTC-05:00) Havana, Cuba" },
+  { tz: "America/Halifax",               label: "(UTC-04:00) Atlantic Time — Halifax" },
+  { tz: "America/Puerto_Rico",           label: "(UTC-04:00) Puerto Rico, Dominican Republic" },
+  { tz: "America/Caracas",               label: "(UTC-04:00) Caracas, Venezuela" },
+  { tz: "America/Manaus",                label: "(UTC-04:00) Manaus, Bolivia" },
+  { tz: "America/Santiago",              label: "(UTC-04:00) Santiago, Chile" },
+  { tz: "America/St_Johns",              label: "(UTC-03:30) Newfoundland — St. John's" },
+  { tz: "America/Sao_Paulo",             label: "(UTC-03:00) Sao Paulo, Brasilia" },
+  { tz: "America/Argentina/Buenos_Aires",label: "(UTC-03:00) Buenos Aires, Argentina" },
+  { tz: "America/Montevideo",            label: "(UTC-03:00) Montevideo, Uruguay" },
+  { tz: "America/Godthab",               label: "(UTC-03:00) Nuuk, Greenland" },
+  { tz: "America/Noronha",               label: "(UTC-02:00) Fernando de Noronha" },
+  { tz: "Atlantic/Azores",               label: "(UTC-01:00) Azores" },
+  { tz: "Atlantic/Cape_Verde",           label: "(UTC-01:00) Cabo Verde" },
+  { tz: "UTC",                           label: "(UTC+00:00) UTC — Coordinated Universal Time" },
+  { tz: "Europe/London",                 label: "(UTC+00:00) London, Edinburgh, Dublin" },
+  { tz: "Europe/Lisbon",                 label: "(UTC+00:00) Lisbon, Porto" },
+  { tz: "Africa/Casablanca",             label: "(UTC+00:00) Casablanca, Accra, Dakar" },
+  { tz: "Atlantic/Reykjavik",            label: "(UTC+00:00) Reykjavik, Iceland" },
+  { tz: "Europe/Paris",                  label: "(UTC+01:00) Paris, Brussels, Amsterdam" },
+  { tz: "Europe/Berlin",                 label: "(UTC+01:00) Berlin, Frankfurt, Zurich" },
+  { tz: "Europe/Rome",                   label: "(UTC+01:00) Rome, Milan, Madrid, Barcelona" },
+  { tz: "Europe/Warsaw",                 label: "(UTC+01:00) Warsaw, Prague, Vienna, Budapest" },
+  { tz: "Africa/Lagos",                  label: "(UTC+01:00) Lagos, Kinshasa, West Africa" },
+  { tz: "Africa/Algiers",                label: "(UTC+01:00) Algiers, Tunis" },
+  { tz: "Africa/Cairo",                  label: "(UTC+02:00) Cairo, Egypt" },
+  { tz: "Europe/Athens",                 label: "(UTC+02:00) Athens, Bucharest, Sofia" },
+  { tz: "Europe/Helsinki",               label: "(UTC+02:00) Helsinki, Kyiv, Riga, Tallinn" },
+  { tz: "Asia/Jerusalem",                label: "(UTC+02:00) Jerusalem, Tel Aviv, Israel" },
+  { tz: "Africa/Johannesburg",           label: "(UTC+02:00) Johannesburg, Cape Town, Harare" },
+  { tz: "Africa/Khartoum",               label: "(UTC+02:00) Khartoum, Sudan" },
+  { tz: "Africa/Tripoli",                label: "(UTC+02:00) Tripoli, Libya" },
+  { tz: "Europe/Istanbul",               label: "(UTC+03:00) Istanbul, Turkey" },
+  { tz: "Europe/Moscow",                 label: "(UTC+03:00) Moscow, St. Petersburg" },
+  { tz: "Asia/Riyadh",                   label: "(UTC+03:00) Riyadh, Saudi Arabia" },
+  { tz: "Asia/Kuwait",                   label: "(UTC+03:00) Kuwait City" },
+  { tz: "Asia/Qatar",                    label: "(UTC+03:00) Doha, Qatar" },
+  { tz: "Asia/Bahrain",                  label: "(UTC+03:00) Manama, Bahrain" },
+  { tz: "Africa/Nairobi",                label: "(UTC+03:00) Nairobi, Kenya" },
+  { tz: "Africa/Mogadishu",              label: "(UTC+03:00) Mogadishu, Somalia" },
+  { tz: "Africa/Addis_Ababa",            label: "(UTC+03:00) Addis Ababa, Ethiopia" },
+  { tz: "Africa/Kampala",                label: "(UTC+03:00) Kampala, Uganda" },
+  { tz: "Africa/Dar_es_Salaam",          label: "(UTC+03:00) Dar es Salaam, Tanzania" },
+  { tz: "Asia/Baghdad",                  label: "(UTC+03:00) Baghdad, Iraq" },
+  { tz: "Asia/Aden",                     label: "(UTC+03:00) Aden, Yemen" },
+  { tz: "Asia/Tehran",                   label: "(UTC+03:30) Tehran, Iran" },
+  { tz: "Asia/Dubai",                    label: "(UTC+04:00) Dubai, Abu Dhabi — UAE" },
+  { tz: "Asia/Muscat",                   label: "(UTC+04:00) Muscat, Oman" },
+  { tz: "Asia/Baku",                     label: "(UTC+04:00) Baku, Azerbaijan" },
+  { tz: "Asia/Yerevan",                  label: "(UTC+04:00) Yerevan, Armenia" },
+  { tz: "Asia/Tbilisi",                  label: "(UTC+04:00) Tbilisi, Georgia" },
+  { tz: "Indian/Mauritius",              label: "(UTC+04:00) Port Louis, Mauritius" },
+  { tz: "Indian/Reunion",                label: "(UTC+04:00) Réunion Island" },
+  { tz: "Asia/Kabul",                    label: "(UTC+04:30) Kabul, Afghanistan" },
+  { tz: "Asia/Karachi",                  label: "(UTC+05:00) Karachi, Pakistan" },
+  { tz: "Asia/Tashkent",                 label: "(UTC+05:00) Tashkent, Uzbekistan" },
+  { tz: "Asia/Yekaterinburg",            label: "(UTC+05:00) Yekaterinburg, Russia" },
+  { tz: "Asia/Kolkata",                  label: "(UTC+05:30) New Delhi, Mumbai, Kolkata — India" },
+  { tz: "Asia/Colombo",                  label: "(UTC+05:30) Colombo, Sri Lanka" },
+  { tz: "Asia/Kathmandu",                label: "(UTC+05:45) Kathmandu, Nepal" },
+  { tz: "Asia/Dhaka",                    label: "(UTC+06:00) Dhaka, Bangladesh" },
+  { tz: "Asia/Almaty",                   label: "(UTC+06:00) Almaty, Kazakhstan" },
+  { tz: "Asia/Yangon",                   label: "(UTC+06:30) Yangon, Myanmar" },
+  { tz: "Asia/Bangkok",                  label: "(UTC+07:00) Bangkok, Thailand" },
+  { tz: "Asia/Jakarta",                  label: "(UTC+07:00) Jakarta, Indonesia" },
+  { tz: "Asia/Phnom_Penh",               label: "(UTC+07:00) Phnom Penh, Vientiane" },
+  { tz: "Asia/Ho_Chi_Minh",              label: "(UTC+07:00) Ho Chi Minh City, Vietnam" },
+  { tz: "Asia/Novosibirsk",              label: "(UTC+07:00) Novosibirsk, Russia" },
+  { tz: "Asia/Shanghai",                 label: "(UTC+08:00) Beijing, Shanghai — China" },
+  { tz: "Asia/Hong_Kong",                label: "(UTC+08:00) Hong Kong" },
+  { tz: "Asia/Singapore",                label: "(UTC+08:00) Singapore" },
+  { tz: "Asia/Kuala_Lumpur",             label: "(UTC+08:00) Kuala Lumpur, Malaysia" },
+  { tz: "Asia/Taipei",                   label: "(UTC+08:00) Taipei, Taiwan" },
+  { tz: "Asia/Manila",                   label: "(UTC+08:00) Manila, Philippines" },
+  { tz: "Australia/Perth",               label: "(UTC+08:00) Perth, Western Australia" },
+  { tz: "Asia/Ulaanbaatar",              label: "(UTC+08:00) Ulaanbaatar, Mongolia" },
+  { tz: "Asia/Tokyo",                    label: "(UTC+09:00) Tokyo, Osaka — Japan" },
+  { tz: "Asia/Seoul",                    label: "(UTC+09:00) Seoul, South Korea" },
+  { tz: "Australia/Adelaide",            label: "(UTC+09:30) Adelaide, South Australia" },
+  { tz: "Australia/Darwin",              label: "(UTC+09:30) Darwin, Northern Territory" },
+  { tz: "Australia/Sydney",              label: "(UTC+10:00) Sydney, Melbourne — Australia" },
+  { tz: "Australia/Brisbane",            label: "(UTC+10:00) Brisbane, Queensland" },
+  { tz: "Pacific/Guam",                  label: "(UTC+10:00) Guam, Port Moresby" },
+  { tz: "Asia/Vladivostok",              label: "(UTC+10:00) Vladivostok, Russia" },
+  { tz: "Pacific/Noumea",                label: "(UTC+11:00) Noumea, Solomon Islands" },
+  { tz: "Asia/Magadan",                  label: "(UTC+11:00) Magadan, Russia" },
+  { tz: "Pacific/Auckland",              label: "(UTC+12:00) Auckland, Wellington — New Zealand" },
+  { tz: "Pacific/Fiji",                  label: "(UTC+12:00) Suva, Fiji" },
+  { tz: "Asia/Kamchatka",                label: "(UTC+12:00) Kamchatka, Russia" },
+  { tz: "Pacific/Chatham",               label: "(UTC+12:45) Chatham Islands, New Zealand" },
+  { tz: "Pacific/Tongatapu",             label: "(UTC+13:00) Nuku'alofa, Tonga" },
+  { tz: "Pacific/Apia",                  label: "(UTC+13:00) Apia, Samoa" },
+  { tz: "Pacific/Kiritimati",            label: "(UTC+14:00) Kiritimati, Line Islands" },
+];
 
 function getTzOptions(code) { return COUNTRY_TIMEZONES[code] || DEFAULT_TZ; }
 
@@ -136,6 +252,10 @@ function ApptCard({ appt, onEdit, onCall, onDelete }) {
           {appt.video && <span className="appt-video-chip"><i data-lucide="video" style={{width:13,height:13}} /> Video</span>}
         </div>
         <div className="appt-meta">{appt.type} · {appt.doctor}</div>
+        {appt.date ? <div style={{ fontSize: 11.5, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4, marginTop: 2 }}>
+          <i data-lucide="calendar" style={{ width: 11, height: 11 }} />
+          {new Date(appt.date + "T12:00:00").toLocaleDateString("en-US", { weekday: "short", month: "long", day: "numeric", year: "numeric" })}
+        </div> : null}
         {appt.location ? <div className="appt-loc"><i data-lucide="map-pin" style={{width:12,height:12}} /> {appt.location}</div> : null}
       </div>
       <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, flexShrink: 0 }}>
@@ -201,8 +321,6 @@ function BookModal({ onClose, onSave }) {
   });
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
-
-  const tzOptions = form.destCode ? getTzOptions(form.destCode) : DEFAULT_TZ;
 
   function handlePatient(id) {
     const p = patients.find(x => x.id === id);
@@ -290,13 +408,9 @@ function BookModal({ onClose, onSave }) {
               <span>Time zone</span>
               {localNow ? <span style={{ fontWeight: 400, fontSize: 12, color: "var(--teal-600)" }}>— now: {localNow}</span> : null}
             </label>
-            {!form.patientId ? (
-              <div className="cb-input" style={{ background: "var(--sky-50)", color: "var(--text-faint)", cursor: "default" }}>Select a patient to see timezone options</div>
-            ) : (
-              <select className="cb-input" value={form.timezone} onChange={e => set("timezone", e.target.value)}>
-                {tzOptions.map(t => <option key={t.tz} value={t.tz}>{t.label}</option>)}
-              </select>
-            )}
+            <select className="cb-input" value={form.timezone} onChange={e => set("timezone", e.target.value)}>
+              {ALL_TZ_OPTIONS.map(t => <option key={t.tz} value={t.tz}>{t.label}</option>)}
+            </select>
           </div>
 
           {/* Time + Duration */}
@@ -340,7 +454,6 @@ function EditModal({ appt, onClose, onSave, onCancel, onDelete }) {
   const [form, setForm] = useApptState({ ...appt });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
-  const tzOptions = form.destCode ? getTzOptions(form.destCode) : (form.timezone ? [{ label: form.timezone, tz: form.timezone }] : DEFAULT_TZ);
   const localNow = form.timezone ? fmtLocalNow(form.timezone) : "";
 
   function handleHospital(id) {
@@ -403,8 +516,8 @@ function EditModal({ appt, onClose, onSave, onCancel, onDelete }) {
               {localNow ? <span style={{ fontWeight: 400, fontSize: 12, color: "var(--teal-600)" }}>— now: {localNow}</span> : null}
             </label>
             <select className="cb-input" value={form.timezone || ""} onChange={e => set("timezone", e.target.value)}>
-              {tzOptions.map(t => <option key={t.tz} value={t.tz}>{t.label}</option>)}
-              {!form.timezone && <option value="">— No timezone —</option>}
+              {!form.timezone && <option value="">— Select timezone —</option>}
+              {ALL_TZ_OPTIONS.map(t => <option key={t.tz} value={t.tz}>{t.label}</option>)}
             </select>
           </div>
 
