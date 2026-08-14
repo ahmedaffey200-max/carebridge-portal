@@ -1012,6 +1012,9 @@ const UI_SO = {
   "Request Call":"Codsiga Wicitaanka","Request Video":"Codsiga Muuqaalka",
   "Coming soon":"Dhawaan La Heli Doonaa","Read":"La akhriyay","NEW":"CUSUB",
   "Poor":"Xun","Fair":"Dhexdhexaad","Good":"Wanaagsan","Very good":"Aad u Wanaagsan","Excellent":"Heer Sare",
+  "Notes":"Xusuusta","Daily Notice":"Ogeysiis Maalinlaha","Doctor Notes":"Xusuusta Dhakhtarka",
+  "No notes yet. Your coordinator will send updates here.":"Wali xusuus ma jirto. Xiriiriyahaagu wuxuu kuu soo diri doonaa cusboonaysiimaha halkan.",
+  "Attachments":"Lifaaqyada","Download":"Soo dejiso",
 };
 
 function t(lang, key) { return lang === "so" ? (UI_SO[key] || key) : key; }
@@ -2456,6 +2459,95 @@ function NotificationsTab({ patientId, lang = "en" }) {
 }
 
 /* ================================================================
+   Notes Tab — read-only patient view of coordinator/doctor notes
+   ================================================================ */
+function NotesTab({ invitation, lang = "en" }) {
+  const pid = invitation.patient_id;
+  const [notes, setNotes]     = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [subTab, setSubTab]   = useState("daily");
+
+  async function loadNotes() {
+    if (!pid) return;
+    const { data } = await sb.from("portal_state").select("state").eq("id", "notes_" + pid).single();
+    setNotes(Array.isArray(data?.state) ? data.state : []);
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    loadNotes();
+    const ch = sb.channel("pp-pnotes-" + pid)
+      .on("postgres_changes", { event: "*", schema: "public", table: "portal_state", filter: "id=eq.notes_" + pid }, loadNotes)
+      .subscribe();
+    return () => sb.removeChannel(ch);
+  }, [pid]);
+
+  const filtered = notes.filter(n => subTab === "daily" ? n.type === "daily" : n.type === "doctor");
+
+  return (
+    <div className="pp-content">
+      <div className="pp-card">
+        <div className="pp-card-header">
+          <div className="pp-card-title" style={{ display:"flex", alignItems:"center", gap:8 }}>
+            <Icon name="file-text" size={16} /> {t(lang, "Notes")}
+          </div>
+        </div>
+        <div style={{ display:"flex", gap:8, padding:"0 16px 12px" }}>
+          {[["daily", t(lang, "Daily Notice")], ["doctor", t(lang, "Doctor Notes")]].map(([id, label]) => (
+            <button key={id} onClick={() => setSubTab(id)} style={{
+              padding:"6px 16px", borderRadius:20, border:"none", cursor:"pointer", fontSize:13, fontWeight:600,
+              background: subTab === id ? "var(--teal,#1CA89C)" : "var(--bg-card-alt,#f0f4f8)",
+              color: subTab === id ? "#fff" : "var(--text-sub)",
+              transition:"all .15s"
+            }}>{label}</button>
+          ))}
+        </div>
+        <div className="pp-card-body" style={{ padding:"0 16px 16px" }}>
+          {loading ? (
+            <div style={{ textAlign:"center", padding:32, color:"var(--text-faint)" }}><Icon name="loader" size={22} /></div>
+          ) : filtered.length === 0 ? (
+            <div style={{ textAlign:"center", padding:32, color:"var(--text-faint)", fontSize:14 }}>{t(lang, "No notes yet. Your coordinator will send updates here.")}</div>
+          ) : filtered.slice().reverse().map((note, i) => (
+            <div key={i} style={{
+              background:"var(--bg-card-alt,#f7fafc)", borderRadius:10, padding:"14px 16px",
+              marginBottom:12, borderLeft:"3px solid " + (note.type === "doctor" ? "#3182ce" : "var(--teal,#1CA89C)")
+            }}>
+              <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:6 }}>
+                <span style={{
+                  fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:.5,
+                  color: note.type === "doctor" ? "#3182ce" : "var(--teal,#1CA89C)",
+                  background: note.type === "doctor" ? "#ebf8ff" : "#e6fffa",
+                  padding:"2px 8px", borderRadius:10
+                }}>{note.type === "doctor" ? t(lang, "Doctor Notes") : t(lang, "Daily Notice")}</span>
+                <span style={{ fontSize:12, color:"var(--text-faint)", marginLeft:"auto" }}>
+                  {note.created_at ? new Date(note.created_at).toLocaleDateString("en-GB", { day:"numeric", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit" }) : ""}
+                </span>
+              </div>
+              {note.title && <div style={{ fontWeight:600, fontSize:14, marginBottom:4 }}>{note.title}</div>}
+              <div style={{ fontSize:14, whiteSpace:"pre-wrap", lineHeight:1.6 }}>{note.body}</div>
+              {note.files && note.files.length > 0 && (
+                <div style={{ marginTop:10, display:"flex", flexWrap:"wrap", gap:6 }}>
+                  <span style={{ fontSize:12, color:"var(--text-faint)", width:"100%", marginBottom:2 }}>{t(lang, "Attachments")}:</span>
+                  {note.files.map((f, fi) => (
+                    <a key={fi} href={f.data} download={f.name} style={{
+                      display:"inline-flex", alignItems:"center", gap:4, fontSize:12, fontWeight:500,
+                      background:"var(--bg-card,#fff)", border:"1px solid var(--border)", borderRadius:8,
+                      padding:"4px 10px", color:"var(--teal,#1CA89C)", textDecoration:"none"
+                    }}>
+                      <Icon name="paperclip" size={12} /> {f.name}
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ================================================================
    Dashboard shell
    ================================================================ */
 function Dashboard({ invitation, locationLabel, tab, setTab, onLogout, unreadMsgs, newJourney, newTravel, newDocs, clearBadge, newMsgIds, newActIds, bellOn, onToggleBell }) {
@@ -2479,6 +2571,7 @@ function Dashboard({ invitation, locationLabel, tab, setTab, onLogout, unreadMsg
     { id: "journey",   label: t(lang, "Journey"),    icon: "route",          badge: newJourney },
     { id: "travel",    label: t(lang, "Travel"),     icon: "plane",          badge: newTravel  },
     { id: "documents", label: t(lang, "Documents"),  icon: "file-text",      badge: newDocs    },
+    { id: "notes",     label: t(lang, "Notes"),      icon: "notebook",       badge: 0          },
     { id: "emergency", label: t(lang, "Emergency"),  icon: "phone-call",     badge: 0          },
     { id: "ai",        label: t(lang, "AI Help"),    icon: "cpu",            badge: 0          },
     { id: "rate",      label: t(lang, "Rate Us"),    icon: "star",           badge: 0          },
@@ -2531,6 +2624,7 @@ function Dashboard({ invitation, locationLabel, tab, setTab, onLogout, unreadMsg
       {tab === "journey"   && <JourneyTab    invitation={invitation} newActIds={newActIds} lang={lang} />}
       {tab === "travel"    && <TravelTab     invitation={invitation} lang={lang} />}
       {tab === "documents" && <DocumentsTab  invitation={invitation} lang={lang} />}
+      {tab === "notes"     && <NotesTab      invitation={invitation} lang={lang} />}
       {tab === "emergency" && <EmergencyTab  invitation={invitation} lang={lang} />}
       {tab === "ai"        && <AiErrorBoundary><AiTab invitation={invitation} lang={lang} /></AiErrorBoundary>}
       {tab === "rate"      && <RateTab       invitation={invitation} />}
