@@ -207,12 +207,12 @@ html, body { height: 100%; overflow: hidden; font-family: 'Segoe UI', Arial, san
         </div>
 
         <div class="sig-field" style="margin-top:16px;margin-bottom:0">
-          <label class="field-label">Your Initials * <span style="font-size:11px;text-transform:none;letter-spacing:0;font-weight:400;color:var(--sub)">(applied to all 14 pages automatically)</span></label>
+          <label class="field-label">Your Initials * <span style="font-size:11px;text-transform:none;letter-spacing:0;font-weight:400;color:var(--sub)">(applied to all 8 pages automatically)</span></label>
           <input class="init-input" type="text" id="patient-initials-input" maxlength="5" placeholder="e.g. J.S." autocapitalize="characters" autocomplete="off" oninput="this.value=this.value.toUpperCase()" />
         </div>
 
         <div class="notice" style="margin-top:16px">
-          <strong>What happens next:</strong> You'll review each of the 14 pages of the agreement and provide your initials. Then you'll sign in the designated signature areas. The whole process takes about 5 minutes.
+          <strong>What happens next:</strong> You'll review each of the 8 pages of the agreement and provide your initials. Then you'll sign in the designated signature areas. The whole process takes about 3 minutes.
         </div>
 
         <button class="btn-begin" onclick="beginSigning()">
@@ -231,7 +231,7 @@ html, body { height: 100%; overflow: hidden; font-family: 'Segoe UI', Arial, san
       <div class="doc-prog-label">Agreement Progress</div>
       <div class="doc-prog-bar"><div class="doc-prog-fill" id="prog-fill" style="width:0%"></div></div>
     </div>
-    <div class="doc-page-badge" id="page-badge">Page 1 / 14</div>
+    <div class="doc-page-badge" id="page-badge">Page 1 / 8</div>
     <span id="page-name" style="display:none"></span>
     <div class="zoom-ctrl">
       <button class="zoom-btn" onclick="zoomOut()" title="Zoom out" aria-label="Zoom out">−</button>
@@ -246,7 +246,7 @@ html, body { height: 100%; overflow: hidden; font-family: 'Segoe UI', Arial, san
 
   <div class="sign-panel">
     <div class="sign-panel__row">
-      <span class="init-label">Page <span id="sign-panel-pg">1</span> / 14 &nbsp;·&nbsp; Initials:</span>
+      <span class="init-label">Page <span id="sign-panel-pg">1</span> / 8 &nbsp;·&nbsp; Initials:</span>
       <span class="init-badge" id="init-badge">—</span>
       <button class="btn-prev" id="btn-pg-prev" onclick="prevDocPage()" style="display:none">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
@@ -577,8 +577,8 @@ function beginSigning() {
   }
   patientNameVal = name;
   globalInitials = inits;
-  // Pre-fill all 14 pages with the same initials
-  for (var i = 1; i <= 14; i++) initials["page" + i] = inits;
+  // Pre-fill all pages with the same initials
+  for (var i = 1; i <= PAGES.length; i++) initials["page" + i] = inits;
   // Update badge
   document.getElementById("init-badge").textContent = inits;
 
@@ -592,10 +592,10 @@ function beginSigning() {
 // ---- Document page navigation ----
 function updatePageUI() {
   var pg = docPageIdx + 1;
-  document.getElementById("page-badge").textContent = "Page " + pg + " / 14";
+  document.getElementById("page-badge").textContent = "Page " + pg + " / " + PAGES.length;
   document.getElementById("page-name").textContent = PAGES[docPageIdx].label;
   document.getElementById("sign-panel-pg").textContent = pg;
-  document.getElementById("prog-fill").style.width = (pg / 14 * 100) + "%";
+  document.getElementById("prog-fill").style.width = (pg / PAGES.length * 100) + "%";
   document.getElementById("btn-pg-prev").style.display = docPageIdx > 0 ? "flex" : "none";
 
   // Last page = go to signatures
@@ -840,8 +840,8 @@ function generateSignedPDF(payload) {
     doc.text(title,20,y+5.5); return y+13;
   }
 
-  // ── PAGES 1-14: Agreement pages ──
-  for (var pgIdx = 0; pgIdx < 14; pgIdx++) {
+  // ── Agreement pages ──
+  for (var pgIdx = 0; pgIdx < PAGES.length; pgIdx++) {
     if (pgIdx > 0) doc.addPage();
     hdr(pgIdx + 1);
     var content = extractPageContent(pgIdx);
@@ -851,7 +851,7 @@ function generateSignedPDF(payload) {
     // Page badge + title
     doc.setFillColor(teal[0],teal[1],teal[2]); doc.roundedRect(14,y,28,9,2,2,"F");
     doc.setFont("helvetica","bold"); doc.setFontSize(8); doc.setTextColor(255,255,255);
-    doc.text("PAGE "+(pgIdx+1)+" / 14", 28, y+5.8, {align:"center"});
+    doc.text("PAGE "+(pgIdx+1)+" / "+PAGES.length, 28, y+5.8, {align:"center"});
     doc.setFont("helvetica","bold"); doc.setFontSize(11); doc.setTextColor(navy[0],navy[1],navy[2]);
     var titleLines = doc.splitTextToSize(content.title, W-60);
     doc.text(titleLines, 46, y+6);
@@ -921,9 +921,9 @@ function generateSignedPDF(payload) {
   if(payload.repName){y2=secBar(y2+3,"Authorized Representative");doc.setFont("helvetica","bold");doc.setFontSize(8);doc.setTextColor(grey[0],grey[1],grey[2]);doc.text("NAME",14,y2);doc.text("RELATIONSHIP",14+colW+4,y2);doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(navy[0],navy[1],navy[2]);doc.text(payload.repName,14,y2+5);doc.text(payload.repRelationship||"—",14+colW+4,y2+5);y2+=13;}
   if(payload.witnesName){y2=secBar(y2+3,"Witness 2");doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(navy[0],navy[1],navy[2]);doc.text(payload.witnesName,14,y2);y2+=13;}
 
-  y2=secBar(y2+3,"Page Initials — All 14 Pages");
-  var cellW=(W-28)/7, cellH=13;
-  for(var pi=0;pi<14;pi++){
+  y2=secBar(y2+3,"Page Initials — All " + PAGES.length + " Pages");
+  var cellW=(W-28)/Math.min(PAGES.length,7), cellH=13;
+  for(var pi=0;pi<PAGES.length;pi++){
     var col2=pi%7, row2=Math.floor(pi/7), cx=14+col2*cellW, cy=y2+row2*cellH;
     doc.setFillColor(col2%2===0?247:243,col2%2===0?249:245,col2%2===0?252:249);
     doc.roundedRect(cx,cy,cellW-1,cellH-1,2,2,"F");
