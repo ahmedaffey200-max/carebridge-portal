@@ -439,22 +439,16 @@ var initials = {};   // { page1: "AH", page2: "AH", ... } — all same value
 var frameReady = false;
 var _signedPayload = null;
 
-// 14 pages: page 1 = cover, page 2 = TOC, pages 3-14 = body sections
+// 8 pages: cover, TOC, 5 grouped body sections, signatures
 var PAGES = [
-  { label: "Cover Page",                          scroll: function(fr) { try { fr.contentWindow.scrollTo(0,0); } catch(e){} } },
-  { label: "Table of Contents",                   scroll: function(fr) { scrollToEl(fr, ".toc"); } },
-  { label: "Sections 1–4: Definitions & Scope",   scroll: function(fr) { scrollToEl(fr, ".body"); } },
-  { label: "Sections 5–8: Services",              scroll: function(fr) { scrollToSec(fr, 5); } },
-  { label: "Sections 9–12: Patient Responsibilities", scroll: function(fr) { scrollToSec(fr, 9); } },
-  { label: "Sections 13–16: Authorization & Costs",scroll: function(fr) { scrollToSec(fr, 13); } },
-  { label: "Sections 17–20: Travel & Logistics",  scroll: function(fr) { scrollToSec(fr, 17); } },
-  { label: "Sections 21–24: Communication & Privacy", scroll: function(fr) { scrollToSec(fr, 21); } },
-  { label: "Sections 25–28: Electronic & Data",   scroll: function(fr) { scrollToSec(fr, 25); } },
-  { label: "Sections 29–32: Limitations",         scroll: function(fr) { scrollToSec(fr, 29); } },
-  { label: "Sections 33–36: Third Party & Force Majeure", scroll: function(fr) { scrollToSec(fr, 33); } },
-  { label: "Sections 37–40: Conduct & Compliance",scroll: function(fr) { scrollToSec(fr, 37); } },
-  { label: "Section 41: Intellectual Property",   scroll: function(fr) { scrollToSec(fr, 41); } },
-  { label: "Section 42: Signatures & Witnesses",  scroll: function(fr) { scrollToSec(fr, 42); } },
+  { label: "Cover Page",                                     scroll: function(fr) { try { fr.contentWindow.scrollTo(0,0); } catch(e){} } },
+  { label: "Table of Contents",                              scroll: function(fr) { scrollToEl(fr, ".toc"); } },
+  { label: "Sections 1–8: Definitions & Services",           scroll: function(fr) { scrollToEl(fr, ".body"); } },
+  { label: "Sections 9–16: Patient Responsibilities & Costs",scroll: function(fr) { scrollToSec(fr, 9); } },
+  { label: "Sections 17–24: Travel, Logistics & Privacy",    scroll: function(fr) { scrollToSec(fr, 17); } },
+  { label: "Sections 25–32: Data, Security & Limitations",   scroll: function(fr) { scrollToSec(fr, 25); } },
+  { label: "Sections 33–41: Third Party, Conduct & IP",      scroll: function(fr) { scrollToSec(fr, 33); } },
+  { label: "Section 42: Signatures & Witnesses",             scroll: function(fr) { scrollToSec(fr, 42); } },
 ];
 
 function scrollToEl(fr, selector) {
