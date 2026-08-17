@@ -63,6 +63,11 @@ html, body { height: 100%; overflow: hidden; font-family: 'Segoe UI', Arial, san
 .zoom-btn:active { background: rgba(255,255,255,0.2); }
 .zoom-lbl { font-size: 11px; font-weight: 800; color: rgba(255,255,255,0.88); min-width: 34px; text-align: center; letter-spacing: 0.02em; }
 
+/* ── LANGUAGE TOGGLE ── */
+.lang-toggle { display: flex; align-items: center; gap: 2px; background: rgba(255,255,255,0.13); border-radius: 8px; padding: 3px; flex-shrink: 0; }
+.lang-btn { padding: 5px 10px; border: none; background: transparent; color: rgba(255,255,255,0.65); font-size: 11px; font-weight: 800; letter-spacing: .07em; cursor: pointer; border-radius: 6px; transition: all .15s; font-family: inherit; touch-action: manipulation; }
+.lang-btn.active { background: var(--teal); color: #fff; box-shadow: 0 2px 6px rgba(28,168,156,0.4); }
+
 .sign-panel { background: var(--card); border-top: 3px solid var(--teal); padding: 12px 16px 18px; flex-shrink: 0; box-shadow: 0 -6px 32px rgba(27,58,107,0.18); position: relative; z-index: 10; }
 .sign-panel__row { display: flex; align-items: center; gap: 10px; flex-wrap: nowrap; }
 .init-label { font-size: 12px; font-weight: 700; color: var(--sub); text-transform: uppercase; letter-spacing: 0.6px; white-space: nowrap; flex-shrink: 0; }
@@ -233,6 +238,10 @@ html, body { height: 100%; overflow: hidden; font-family: 'Segoe UI', Arial, san
     </div>
     <div class="doc-page-badge" id="page-badge">Page 1 / 8</div>
     <span id="page-name" style="display:none"></span>
+    <div class="lang-toggle" title="Switch language / Luqadda">
+      <button class="lang-btn active" id="lang-btn-en" onclick="setAgrLang('en')">EN</button>
+      <button class="lang-btn" id="lang-btn-so" onclick="setAgrLang('so')">SO</button>
+    </div>
     <div class="zoom-ctrl">
       <button class="zoom-btn" onclick="zoomOut()" title="Zoom out" aria-label="Zoom out">−</button>
       <span class="zoom-lbl" id="zoom-lbl">100%</span>
@@ -435,6 +444,15 @@ var ADMIN_EMAIL   = "ahmedaffey200@gmail.com";
 
 var agrId = "", patientNameVal = "", globalInitials = "";
 var docPageIdx = 0;  // 0-based index into PAGES array
+var agrLang = 'en';
+
+function setAgrLang(lang) {
+  agrLang = lang;
+  document.getElementById('lang-btn-en').classList.toggle('active', lang === 'en');
+  document.getElementById('lang-btn-so').classList.toggle('active', lang === 'so');
+  var fr = document.getElementById('doc-frame');
+  try { fr.contentWindow.postMessage({ type: 'setDocLang', lang: lang }, '*'); } catch(e) {}
+}
 var initials = {};   // { page1: "AH", page2: "AH", ... } — all same value
 var frameReady = false;
 var _signedPayload = null;

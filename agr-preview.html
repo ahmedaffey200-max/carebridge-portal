@@ -837,5 +837,39 @@
   </section>
 </main>
 
+<!-- Google Translate (hidden) — triggered by parent agreement.html via postMessage -->
+<div id="gte" style="position:fixed;top:-300px;left:-300px;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none"></div>
+<style>
+  /* Hide GT banner and toolbar so only the content is translated */
+  .goog-te-banner-frame,.skiptranslate{display:none!important}
+  body{top:0!important}
+  #goog-gt-tt,.goog-tooltip,.goog-tooltip-img,.goog-te-balloon-frame{display:none!important}
+  .VIpgJd-ZVi9od-aZ2wEe-wOHMyf{display:none!important}
+</style>
+<script>
+function googleTranslateElementInit() {
+  new google.translate.TranslateElement({
+    pageLanguage: 'en',
+    includedLanguages: 'so,en',
+    autoDisplay: false
+  }, 'gte');
+}
+window.addEventListener('message', function(e) {
+  if (!e.data || e.data.type !== 'setDocLang') return;
+  var lang = e.data.lang;
+  function attempt(n) {
+    var sel = document.querySelector('.goog-te-combo');
+    if (sel) {
+      sel.value = (lang === 'so') ? 'so' : '';
+      sel.dispatchEvent(new Event('change'));
+    } else if (n > 0) {
+      setTimeout(function() { attempt(n - 1); }, 400);
+    }
+  }
+  attempt(30);
+});
+</script>
+<script src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit" async></script>
+
 </body>
 </html>
