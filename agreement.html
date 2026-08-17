@@ -447,11 +447,20 @@ var docPageIdx = 0;  // 0-based index into PAGES array
 var agrLang = 'en';
 
 function setAgrLang(lang) {
+  if (agrLang === lang) return;
   agrLang = lang;
   document.getElementById('lang-btn-en').classList.toggle('active', lang === 'en');
   document.getElementById('lang-btn-so').classList.toggle('active', lang === 'so');
   var fr = document.getElementById('doc-frame');
-  try { fr.contentWindow.postMessage({ type: 'setDocLang', lang: lang }, '*'); } catch(e) {}
+  var idx = docPageIdx;
+  fr.onload = function() {
+    try { injectIframeCSS(fr); } catch(e) {}
+    setTimeout(function() {
+      try { PAGES[idx].scroll(fr); } catch(e) {}
+    }, lang === 'so' ? 1800 : 300);
+    fr.onload = null;
+  };
+  fr.src = 'agr-preview.html' + (lang === 'so' ? '?lang=so' : '?lang=en');
 }
 var initials = {};   // { page1: "AH", page2: "AH", ... } — all same value
 var frameReady = false;
