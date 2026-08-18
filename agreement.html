@@ -446,21 +446,21 @@ var agrId = "", patientNameVal = "", globalInitials = "";
 var docPageIdx = 0;  // 0-based index into PAGES array
 var agrLang = 'en';
 
+function applyDocLang(lang) {
+  var fr = document.getElementById('doc-frame');
+  var so = lang === 'so';
+  try {
+    var doc = fr.contentDocument || fr.contentWindow.document;
+    doc.querySelectorAll('.lang-en').forEach(function(el){ el.hidden = so; });
+    doc.querySelectorAll('.lang-so').forEach(function(el){ el.hidden = !so; });
+  } catch(e) {}
+}
 function setAgrLang(lang) {
   if (agrLang === lang) return;
   agrLang = lang;
   document.getElementById('lang-btn-en').classList.toggle('active', lang === 'en');
   document.getElementById('lang-btn-so').classList.toggle('active', lang === 'so');
-  var fr = document.getElementById('doc-frame');
-  var idx = docPageIdx;
-  fr.onload = function() {
-    try { injectIframeCSS(fr); } catch(e) {}
-    setTimeout(function() {
-      try { PAGES[idx].scroll(fr); } catch(e) {}
-    }, lang === 'so' ? 1800 : 300);
-    fr.onload = null;
-  };
-  fr.src = 'agr-preview.html' + (lang === 'so' ? '?lang=so' : '?lang=en');
+  applyDocLang(lang);
 }
 var initials = {};   // { page1: "AH", page2: "AH", ... } — all same value
 var frameReady = false;
@@ -648,8 +648,9 @@ document.getElementById("doc-frame").addEventListener("load", function() {
   var fr = this;
   injectIframeCSS(fr);
   setupIframeObserver(fr);
+  applyDocLang(agrLang);
   // Re-inject after the async bundler finishes unpacking content
-  setTimeout(function() { injectIframeCSS(fr); }, 800);
+  setTimeout(function() { injectIframeCSS(fr); applyDocLang(agrLang); }, 800);
   setTimeout(function() { injectIframeCSS(fr); }, 2500);
 });
 

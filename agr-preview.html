@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -10,12 +10,9 @@
 <link rel="stylesheet" href="_ds/carebridge-design-system-1211a801-6b8c-4eac-9f98-9ed53e456f1c/styles.css">
 <style>
   html, body { margin: 0; background: #f6f8fa; }
-
   .doc { box-sizing: border-box; max-width: 794px; margin: 0 auto; background: #fff;
          box-shadow: 0 8px 40px rgba(13,58,102,.18);
          font-family: 'Source Sans 3', system-ui, sans-serif; color: #232b35; }
-
-  /* ============ COVER ============ */
   .cover { box-sizing: border-box; min-height: 1040px; padding: 44px 64px 32px; display: flex; flex-direction: column; }
   .cv-logo-wrap { display: flex; flex-direction: column; align-items: center; text-align: center; }
   .cv-logo { height: 170px; width: auto; }
@@ -23,12 +20,10 @@
   .cv-co-sub { font-size: 12px; color: #8a93a0; font-style: italic; letter-spacing: .03em; margin-top: 4px; }
   .cv-rule { height: 3px; border-radius: 3px; width: 100%; margin: 22px 0 0;
              background: linear-gradient(90deg,#0D3B66 0%,#0D3B66 52%,#1CA89C 52%,#1CA89C 100%); }
-
   .cv-hero { margin-top: 30px; text-align: center; }
   .cv-kicker { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 11px; letter-spacing: .26em; text-transform: uppercase; color: #1CA89C; }
   .cv-title { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800; font-size: 33px; color: #16243a; letter-spacing: .01em; line-height: 1.18; margin: 14px 0 0; }
   .cv-sub { font-size: 12.5px; color: #6b7480; letter-spacing: .02em; margin: 16px auto 0; max-width: 520px; line-height: 1.7; }
-
   .cv-meta { margin-top: 26px; border: 1px solid #e5e9ee; border-radius: 12px; overflow: hidden; }
   .cv-meta .row { display: grid; grid-template-columns: 1fr 1fr; }
   .cv-meta .cell { padding: 14px 22px; border-bottom: 1px solid #eef1f4; border-right: 1px solid #eef1f4; }
@@ -36,18 +31,14 @@
   .cv-meta .row:last-child .cell { border-bottom: none; }
   .cv-meta .lbl { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: #9aa3ad; }
   .cv-meta .val { font-size: 13px; color: #232b35; margin-top: 6px; border-bottom: 1px solid #cfd5dc; min-height: 1.15em; padding-bottom: 2px; }
-
   .cv-conf { margin-top: 18px; background: #f8f9fb; border: 1px solid #e5e9ee; border-left: 3px solid #1CA89C; border-radius: 8px; padding: 15px 20px; }
   .cv-conf .h { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: #0D3B66; margin: 0 0 5px; }
   .cv-conf p { font-size: 11px; line-height: 1.65; color: #5a636e; margin: 0; }
-
   .cv-foot { margin-top: auto; padding-top: 16px; display: flex; align-items: center; justify-content: space-between; }
   .cv-foot .l { width: 100%; height: 1px; background: #e1e5ea; }
   .cv-foot-in { display: flex; align-items: center; justify-content: space-between; }
   .cv-foot .conf { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: #aab1b9; }
   .cv-foot .contact { font-size: 10.5px; color: #7b838d; }
-
-  /* ============ TOC ============ */
   .toc { box-sizing: border-box; padding: 54px 64px 60px; border-top: 4px solid #e5e9ee; }
   .toc-lh { display: flex; align-items: center; gap: 18px; margin-bottom: 4px; }
   .toc-lh img { height: 46px; width: auto; }
@@ -59,8 +50,6 @@
   .toc-list { columns: 2; column-gap: 46px; }
   .toc-item { display: flex; align-items: baseline; gap: 10px; break-inside: avoid; margin: 0 0 11px; font-size: 12px; color: #33404e; }
   .toc-item .n { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 11px; color: #1CA89C; min-width: 20px; }
-
-  /* ============ BODY ============ */
   .body { padding: 54px 64px 72px; border-top: 4px solid #e5e9ee; }
   .body-lh { display: flex; align-items: center; gap: 18px; margin-bottom: 4px; }
   .body-lh img { height: 48px; width: auto; }
@@ -71,27 +60,22 @@
                   background: linear-gradient(90deg,#0D3B66 0%,#0D3B66 52%,#1CA89C 52%,#1CA89C 100%); }
   .doc-title { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800; font-size: 21px; color: #0D3B66; margin: 0 0 4px; }
   .doc-subtitle { font-size: 11.5px; color: #7b838d; margin: 0 0 20px; padding-bottom: 16px; border-bottom: 2px solid #0D3B66; }
-
   .p { font-size: 12px; line-height: 1.7; margin: 0 0 10px; }
   .p b, .p strong { color: #16243a; font-weight: 700; }
   .lead { font-size: 12px; line-height: 1.7; margin: 0 0 12px; }
-
   .clause { margin-top: 18px; }
   .clause:first-of-type { margin-top: 14px; }
   .sec { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 12.5px; color: #0D3B66; margin: 0 0 11px; padding-bottom: 7px; border-bottom: 1px solid #e2e6eb; letter-spacing: .015em; text-transform: uppercase; }
   .sec .n { display: inline-block; min-width: 30px; color: #1CA89C; }
   .mini { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 10.5px; color: #2a3a52; letter-spacing: .06em; text-transform: uppercase; margin: 14px 0 6px; }
-
   ul.list { margin: 4px 0 11px; padding: 0; list-style: none; }
   ul.list li { font-size: 12px; line-height: 1.55; margin: 5px 0; padding-left: 20px; position: relative; }
   ul.list li::before { content: ""; position: absolute; left: 4px; top: 8px; width: 5px; height: 5px; border-radius: 50%; background: #1CA89C; }
   ul.list.dash li::before { content: ""; top: 10px; left: 3px; width: 8px; height: 1.5px; border-radius: 0; background: #c0c7cf; }
-
   dl.defs { margin: 4px 0 8px; }
   dl.defs > div { display: grid; grid-template-columns: 190px 1fr; gap: 4px 18px; padding: 8px 0; border-bottom: 1px solid #eef1f4; }
   dl.defs dt { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 11.5px; color: #0D3B66; }
   dl.defs dd { margin: 0; font-size: 11.5px; line-height: 1.6; color: #3a4552; }
-
   .between { background: #f8f9fb; border: 1px solid #e5e9ee; border-radius: 10px; padding: 18px 22px; margin: 6px 0 4px; }
   .field { font-size: 12px; margin: 9px 0; display: flex; align-items: baseline; gap: 8px; }
   .field .lbl { font-weight: 600; color: #16243a; white-space: nowrap; }
@@ -99,10 +83,8 @@
   .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 40px; }
   .partyhead { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 11.5px; color: #0D3B66; letter-spacing: .03em; margin: 14px 0 2px; }
   .fieldbox { background: #f8f9fb; border: 1px solid #e5e9ee; border-radius: 10px; padding: 14px 20px; margin: 8px 0 10px; }
-
   .callout { background: #fbfaf6; border: 1px solid #ece7d8; border-left: 3px solid #c9a227; border-radius: 8px; padding: 12px 18px; margin: 8px 0 12px; }
   .callout p { font-size: 11.5px; line-height: 1.6; margin: 0; color: #55503f; }
-
   .sigwrap { margin-top: 22px; }
   .siggrid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 14px; }
   .sigcard { border: 1px solid #d9dee4; border-radius: 10px; padding: 18px 20px 24px; }
@@ -111,7 +93,6 @@
   .sigcard .sigline { margin-top: 20px; }
   .sigcard .sigline .ln { border-bottom: 1px solid #aeb6c0; height: 1.5em; }
   .sigcard .sigline .cap { font-size: 10px; color: #8a929b; margin-top: 4px; }
-
   @media (max-width: 600px) {
     .cover { padding: 28px 20px 24px; min-height: auto; }
     .toc, .body { padding: 28px 20px 40px; }
@@ -124,7 +105,6 @@
 </style>
 </head>
 <body>
-
 <main class="doc">
 
   <!-- ===================== COVER ===================== -->
@@ -133,38 +113,44 @@
       <img class="cv-logo" src="assets/carebridge-logo-full.png" alt="Carebridge International">
     </div>
     <div class="cv-rule"></div>
-
     <div class="cv-hero">
-      <div class="cv-kicker">International Healthcare Agreement</div>
-      <h1 class="cv-title">Patient Medical Travel<br>Service Agreement</h1>
-      <p class="cv-sub">International Healthcare Coordination &nbsp;&bull;&nbsp; Medical Tourism &nbsp;&bull;&nbsp; Patient Support &nbsp;&bull;&nbsp; Healthcare Travel Services</p>
+      <div class="cv-kicker">
+        <span class="lang-en">International Healthcare Agreement</span>
+        <span class="lang-so" hidden>Heshiiska Daryeelka Caafimaadka Caalamiga ah</span>
+      </div>
+      <h1 class="cv-title">
+        <span class="lang-en">Patient Medical Travel<br>Service Agreement</span>
+        <span class="lang-so" hidden>Heshiiska Adeegga<br>Safarka Caafimaadka Bukaanka</span>
+      </h1>
+      <p class="cv-sub">
+        <span class="lang-en">International Healthcare Coordination &nbsp;&bull;&nbsp; Medical Tourism &nbsp;&bull;&nbsp; Patient Support &nbsp;&bull;&nbsp; Healthcare Travel Services</span>
+        <span class="lang-so" hidden>Iskaashiga Daryeelka Caafimaadka Caalamiga ah &nbsp;&bull;&nbsp; Dalxiiska Caafimaad &nbsp;&bull;&nbsp; Taageerada Bukaanka &nbsp;&bull;&nbsp; Adeegyada Safarka Caafimaadka</span>
+      </p>
     </div>
-
     <div class="cv-meta">
       <div class="row">
-        <div class="cell"><div class="lbl">Agreement Number</div><div class="val"></div></div>
-        <div class="cell"><div class="lbl">Version Number</div><div class="val"></div></div>
+        <div class="cell"><div class="lbl"><span class="lang-en">Agreement Number</span><span class="lang-so" hidden>Lambarka Heshiiska</span></div><div class="val"></div></div>
+        <div class="cell"><div class="lbl"><span class="lang-en">Version Number</span><span class="lang-so" hidden>Lambarka Nooca</span></div><div class="val"></div></div>
       </div>
       <div class="row">
-        <div class="cell"><div class="lbl">Patient Name</div><div class="val"></div></div>
-        <div class="cell"><div class="lbl">Date</div><div class="val"></div></div>
+        <div class="cell"><div class="lbl"><span class="lang-en">Patient Name</span><span class="lang-so" hidden>Magaca Bukaanka</span></div><div class="val"></div></div>
+        <div class="cell"><div class="lbl"><span class="lang-en">Date</span><span class="lang-so" hidden>Taariikhda</span></div><div class="val"></div></div>
       </div>
       <div class="row">
-        <div class="cell"><div class="lbl">Prepared By</div><div class="val"></div></div>
-        <div class="cell"><div class="lbl">Company</div><div class="val" style="border:none; color:#0D3B66; font-weight:600;">Carebridge International Inc.</div></div>
+        <div class="cell"><div class="lbl"><span class="lang-en">Prepared By</span><span class="lang-so" hidden>Diyaariyey</span></div><div class="val"></div></div>
+        <div class="cell"><div class="lbl"><span class="lang-en">Company</span><span class="lang-so" hidden>Shirkadda</span></div><div class="val" style="border:none; color:#0D3B66; font-weight:600;">Carebridge International Inc.</div></div>
       </div>
     </div>
-
     <div class="cv-conf">
-      <div class="h">Confidentiality Notice</div>
-      <p>This document contains confidential and proprietary information intended solely for the parties to this Agreement. It may not be copied, distributed, or disclosed to any third party without the prior written consent of Carebridge International Inc., except as required by law.</p>
+      <div class="h"><span class="lang-en">Confidentiality Notice</span><span class="lang-so" hidden>Ogeysiiska Sirta</span></div>
+      <p class="lang-en">This document contains confidential and proprietary information intended solely for the parties to this Agreement. It may not be copied, distributed, or disclosed to any third party without the prior written consent of Carebridge International Inc., except as required by law.</p>
+      <p class="lang-so" hidden>Dukumentigan wuxuu ku jiraa macluumaad sir ah oo loogu talagalay xaggaha heshiiskan oo keliya. Laguma koobi karo, laguma faafi karo, waxaana looga sii dari karo qof kale iyada oo aan oggolaanshaha qoraalka ah ee Carebridge International Inc. la helin, marka laga reebo sida uu sharciku u baahan yahay.</p>
     </div>
-
     <div class="cv-foot">
       <div style="width:100%;">
         <div class="l"></div>
         <div class="cv-foot-in" style="margin-top:12px;">
-          <span class="conf">Private &amp; Confidential</span>
+          <span class="conf"><span class="lang-en">Private &amp; Confidential</span><span class="lang-so" hidden>Gaarka ah &amp; Sir ah</span></span>
           <span class="contact">support@carebridgeinternational.ca &nbsp;|&nbsp; +1 (825) 785-3396 &nbsp;|&nbsp; www.carebridgeinternational.ca</span>
         </div>
       </div>
@@ -177,12 +163,13 @@
       <img src="assets/carebridge-mark.png" alt="Carebridge International">
       <div class="div">
         <div class="nm">CAREBRIDGE INTERNATIONAL INC.</div>
-        <div class="sub">International Medical Travel &amp; Healthcare Coordination Services</div>
+        <div class="sub"><span class="lang-en">International Medical Travel &amp; Healthcare Coordination Services</span><span class="lang-so" hidden>Adeegyada Safarka Caafimaadka Caalamiga ah &amp; Iskaashiga Daryeelka Caafimaadka</span></div>
       </div>
     </div>
-    <h2 class="toc-h">Table of Contents</h2>
+    <h2 class="toc-h"><span class="lang-en">Table of Contents</span><span class="lang-so" hidden>Tusmada</span></h2>
     <div class="toc-hr"></div>
-    <div class="toc-list">
+
+    <div class="toc-list lang-en">
       <div class="toc-item"><span class="n">1</span>Definitions</div>
       <div class="toc-item"><span class="n">2</span>Parties to the Agreement</div>
       <div class="toc-item"><span class="n">3</span>Purpose of Agreement</div>
@@ -226,6 +213,51 @@
       <div class="toc-item"><span class="n">41</span>Intellectual Property &amp; Confidential Information</div>
       <div class="toc-item"><span class="n">42</span>Signatures &amp; Witnesses</div>
     </div>
+
+    <div class="toc-list lang-so" hidden>
+      <div class="toc-item"><span class="n">1</span>Qeexitaannada</div>
+      <div class="toc-item"><span class="n">2</span>Dhinacyada Heshiiska</div>
+      <div class="toc-item"><span class="n">3</span>Ujeedada Heshiiska</div>
+      <div class="toc-item"><span class="n">4</span>Ballaca Adeegyada</div>
+      <div class="toc-item"><span class="n">5</span>Adeegyada Carebridge</div>
+      <div class="toc-item"><span class="n">6</span>Mas'uuliyaadka Carebridge</div>
+      <div class="toc-item"><span class="n">7</span>Adeegyada aan La Bixin</div>
+      <div class="toc-item"><span class="n">8</span>Ka Xornaanta Mas'uuliyadda Caafimaadka</div>
+      <div class="toc-item"><span class="n">9</span>Manaadka Caafimaadka lama Damaanaado</div>
+      <div class="toc-item"><span class="n">10</span>Kaashaladda Bukaanka</div>
+      <div class="toc-item"><span class="n">11</span>Mas'uuliyaadka Bukaanka</div>
+      <div class="toc-item"><span class="n">12</span>Shuruudaha Dukumentiyada Caafimaadka</div>
+      <div class="toc-item"><span class="n">13</span>Oggolaanshaha Wadaagga Macluumaadka Caafimaadka</div>
+      <div class="toc-item"><span class="n">14</span>Xulashada Isbitaalka &amp; Dhakhtarka</div>
+      <div class="toc-item"><span class="n">15</span>Kharashka Daaweynta &amp; Mas'uuliyadda Maaliyadda</div>
+      <div class="toc-item"><span class="n">16</span>Kharashyada Adeegga &amp; Shuruudaha Lacag-bixinta</div>
+      <div class="toc-item"><span class="n">17</span>Iskaashiga Safarka &amp; Fiisaha</div>
+      <div class="toc-item"><span class="n">18</span>Iskaashiga Hotelka</div>
+      <div class="toc-item"><span class="n">19</span>Iskaashiga Gaadiidka</div>
+      <div class="toc-item"><span class="n">20</span>Adeegyada Turjumaadda &amp; Fasiraadda</div>
+      <div class="toc-item"><span class="n">21</span>Siyaasadda Xiriirka</div>
+      <div class="toc-item"><span class="n">22</span>Xurmada Gaar-ahaanshaha &amp; Sirta</div>
+      <div class="toc-item"><span class="n">23</span>Maaraynta Macluumaadka Caafimaadka</div>
+      <div class="toc-item"><span class="n">24</span>Wareejinta Caalamiga ah ee Xogta Caafimaadka</div>
+      <div class="toc-item"><span class="n">25</span>Xiriirka Elektaroonigga ah &amp; Oggolaanshaha</div>
+      <div class="toc-item"><span class="n">26</span>Saxiixyadda Elektaroonigga ah</div>
+      <div class="toc-item"><span class="n">27</span>Haynta Xogta</div>
+      <div class="toc-item"><span class="n">28</span>Raacidda Sharciyada Xurmada Gaar-ahaanshaha</div>
+      <div class="toc-item"><span class="n">29</span>Amniga Xogta, Oggolaanshaha Bukaanka &amp; Xaddidaadda Mas'uuliyadda</div>
+      <div class="toc-item"><span class="n">30</span>Xaddidaadda Mas'uuliyadda Caafimaadka</div>
+      <div class="toc-item"><span class="n">31</span>Xaddidaadda Mas'uuliyadda</div>
+      <div class="toc-item"><span class="n">32</span>Natiijada lama Damaanaado</div>
+      <div class="toc-item"><span class="n">33</span>Bixiyeyaasha Madaxbannaan ee Dhinaca Saddexaad</div>
+      <div class="toc-item"><span class="n">34</span>Xaaladaha Aan La Xukumi Karin</div>
+      <div class="toc-item"><span class="n">35</span>Mas'uuliyadda Caymiska</div>
+      <div class="toc-item"><span class="n">36</span>Dabeecadda Bukaanka &amp; Dhaqanka Xirfadlaha</div>
+      <div class="toc-item"><span class="n">37</span>Macluumaadka Beenta ah, Khiyaanadda &amp; Muuqaal-beeneed</div>
+      <div class="toc-item"><span class="n">38</span>Aan La Xadgudbin Bukaannada Kale</div>
+      <div class="toc-item"><span class="n">39</span>Ka Fogaanshaha Wareejinta</div>
+      <div class="toc-item"><span class="n">40</span>Hakinta &amp; Joojinta Adeegyada</div>
+      <div class="toc-item"><span class="n">41</span>Hantida Aqoonta &amp; Macluumaadka Sirta ah</div>
+      <div class="toc-item"><span class="n">42</span>Saxiixyadda &amp; Maraqda</div>
+    </div>
   </section>
 
   <!-- ===================== BODY ===================== -->
@@ -234,602 +266,1112 @@
       <img src="assets/carebridge-mark.png" alt="Carebridge International">
       <div class="div">
         <div class="nm">CAREBRIDGE INTERNATIONAL INC.</div>
-        <div class="sub">International Medical Travel &amp; Healthcare Coordination Services</div>
+        <div class="sub"><span class="lang-en">International Medical Travel &amp; Healthcare Coordination Services</span><span class="lang-so" hidden>Adeegyada Safarka Caafimaadka Caalamiga ah &amp; Iskaashiga Daryeelka Caafimaadka</span></div>
       </div>
     </div>
     <div class="body-lh-rule"></div>
+    <h1 class="doc-title"><span class="lang-en">Patient Medical Travel Service Agreement</span><span class="lang-so" hidden>Heshiiska Adeegga Safarka Caafimaadka Bukaanka</span></h1>
+    <p class="doc-subtitle"><span class="lang-en">International Healthcare Coordination &nbsp;|&nbsp; Medical Tourism &nbsp;|&nbsp; Patient Support &nbsp;|&nbsp; Healthcare Travel Services</span><span class="lang-so" hidden>Iskaashiga Daryeelka Caafimaadka Caalamiga ah &nbsp;|&nbsp; Dalxiiska Caafimaad &nbsp;|&nbsp; Taageerada Bukaanka &nbsp;|&nbsp; Adeegyada Safarka Caafimaadka</span></p>
 
-    <h1 class="doc-title">Patient Medical Travel Service Agreement</h1>
-    <p class="doc-subtitle">International Healthcare Coordination &nbsp;|&nbsp; Medical Tourism &nbsp;|&nbsp; Patient Support &nbsp;|&nbsp; Healthcare Travel Services</p>
-
-    <p class="lead">This Patient Medical Travel Service Agreement (the &ldquo;Agreement&rdquo;) is made and entered into as of the date set out on the cover page, by and between <b>Carebridge International Inc.</b> and the Patient identified in Section 2. By signing this Agreement, both parties accept and agree to be bound by the terms set out below.</p>
+    <p class="lead lang-en">This Patient Medical Travel Service Agreement (the &ldquo;Agreement&rdquo;) is made and entered into as of the date set out on the cover page, by and between <b>Carebridge International Inc.</b> and the Patient identified in Section 2. By signing this Agreement, both parties accept and agree to be bound by the terms set out below.</p>
+    <p class="lead lang-so" hidden>Heshiiskan Adeegga Safarka Caafimaadka Bukaanka (oo loo yaqaan &ldquo;Heshiiska&rdquo;) waxaa la sameeyay taariikhda lagu sheegay bogga daboolka, u dhexeeya <b>Carebridge International Inc.</b> iyo Bukaanka lagu aqoonsan yahay Qeybta 2. Marka la saxiixo heshiiskan, labada dhinacba waxay aqbalaan oo ku waafaqsanyihiin shuruudaha lagu sheegay hoosta.</p>
 
     <!-- 1 -->
     <div class="clause">
-      <h2 class="sec"><span class="n">1.0</span>Definitions</h2>
-      <p class="p">In this Agreement, the following terms have the meanings set out below:</p>
-      <dl class="defs">
-        <div><dt>Agreement</dt><dd>This Patient Medical Travel Service Agreement, including its cover page, schedules, and any written amendments agreed by both parties.</dd></div>
-        <div><dt>Carebridge International Inc.</dt><dd>The international healthcare coordination company providing the coordination services described in this Agreement.</dd></div>
-        <div><dt>Company</dt><dd>Carebridge International Inc., also referred to as &ldquo;Carebridge,&rdquo; &ldquo;we,&rdquo; or &ldquo;us.&rdquo;</dd></div>
-        <div><dt>Patient</dt><dd>The individual named in Section 2 who receives coordination services, referred to as &ldquo;you.&rdquo;</dd></div>
-        <div><dt>Authorized Representative</dt><dd>A person lawfully authorized to act or sign on behalf of the Patient (for example, a parent, guardian, or family member).</dd></div>
-        <div><dt>Healthcare Provider</dt><dd>Any independent hospital, clinic, physician, specialist, laboratory, or medical facility that provides medical services to the Patient.</dd></div>
-        <div><dt>Hospital</dt><dd>A licensed medical institution providing inpatient or outpatient treatment.</dd></div>
-        <div><dt>Physician</dt><dd>A licensed medical doctor or specialist responsible for the Patient&rsquo;s clinical care.</dd></div>
-        <div><dt>Clinic</dt><dd>A licensed outpatient healthcare facility.</dd></div>
-        <div><dt>Medical Treatment</dt><dd>Any diagnosis, procedure, surgery, therapy, or clinical service provided by a Healthcare Provider.</dd></div>
-        <div><dt>Healthcare Coordination</dt><dd>The administrative and logistical support Carebridge provides to help connect the Patient with Healthcare Providers.</dd></div>
-        <div><dt>Medical Tourism</dt><dd>Travel arranged for the purpose of obtaining medical treatment in another country.</dd></div>
-        <div><dt>Third-Party Provider</dt><dd>Any independent hospital, doctor, airline, hotel, transport company, translator, or other service provider that is not employed or controlled by Carebridge.</dd></div>
-        <div><dt>Confidential Information</dt><dd>Non-public information disclosed under this Agreement, including medical, personal, financial, and business information.</dd></div>
-        <div><dt>Medical Records</dt><dd>Reports, test results, imaging, prescriptions, and other clinical documents relating to the Patient.</dd></div>
-        <div><dt>Personal Information</dt><dd>Information that identifies the Patient, including name, contact details, and identification documents.</dd></div>
-        <div><dt>Electronic Communication</dt><dd>Communication by email, messaging application, SMS, phone, or video call.</dd></div>
-        <div><dt>Force Majeure</dt><dd>An event beyond a party&rsquo;s reasonable control, as described in Section 33.</dd></div>
-        <div><dt>Applicable Law</dt><dd>The laws and regulations that govern this Agreement and the parties&rsquo; conduct under it.</dd></div>
-      </dl>
+      <h2 class="sec"><span class="n">1.0</span><span class="lang-en">Definitions</span><span class="lang-so" hidden>Qeexitaannada</span></h2>
+      <div class="lang-en">
+        <p class="p">In this Agreement, the following terms have the meanings set out below:</p>
+        <dl class="defs">
+          <div><dt>Agreement</dt><dd>This Patient Medical Travel Service Agreement, including its cover page, schedules, and any written amendments agreed by both parties.</dd></div>
+          <div><dt>Carebridge International Inc.</dt><dd>The international healthcare coordination company providing the coordination services described in this Agreement.</dd></div>
+          <div><dt>Company</dt><dd>Carebridge International Inc., also referred to as &ldquo;Carebridge,&rdquo; &ldquo;we,&rdquo; or &ldquo;us.&rdquo;</dd></div>
+          <div><dt>Patient</dt><dd>The individual named in Section 2 who receives coordination services, referred to as &ldquo;you.&rdquo;</dd></div>
+          <div><dt>Authorized Representative</dt><dd>A person lawfully authorized to act or sign on behalf of the Patient (for example, a parent, guardian, or family member).</dd></div>
+          <div><dt>Healthcare Provider</dt><dd>Any independent hospital, clinic, physician, specialist, laboratory, or medical facility that provides medical services to the Patient.</dd></div>
+          <div><dt>Hospital</dt><dd>A licensed medical institution providing inpatient or outpatient treatment.</dd></div>
+          <div><dt>Physician</dt><dd>A licensed medical doctor or specialist responsible for the Patient&rsquo;s clinical care.</dd></div>
+          <div><dt>Clinic</dt><dd>A licensed outpatient healthcare facility.</dd></div>
+          <div><dt>Medical Treatment</dt><dd>Any diagnosis, procedure, surgery, therapy, or clinical service provided by a Healthcare Provider.</dd></div>
+          <div><dt>Healthcare Coordination</dt><dd>The administrative and logistical support Carebridge provides to help connect the Patient with Healthcare Providers.</dd></div>
+          <div><dt>Medical Tourism</dt><dd>Travel arranged for the purpose of obtaining medical treatment in another country.</dd></div>
+          <div><dt>Third-Party Provider</dt><dd>Any independent hospital, doctor, airline, hotel, transport company, translator, or other service provider that is not employed or controlled by Carebridge.</dd></div>
+          <div><dt>Confidential Information</dt><dd>Non-public information disclosed under this Agreement, including medical, personal, financial, and business information.</dd></div>
+          <div><dt>Medical Records</dt><dd>Reports, test results, imaging, prescriptions, and other clinical documents relating to the Patient.</dd></div>
+          <div><dt>Personal Information</dt><dd>Information that identifies the Patient, including name, contact details, and identification documents.</dd></div>
+          <div><dt>Electronic Communication</dt><dd>Communication by email, messaging application, SMS, phone, or video call.</dd></div>
+          <div><dt>Force Majeure</dt><dd>An event beyond a party&rsquo;s reasonable control, as described in Section 33.</dd></div>
+          <div><dt>Applicable Law</dt><dd>The laws and regulations that govern this Agreement and the parties&rsquo; conduct under it.</dd></div>
+        </dl>
+      </div>
+      <div class="lang-so" hidden>
+        <p class="p">Heshiiskan, ereyada soo socda waxay leeyihiin macnaha lagu qeexay hoosta:</p>
+        <dl class="defs">
+          <div><dt>Heshiiska</dt><dd>Heshiiskan Adeegga Safarka Caafimaadka Bukaanka, oo ay ku jiraan bogga daboolka, jadwaladaha, iyo wax ka beddelaadna oo labada dhinac ay qoraal ahaan u waafaqeen.</dd></div>
+          <div><dt>Carebridge International Inc.</dt><dd>Shirkadda iskaashiga daryeelka caafimaadka caalamiga ah ee bixisa adeegyada iskaashiga lagu qeexay heshiiskan.</dd></div>
+          <div><dt>Shirkadda</dt><dd>Carebridge International Inc., oo sidoo kale loo yaqaan &ldquo;Carebridge,&rdquo; &ldquo;annaga,&rdquo; ama &ldquo;noo.&rdquo;</dd></div>
+          <div><dt>Bukaanka</dt><dd>Qofka magaciisa laga sheegay Qeybta 2 ee helaya adeegyada iskaashiga, oo loo yaqaan &ldquo;adigoo.&rdquo;</dd></div>
+          <div><dt>Wakiilka Oggolaanshe</dt><dd>Qof sharci ahaan u oggolaanshe ah inuu u falo ama u saxiixo bukaanka (tusaale, waalid, ilaal, ama xubin qoyska).</dd></div>
+          <div><dt>Bixiyaha Daryeelka Caafimaadka</dt><dd>Isbitaal, kilinik, dhakhtar, xirfadle, shaybaad, ama xarun caafimaad oo madaxbannaan oo siisa bukaanka adeegyada caafimaadka.</dd></div>
+          <div><dt>Isbitaalka</dt><dd>Hay'ad caafimaad oo shatiyaysan oo bixisa daaweyn gudaha ama dibedda isbitaalka.</dd></div>
+          <div><dt>Dhakhtarka</dt><dd>Dhakhtar ama xirfadle oo shatiyaysan oo mas'uul ka ah daryeelka caafimaadka ee bukaanka.</dd></div>
+          <div><dt>Kilinikka</dt><dd>Xarun caafimaad oo shatiyaysan oo bixisa daaweyn dibedda isbitaalka.</dd></div>
+          <div><dt>Daaweynta Caafimaadka</dt><dd>Ogeysiis, hawl, qalliin, daawooyin, ama adeeg caafimaad oo bixiya Bixiyaha Daryeelka Caafimaadka.</dd></div>
+          <div><dt>Iskaashiga Daryeelka Caafimaadka</dt><dd>Taageerada maamuleed iyo lojistikada ee Carebridge u bixisa si ay u xidho Bukaanka Bixiyeyaasha Daryeelka Caafimaadka.</dd></div>
+          <div><dt>Dalxiiska Caafimaadka</dt><dd>Safar loo qabanqaabiyey si loo helo daaweyn caafimaad dalka kale.</dd></div>
+          <div><dt>Bixiyaha Dhinaca Saddexaad</dt><dd>Isbitaal, dhakhtar, duuliyaale, hudheel, shirkad gaadiid, turjumaan, ama bixiye adeeg kale oo aan shaqaale Carebridge ahayn ama aanay xukumeyso.</dd></div>
+          <div><dt>Macluumaadka Sirta ah</dt><dd>Macluumaad dadwaynaha lagu ma shaacin oo lagu wadaago heshiiskan, oo ay ku jiraan macluumaadka caafimaadka, shakhsiga, maaliyadda, iyo ganacsiga.</dd></div>
+          <div><dt>Diiwaannada Caafimaadka</dt><dd>Warbixinnada, natiijooyinka baadhista, sawirrada, daawooyinka, iyo dukumentiyada caafimaadka kale ee la xiriira Bukaanka.</dd></div>
+          <div><dt>Macluumaadka Shakhsiga</dt><dd>Macluumaad aqoonsanaya Bukaanka, oo ay ku jiraan magaca, faahfaahinta xiriirka, iyo dukumentiyada aqoonsiga.</dd></div>
+          <div><dt>Xiriirka Elektaroonigga ah</dt><dd>Xiriirka iyada oo la adeegsanayo email, barnaamijka farriimaha, SMS, telefoon, ama wicitaan fiidiyow.</dd></div>
+          <div><dt>Xaaladaha Aan La Xukumi Karin</dt><dd>Xaalad aan xukumeysi karin dhinac, sida lagu qeexay Qeybta 34.</dd></div>
+          <div><dt>Sharciga Khuseeya</dt><dd>Sharciyada iyo xeerarka ee xukuma heshiiskan iyo dhaqanka dhinacyada ee hoos timaada.</dd></div>
+        </dl>
+      </div>
     </div>
 
     <!-- 2 -->
     <div class="clause">
-      <h2 class="sec"><span class="n">2.0</span>Parties to the Agreement</h2>
-      <p class="p"><b>2.1</b>&nbsp;&nbsp;Carebridge International Inc. is an international healthcare coordination company that connects patients with independent hospitals, physicians, and healthcare providers worldwide.</p>
-      <p class="p"><b>2.2</b>&nbsp;&nbsp;The Patient entering into this Agreement is identified below.</p>
-      <div class="between">
-        <div class="partyhead">Patient Information</div>
-        <div class="grid2">
-          <div class="field"><span class="lbl">Full Name:</span><span class="line"></span></div>
-          <div class="field"><span class="lbl">Date of Birth:</span><span class="line"></span></div>
-          <div class="field"><span class="lbl">Nationality:</span><span class="line"></span></div>
-          <div class="field"><span class="lbl">Passport Number:</span><span class="line"></span></div>
-          <div class="field"><span class="lbl">Country of Residence:</span><span class="line"></span></div>
-          <div class="field"><span class="lbl">Residential Address:</span><span class="line"></span></div>
-          <div class="field"><span class="lbl">Telephone:</span><span class="line"></span></div>
-          <div class="field"><span class="lbl">WhatsApp:</span><span class="line"></span></div>
-          <div class="field"><span class="lbl">Email:</span><span class="line"></span></div>
-          <div class="field"><span class="lbl">Emergency Contact:</span><span class="line"></span></div>
-          <div class="field"><span class="lbl">Relationship:</span><span class="line"></span></div>
-          <div class="field"><span class="lbl">Emergency Number:</span><span class="line"></span></div>
+      <h2 class="sec"><span class="n">2.0</span><span class="lang-en">Parties to the Agreement</span><span class="lang-so" hidden>Dhinacyada Heshiiska</span></h2>
+      <div class="lang-en">
+        <p class="p"><b>2.1</b>&nbsp;&nbsp;Carebridge International Inc. is an international healthcare coordination company that connects patients with independent hospitals, physicians, and healthcare providers worldwide.</p>
+        <p class="p"><b>2.2</b>&nbsp;&nbsp;The Patient entering into this Agreement is identified below.</p>
+        <div class="between">
+          <div class="partyhead">Patient Information</div>
+          <div class="grid2">
+            <div class="field"><span class="lbl">Full Name:</span><span class="line"></span></div>
+            <div class="field"><span class="lbl">Date of Birth:</span><span class="line"></span></div>
+            <div class="field"><span class="lbl">Nationality:</span><span class="line"></span></div>
+            <div class="field"><span class="lbl">Passport Number:</span><span class="line"></span></div>
+            <div class="field"><span class="lbl">Country of Residence:</span><span class="line"></span></div>
+            <div class="field"><span class="lbl">Residential Address:</span><span class="line"></span></div>
+            <div class="field"><span class="lbl">Telephone:</span><span class="line"></span></div>
+            <div class="field"><span class="lbl">WhatsApp:</span><span class="line"></span></div>
+            <div class="field"><span class="lbl">Email:</span><span class="line"></span></div>
+            <div class="field"><span class="lbl">Emergency Contact:</span><span class="line"></span></div>
+            <div class="field"><span class="lbl">Relationship:</span><span class="line"></span></div>
+            <div class="field"><span class="lbl">Emergency Number:</span><span class="line"></span></div>
+          </div>
+        </div>
+        <p class="p"><b>2.3</b>&nbsp;&nbsp;Where a person signs on behalf of the Patient, the Authorized Representative is identified below.</p>
+        <div class="fieldbox">
+          <div class="partyhead" style="margin-top:0;">Authorized Representative (if applicable)</div>
+          <div class="grid2">
+            <div class="field"><span class="lbl">Full Name:</span><span class="line"></span></div>
+            <div class="field"><span class="lbl">Relationship:</span><span class="line"></span></div>
+            <div class="field"><span class="lbl">Telephone:</span><span class="line"></span></div>
+            <div class="field"><span class="lbl">Email:</span><span class="line"></span></div>
+          </div>
         </div>
       </div>
-      <p class="p"><b>2.3</b>&nbsp;&nbsp;Where a person signs on behalf of the Patient, the Authorized Representative is identified below.</p>
-      <div class="fieldbox">
-        <div class="partyhead" style="margin-top:0;">Authorized Representative (if applicable)</div>
-        <div class="grid2">
-          <div class="field"><span class="lbl">Full Name:</span><span class="line"></span></div>
-          <div class="field"><span class="lbl">Relationship:</span><span class="line"></span></div>
-          <div class="field"><span class="lbl">Telephone:</span><span class="line"></span></div>
-          <div class="field"><span class="lbl">Email:</span><span class="line"></span></div>
+      <div class="lang-so" hidden>
+        <p class="p"><b>2.1</b>&nbsp;&nbsp;Carebridge International Inc. waa shirkad iskaashi caafimaad oo caalamiga ah oo xidha bukaannada isbitaallada, dhakhaatiirta, iyo bixiyeyaasha daryeelka caafimaadka ee dunida oo dhan oo madaxbannaan ah.</p>
+        <p class="p"><b>2.2</b>&nbsp;&nbsp;Bukaanka gala heshiiskan waxaa lagu aqoonsan yahay hoosta.</p>
+        <div class="between">
+          <div class="partyhead">Macluumaadka Bukaanka</div>
+          <div class="grid2">
+            <div class="field"><span class="lbl">Magaca Oo Dhamaystiran:</span><span class="line"></span></div>
+            <div class="field"><span class="lbl">Taariikhda Dhalashada:</span><span class="line"></span></div>
+            <div class="field"><span class="lbl">Dhalasho-wadanka:</span><span class="line"></span></div>
+            <div class="field"><span class="lbl">Lambarka Baasaboorka:</span><span class="line"></span></div>
+            <div class="field"><span class="lbl">Dalka Deganaanshaha:</span><span class="line"></span></div>
+            <div class="field"><span class="lbl">Cinwaanka Guriga:</span><span class="line"></span></div>
+            <div class="field"><span class="lbl">Telefoon:</span><span class="line"></span></div>
+            <div class="field"><span class="lbl">WhatsApp:</span><span class="line"></span></div>
+            <div class="field"><span class="lbl">Email:</span><span class="line"></span></div>
+            <div class="field"><span class="lbl">Xiriirka Degdegga ah:</span><span class="line"></span></div>
+            <div class="field"><span class="lbl">Xiriirka:</span><span class="line"></span></div>
+            <div class="field"><span class="lbl">Lambarka Degdegga ah:</span><span class="line"></span></div>
+          </div>
+        </div>
+        <p class="p"><b>2.3</b>&nbsp;&nbsp;Halka ay qof saxiixayso bukaanka magaciisa, Wakiilka Oggolaanshe waxaa lagu aqoonsan yahay hoosta.</p>
+        <div class="fieldbox">
+          <div class="partyhead" style="margin-top:0;">Wakiilka Oggolaanshe (haddii ay khuseyso)</div>
+          <div class="grid2">
+            <div class="field"><span class="lbl">Magaca Oo Dhamaystiran:</span><span class="line"></span></div>
+            <div class="field"><span class="lbl">Xiriirka:</span><span class="line"></span></div>
+            <div class="field"><span class="lbl">Telefoon:</span><span class="line"></span></div>
+            <div class="field"><span class="lbl">Email:</span><span class="line"></span></div>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- 3 -->
     <div class="clause">
-      <h2 class="sec"><span class="n">3.0</span>Purpose of Agreement</h2>
-      <p class="p">This Agreement sets out the rights, responsibilities, and expectations of both parties. The Patient acknowledges and agrees that:</p>
-      <ul class="list">
-        <li>Carebridge International Inc. provides international healthcare coordination services only.</li>
-        <li>Carebridge connects patients with independent hospitals, physicians, and healthcare providers.</li>
-        <li>Carebridge is not a hospital, clinic, physician, or medical provider.</li>
-        <li>Carebridge does not diagnose illnesses, prescribe medication, or provide medical treatment.</li>
-        <li>All medical decisions are made solely by licensed healthcare professionals.</li>
-      </ul>
-      <p class="p">The purpose of this Agreement is to establish a clear and fair understanding between Carebridge and the Patient regarding the coordination services to be provided.</p>
+      <h2 class="sec"><span class="n">3.0</span><span class="lang-en">Purpose of Agreement</span><span class="lang-so" hidden>Ujeedada Heshiiska</span></h2>
+      <div class="lang-en">
+        <p class="p">This Agreement sets out the rights, responsibilities, and expectations of both parties. The Patient acknowledges and agrees that:</p>
+        <ul class="list">
+          <li>Carebridge International Inc. provides international healthcare coordination services only.</li>
+          <li>Carebridge connects patients with independent hospitals, physicians, and healthcare providers.</li>
+          <li>Carebridge is not a hospital, clinic, physician, or medical provider.</li>
+          <li>Carebridge does not diagnose illnesses, prescribe medication, or provide medical treatment.</li>
+          <li>All medical decisions are made solely by licensed healthcare professionals.</li>
+        </ul>
+        <p class="p">The purpose of this Agreement is to establish a clear and fair understanding between Carebridge and the Patient regarding the coordination services to be provided.</p>
+      </div>
+      <div class="lang-so" hidden>
+        <p class="p">Heshiiskan wuxuu qeexayaa xuquuqda, mas'uuliyaadka, iyo faa'iidooyinka labada dhinac. Bukaanku wuxuu aqoonsadaa oo ku waafaqsanyahay in:</p>
+        <ul class="list">
+          <li>Carebridge International Inc. bixisaa adeegyada iskaashiga daryeelka caafimaadka caalamiga ah oo keliya.</li>
+          <li>Carebridge waxay xidho bukaannada isbitaallada, dhakhaatiirta, iyo bixiyeyaasha daryeelka caafimaadka ee madaxbannaan.</li>
+          <li>Carebridge ma aha isbitaal, kilinik, dhakhtar, ama bixiye daryeel caafimaad.</li>
+          <li>Carebridge kuma ogaysiiso xanuunnada, kuma qorto daawada, kana ma bixiso daaweynta caafimaadka.</li>
+          <li>Dhammaan go'aannada caafimaadka waxaa sameeya xirfadlayaasha caafimaadka ee shatiyaysan oo keliya.</li>
+        </ul>
+        <p class="p">Ujeedada heshiiskan waa in la aasaaso faham cad oo xaq ah oo u dhexeeya Carebridge iyo Bukaanka ee la xiriira adeegyada iskaashiga la siin doono.</p>
+      </div>
     </div>
 
     <!-- 4 -->
     <div class="clause">
-      <h2 class="sec"><span class="n">4.0</span>Scope of Services</h2>
-      <p class="p">Subject to the terms of this Agreement, Carebridge may coordinate the following:</p>
-      <ul class="list">
-        <li>Medical case reviews and medical opinions.</li>
-        <li>Hospital and physician referrals.</li>
-        <li>Appointment scheduling and treatment planning.</li>
-        <li>Medical travel arrangements and visa support.</li>
-        <li>Accommodation coordination.</li>
-        <li>Airport assistance and local transportation coordination.</li>
-        <li>Translation assistance.</li>
-        <li>Follow-up coordination after treatment.</li>
-      </ul>
-      <p class="p">Any services outside the scope of this Agreement require the prior written approval of both parties.</p>
+      <h2 class="sec"><span class="n">4.0</span><span class="lang-en">Scope of Services</span><span class="lang-so" hidden>Ballaca Adeegyada</span></h2>
+      <div class="lang-en">
+        <p class="p">Subject to the terms of this Agreement, Carebridge may coordinate the following:</p>
+        <ul class="list">
+          <li>Medical case reviews and medical opinions.</li>
+          <li>Hospital and physician referrals.</li>
+          <li>Appointment scheduling and treatment planning.</li>
+          <li>Medical travel arrangements and visa support.</li>
+          <li>Accommodation coordination.</li>
+          <li>Airport assistance and local transportation coordination.</li>
+          <li>Translation assistance.</li>
+          <li>Follow-up coordination after treatment.</li>
+        </ul>
+        <p class="p">Any services outside the scope of this Agreement require the prior written approval of both parties.</p>
+      </div>
+      <div class="lang-so" hidden>
+        <p class="p">Marka laga tixgeliyo shuruudaha heshiiskan, Carebridge waxay iskaashi samayn kartaa kuwan soo socda:</p>
+        <ul class="list">
+          <li>Dib-u-eegis kiisaska caafimaadka iyo aragtida caafimaadka.</li>
+          <li>Tixraacyada isbitaalka iyo dhakhtarka.</li>
+          <li>Jadwalinta ballamaha iyo qorshaha daaweynta.</li>
+          <li>Qaabdhismeedka safarka caafimaadka iyo taageerada fiisaha.</li>
+          <li>Iskaashiga hotelka.</li>
+          <li>Taageerada garoonka diyaaradda iyo iskaashiga gaadiidka maxalliga ah.</li>
+          <li>Taageerada turjumaadda.</li>
+          <li>Iskaashiga soo-raacidda ka dib daaweynta.</li>
+        </ul>
+        <p class="p">Adeegyada dibadda xaddidka heshiiskan waxay u baahantahay oggolaanshaha qoraalka ah ee labada dhinac.</p>
+      </div>
     </div>
 
     <!-- 5 -->
     <div class="clause">
-      <h2 class="sec"><span class="n">5.0</span>Carebridge Services</h2>
-      <p class="p">Carebridge International Inc. provides international healthcare coordination services, which may include:</p>
-      <ul class="list">
-        <li>Medical case coordination and document handling.</li>
-        <li>Submission of medical records to hospitals and specialists.</li>
-        <li>Coordination of medical opinions and treatment proposals.</li>
-        <li>Hospital and physician referral assistance.</li>
-        <li>Appointment scheduling and coordination.</li>
-        <li>Treatment planning coordination between the Patient and providers.</li>
-        <li>Medical travel coordination, including flights and itinerary planning support.</li>
-        <li>Medical visa guidance and supporting documentation.</li>
-        <li>Accommodation coordination (hotels, apartments, or hospital stays where available).</li>
-        <li>Airport pickup and drop-off coordination.</li>
-        <li>Local transportation coordination.</li>
-        <li>Translation and interpretation support.</li>
-        <li>Communication support between the Patient and healthcare providers.</li>
-        <li>Post-treatment follow-up coordination.</li>
-      </ul>
-      <p class="p">The Patient acknowledges that Carebridge is a coordination service provider only, does not provide medical treatment or medical advice, and that all medical care is provided exclusively by independent licensed healthcare providers.</p>
+      <h2 class="sec"><span class="n">5.0</span><span class="lang-en">Carebridge Services</span><span class="lang-so" hidden>Adeegyada Carebridge</span></h2>
+      <div class="lang-en">
+        <p class="p">Carebridge International Inc. provides international healthcare coordination services, which may include:</p>
+        <ul class="list">
+          <li>Medical case coordination and document handling.</li>
+          <li>Submission of medical records to hospitals and specialists.</li>
+          <li>Coordination of medical opinions and treatment proposals.</li>
+          <li>Hospital and physician referral assistance.</li>
+          <li>Appointment scheduling and coordination.</li>
+          <li>Treatment planning coordination between the Patient and providers.</li>
+          <li>Medical travel coordination, including flights and itinerary planning support.</li>
+          <li>Medical visa guidance and supporting documentation.</li>
+          <li>Accommodation coordination (hotels, apartments, or hospital stays where available).</li>
+          <li>Airport pickup and drop-off coordination.</li>
+          <li>Local transportation coordination.</li>
+          <li>Translation and interpretation support.</li>
+          <li>Communication support between the Patient and healthcare providers.</li>
+          <li>Post-treatment follow-up coordination.</li>
+        </ul>
+        <p class="p">The Patient acknowledges that Carebridge is a coordination service provider only, does not provide medical treatment or medical advice, and that all medical care is provided exclusively by independent licensed healthcare providers.</p>
+      </div>
+      <div class="lang-so" hidden>
+        <p class="p">Carebridge International Inc. waxay bixisaa adeegyada iskaashiga daryeelka caafimaadka caalamiga ah, kaas oo u suurtageli kara:</p>
+        <ul class="list">
+          <li>Iskaashiga kiisaska caafimaadka iyo maaraynta dukumentiyada.</li>
+          <li>Gudinta diiwaannada caafimaadka isbitaallada iyo xirfadlayaasha.</li>
+          <li>Iskaashiga aragtida caafimaadka iyo qorshayaasha daaweynta.</li>
+          <li>Taageerada tixraacyada isbitaalka iyo dhakhtarka.</li>
+          <li>Jadwalinta ballamaha iyo iskaashiga.</li>
+          <li>Iskaashiga qorshaha daaweynta u dhexeeya Bukaanka iyo bixiyeyaasha.</li>
+          <li>Iskaashiga safarka caafimaadka, oo ay ku jiraan diyaaradaha iyo taageerada qorshaha safarka.</li>
+          <li>Hanuuninta fiisaha caafimaadka iyo dukumentiyada taageeraya.</li>
+          <li>Iskaashiga hotelka (hudheelada, qaybaha hore u kireeysta, ama joogitaanka isbitaalka haddii diyaar tahay).</li>
+          <li>Iskaashiga qaadista iyo dajinta garoonka diyaaradda.</li>
+          <li>Iskaashiga gaadiidka maxalliga ah.</li>
+          <li>Taageerada turjumaadda iyo fasiraadda.</li>
+          <li>Taageerada xiriirka u dhexeeya Bukaanka iyo bixiyeyaasha daryeelka caafimaadka.</li>
+          <li>Iskaashiga soo-raacidda ka dib daaweynta.</li>
+        </ul>
+        <p class="p">Bukaanku wuxuu aqoonsadaa in Carebridge ay bixiso adeeg iskaashi oo keliya, aanay bixin daaweyn caafimaad ama talo caafimaad, iyo in dhamaan daryeelka caafimaadka ay si gaar ah u bixiyaan bixiyeyaasha daryeelka caafimaadka ee shatiyaysan ee madaxbannaan.</p>
+      </div>
     </div>
 
     <!-- 6 -->
     <div class="clause">
-      <h2 class="sec"><span class="n">6.0</span>Carebridge Responsibilities</h2>
-      <p class="p">Carebridge agrees to:</p>
-      <ul class="list">
-        <li>Provide coordination services in a professional and timely manner.</li>
-        <li>Act in good faith at all times.</li>
-        <li>Maintain the confidentiality of Patient information.</li>
-        <li>Protect personal and medical data.</li>
-        <li>Communicate relevant updates to the Patient.</li>
-        <li>Coordinate with healthcare providers responsibly.</li>
-        <li>Provide reasonable support throughout the medical travel process.</li>
-        <li>Respect Patient dignity and privacy.</li>
-        <li>Maintain professional standards of service.</li>
-      </ul>
-      <p class="p">The obligations of Carebridge under this Agreement are limited to coordination services only.</p>
+      <h2 class="sec"><span class="n">6.0</span><span class="lang-en">Carebridge Responsibilities</span><span class="lang-so" hidden>Mas'uuliyaadka Carebridge</span></h2>
+      <div class="lang-en">
+        <p class="p">Carebridge agrees to:</p>
+        <ul class="list">
+          <li>Provide coordination services in a professional and timely manner.</li>
+          <li>Act in good faith at all times.</li>
+          <li>Maintain the confidentiality of Patient information.</li>
+          <li>Protect personal and medical data.</li>
+          <li>Communicate relevant updates to the Patient.</li>
+          <li>Coordinate with healthcare providers responsibly.</li>
+          <li>Provide reasonable support throughout the medical travel process.</li>
+          <li>Respect Patient dignity and privacy.</li>
+          <li>Maintain professional standards of service.</li>
+        </ul>
+        <p class="p">The obligations of Carebridge under this Agreement are limited to coordination services only.</p>
+      </div>
+      <div class="lang-so" hidden>
+        <p class="p">Carebridge waxay heshiisataa in:</p>
+        <ul class="list">
+          <li>Bixiso adeegyada iskaashiga si xirfadlaysi leh oo wakhtigeedu ku haboon yahay.</li>
+          <li>Si daacad ah u dhaqmaan had iyo jeer.</li>
+          <li>Ilaaliso sirta macluumaadka Bukaanka.</li>
+          <li>Ilaaliso xogta shakhsiga iyo caafimaadka.</li>
+          <li>Wareejiso cusboonaansheyaasha la xiriira Bukaanka.</li>
+          <li>Si mas'uuliyadleysi leh ula xidho bixiyeyaasha daryeelka caafimaadka.</li>
+          <li>Bixiso taageero macquul ah inta lagu jiro habka safarka caafimaadka.</li>
+          <li>U xurmeeyso sharaftiranka iyo aqoonsiga Bukaanka.</li>
+          <li>Hay'eeyo heerarka xirfadlaha ee adeegga.</li>
+        </ul>
+        <p class="p">Waajibaaadka Carebridge ee heshiiskan waxay ku xaddidanyihiin adeegyada iskaashiga oo keliya.</p>
+      </div>
     </div>
 
     <!-- 7 -->
     <div class="clause">
-      <h2 class="sec"><span class="n">7.0</span>Services Not Provided</h2>
-      <p class="p">Carebridge does <b>not</b> provide any of the following:</p>
-      <ul class="list dash">
-        <li>Medical diagnosis.</li>
-        <li>Medical treatment or surgery.</li>
-        <li>Prescription of medication.</li>
-        <li>Medical advice or clinical recommendations.</li>
-        <li>Emergency medical or ambulance services.</li>
-        <li>Nursing or hospital care.</li>
-        <li>Legal advice.</li>
-        <li>Immigration decisions or visa approvals.</li>
-        <li>Airline or hotel operations.</li>
-        <li>Financial guarantees of any kind.</li>
-      </ul>
-      <p class="p">Carebridge also does <b>not</b> guarantee medical outcomes or recovery, treatment success or cure, hospital acceptance or doctor availability, appointment availability, visa approval, travel schedules or airline performance, or pricing stability from third-party providers.</p>
+      <h2 class="sec"><span class="n">7.0</span><span class="lang-en">Services Not Provided</span><span class="lang-so" hidden>Adeegyada aan La Bixin</span></h2>
+      <div class="lang-en">
+        <p class="p">Carebridge does <b>not</b> provide any of the following:</p>
+        <ul class="list dash">
+          <li>Medical diagnosis.</li>
+          <li>Medical treatment or surgery.</li>
+          <li>Prescription of medication.</li>
+          <li>Medical advice or clinical recommendations.</li>
+          <li>Emergency medical or ambulance services.</li>
+          <li>Nursing or hospital care.</li>
+          <li>Legal advice.</li>
+          <li>Immigration decisions or visa approvals.</li>
+          <li>Airline or hotel operations.</li>
+          <li>Financial guarantees of any kind.</li>
+        </ul>
+        <p class="p">Carebridge also does <b>not</b> guarantee medical outcomes or recovery, treatment success or cure, hospital acceptance or doctor availability, appointment availability, visa approval, travel schedules or airline performance, or pricing stability from third-party providers.</p>
+      </div>
+      <div class="lang-so" hidden>
+        <p class="p">Carebridge <b>ma</b> bixiso midkood kuwan soo socda:</p>
+        <ul class="list dash">
+          <li>Ogeysiiska caafimaadka.</li>
+          <li>Daaweynta caafimaadka ama qalliinka.</li>
+          <li>Qorista daawada.</li>
+          <li>Talo caafimaad ama tilmaamo ciriirta.</li>
+          <li>Adeegyada gargaarka caafimaadka ee deg-degga ah ama baabuurka gargaarka.</li>
+          <li>Kalkaalinta isbitaalka.</li>
+          <li>Talo sharci.</li>
+          <li>Go'aannada socdaalka ama oggolaanshaha fiisaha.</li>
+          <li>Hawlgalka diyaaradaha ama hudheelada.</li>
+          <li>Dammaanadyada maaliyadeed ee nooc kasta ah.</li>
+        </ul>
+        <p class="p">Carebridge sidoo kale <b>ma</b> dammaanadeyso natiijooyinka caafimaadka ama bogsashada, guusha daaweynta ama bogsiga, aqbalaadda isbitaalka ama diyaarnaanta dhakhtarka, diyaarnaanta ballamaha, oggolaanshaha fiisaha, jadwalyada safarka ama waxqabadka diyaaradha, ama xasilloonida qiimaha bixiyeyaasha dhinaca saddexaad.</p>
+      </div>
     </div>
 
     <!-- 8 -->
     <div class="clause">
-      <h2 class="sec"><span class="n">8.0</span>Medical Responsibility Disclaimer</h2>
-      <ul class="list">
-        <li>All medical decisions are made solely by licensed healthcare professionals.</li>
-        <li>Carebridge staff are not medical professionals.</li>
-        <li>Carebridge does not replace medical advice or diagnosis.</li>
-        <li>The Patient must rely only on qualified doctors and hospitals for treatment decisions.</li>
-        <li>Any information provided by Carebridge is administrative or coordination-based only.</li>
-      </ul>
+      <h2 class="sec"><span class="n">8.0</span><span class="lang-en">Medical Responsibility Disclaimer</span><span class="lang-so" hidden>Ka Xornaanta Mas'uuliyadda Caafimaadka</span></h2>
+      <div class="lang-en">
+        <ul class="list">
+          <li>All medical decisions are made solely by licensed healthcare professionals.</li>
+          <li>Carebridge staff are not medical professionals.</li>
+          <li>Carebridge does not replace medical advice or diagnosis.</li>
+          <li>The Patient must rely only on qualified doctors and hospitals for treatment decisions.</li>
+          <li>Any information provided by Carebridge is administrative or coordination-based only.</li>
+        </ul>
+      </div>
+      <div class="lang-so" hidden>
+        <ul class="list">
+          <li>Dhammaan go'aannada caafimaadka waxaa sameeya xirfadlayaasha caafimaadka ee shatiyaysan oo keliya.</li>
+          <li>Shaqaalaha Carebridge ma aha xirfadlayaal caafimaad.</li>
+          <li>Carebridge kuma beddeli karto talo caafimaad ama ogeysiis.</li>
+          <li>Bukaanku waa inuu ku tiirsado dhakhaatiirta iyo isbitaallada xushmada leh oo keliya marka go'aannada daaweynta la gaaro.</li>
+          <li>Macluumaad kastoo Carebridge ay bixiso wuxuu ah mid maamul ah ama iskaashi ah oo keliya.</li>
+        </ul>
+      </div>
     </div>
 
     <!-- 9 -->
     <div class="clause">
-      <h2 class="sec"><span class="n">9.0</span>No Guarantee of Medical Outcomes</h2>
-      <p class="p">Carebridge makes no guarantee regarding cure or recovery, treatment success, surgical outcomes, medical complications, hospital acceptance, doctor availability, treatment timelines, final medical results, visa approvals, or travel disruptions and delays.</p>
-      <p class="p">The Patient acknowledges that all medical and travel outcomes involve inherent risks that are outside the control of Carebridge.</p>
+      <h2 class="sec"><span class="n">9.0</span><span class="lang-en">No Guarantee of Medical Outcomes</span><span class="lang-so" hidden>Manaadka Caafimaadka lama Damaanaado</span></h2>
+      <div class="lang-en">
+        <p class="p">Carebridge makes no guarantee regarding cure or recovery, treatment success, surgical outcomes, medical complications, hospital acceptance, doctor availability, treatment timelines, final medical results, visa approvals, or travel disruptions and delays.</p>
+        <p class="p">The Patient acknowledges that all medical and travel outcomes involve inherent risks that are outside the control of Carebridge.</p>
+      </div>
+      <div class="lang-so" hidden>
+        <p class="p">Carebridge kuma dammaanadeyso bogsiga ama bogsashada, guusha daaweynta, natiijooyinka qalliinka, xaaladaha caafimaadka ee dhib leh, aqbalaadda isbitaalka, diyaarnaanta dhakhtarka, jadwalyada daaweynta, natiijooyinka caafimaadka ee ugu dambeeya, oggolaanshaha fiisaha, ama xabku-xidnimada safarka iyo dib-u-dhacyada.</p>
+        <p class="p">Bukaanku wuxuu aqoonsadaa in dhammaan natiijooyinka caafimaadka iyo safarka ay ku jiraan khataraha dabiiciga ah ee ku jira xaddidka awoodda Carebridge.</p>
+      </div>
     </div>
 
     <!-- 10 -->
     <div class="clause">
-      <h2 class="sec"><span class="n">10.0</span>Patient Cooperation</h2>
-      <p class="p">Effective coordination depends on the cooperation of the Patient. The Patient agrees to:</p>
-      <ul class="list">
-        <li>Provide accurate and complete information.</li>
-        <li>Submit required medical documents promptly.</li>
-        <li>Respond to communication in a timely manner.</li>
-        <li>Follow instructions from licensed healthcare providers.</li>
-        <li>Notify Carebridge of any changes in condition or travel plans.</li>
-        <li>Attend scheduled appointments where possible.</li>
-      </ul>
-      <p class="p">Delay or failure to cooperate may affect coordination outcomes.</p>
+      <h2 class="sec"><span class="n">10.0</span><span class="lang-en">Patient Cooperation</span><span class="lang-so" hidden>Kaashaladda Bukaanka</span></h2>
+      <div class="lang-en">
+        <p class="p">Effective coordination depends on the cooperation of the Patient. The Patient agrees to:</p>
+        <ul class="list">
+          <li>Provide accurate and complete information.</li>
+          <li>Submit required medical documents promptly.</li>
+          <li>Respond to communication in a timely manner.</li>
+          <li>Follow instructions from licensed healthcare providers.</li>
+          <li>Notify Carebridge of any changes in condition or travel plans.</li>
+          <li>Attend scheduled appointments where possible.</li>
+        </ul>
+        <p class="p">Delay or failure to cooperate may affect coordination outcomes.</p>
+      </div>
+      <div class="lang-so" hidden>
+        <p class="p">Iskaashiga waxtar leh wuxuu ku xiran yahay kaashaladda Bukaanka. Bukaanku wuxuu ku heshiiyaa in:</p>
+        <ul class="list">
+          <li>Bixiyo macluumaad sax ah oo dhamaystiran.</li>
+          <li>Gudisho dukumentiyada caafimaadka ee loo baahan yahay si degdeg ah.</li>
+          <li>Ka jawaabo xiriirka wakhtigeedu ku haboon yahay.</li>
+          <li>Raaco tilmaamaha bixiyeyaasha daryeelka caafimaadka ee shatiyaysan.</li>
+          <li>U war-geli Carebridge isbeddel kasta oo ku dhaca xaaladda ama qorshayaasha safarka.</li>
+          <li>Ka soo qeyb galaan ballamaha la xariiqay halka ay suurtagal tahay.</li>
+        </ul>
+        <p class="p">Dib-u-dhacyada ama guul darrada kaashalada waxay saamayn kartaa natiijooyinka iskaashiga.</p>
+      </div>
     </div>
 
     <!-- 11 -->
     <div class="clause">
-      <h2 class="sec"><span class="n">11.0</span>Patient Responsibilities</h2>
-      <p class="p">The Patient agrees to:</p>
-      <ul class="list">
-        <li>Provide accurate, complete, and truthful medical information.</li>
-        <li>Disclose full medical history, including prior treatments and conditions.</li>
-        <li>Provide valid passport and travel information.</li>
-        <li>Inform Carebridge of any changes in medical condition or contact details.</li>
-        <li>Follow all instructions provided by licensed healthcare providers.</li>
-        <li>Comply with hospital rules and policies.</li>
-        <li>Comply with immigration and travel laws of destination countries.</li>
-        <li>Make independent and informed medical decisions.</li>
-        <li>Communicate respectfully with Carebridge and third-party providers.</li>
-        <li>Pay all agreed service fees and third-party costs on time.</li>
-      </ul>
-      <p class="p">Inaccurate or incomplete information may affect medical coordination and outcomes.</p>
+      <h2 class="sec"><span class="n">11.0</span><span class="lang-en">Patient Responsibilities</span><span class="lang-so" hidden>Mas'uuliyaadka Bukaanka</span></h2>
+      <div class="lang-en">
+        <p class="p">The Patient agrees to:</p>
+        <ul class="list">
+          <li>Provide accurate, complete, and truthful medical information.</li>
+          <li>Disclose full medical history, including prior treatments and conditions.</li>
+          <li>Provide valid passport and travel information.</li>
+          <li>Inform Carebridge of any changes in medical condition or contact details.</li>
+          <li>Follow all instructions provided by licensed healthcare providers.</li>
+          <li>Comply with hospital rules and policies.</li>
+          <li>Comply with immigration and travel laws of destination countries.</li>
+          <li>Make independent and informed medical decisions.</li>
+          <li>Communicate respectfully with Carebridge and third-party providers.</li>
+          <li>Pay all agreed service fees and third-party costs on time.</li>
+        </ul>
+        <p class="p">Inaccurate or incomplete information may affect medical coordination and outcomes.</p>
+      </div>
+      <div class="lang-so" hidden>
+        <p class="p">Bukaanku wuxuu ku heshiiyaa in:</p>
+        <ul class="list">
+          <li>Bixiyo macluumaad caafimaad oo sax ah, dhamaystiran, oo run ah.</li>
+          <li>Sheego taariikhda caafimaadka oo dhamaystiran, oo ay ku jiraan daaweynta hore iyo xaaladaha.</li>
+          <li>Bixiyo baasaboorkiisa xushmaadka leh iyo macluumaadka safarka.</li>
+          <li>U war-geli Carebridge isbeddel kasta oo ku dhaca xaaladda caafimaadka ama faahfaahinta xiriirka.</li>
+          <li>Raaco dhammaan tilmaamaha bixiyeyaasha daryeelka caafimaadka ee shatiyaysan.</li>
+          <li>Raaco xeerarka iyo siyaasadaha isbitaalka.</li>
+          <li>Raaco sharciyada socdaalka iyo safarka ee dalka la booqdayo.</li>
+          <li>Gaaro go'aannada caafimaadka si madax-bannaan oo xog ku salaysan.</li>
+          <li>Kala xiriirto Carebridge iyo bixiyeyaasha dhinaca saddexaad si xurmo leh.</li>
+          <li>Bixiyo dhammaan kharashyada adeegga ee la waafaqay iyo kharashyada dhinaca saddexaad wakhtigooday.</li>
+        </ul>
+        <p class="p">Macluumaadka aan saxnayn ama dhamaystirnayn wuxuu saamayn karaa iskaashiga iyo natiijooyinka caafimaadka.</p>
+      </div>
     </div>
 
     <!-- 12 -->
     <div class="clause">
-      <h2 class="sec"><span class="n">12.0</span>Medical Documentation Requirements</h2>
-      <p class="p">The Patient may be required to provide:</p>
-      <ul class="list">
-        <li>Medical reports and diagnosis records.</li>
-        <li>Laboratory test results.</li>
-        <li>Imaging results (MRI, CT scans, X-rays, and similar).</li>
-        <li>Previous treatment records and prescriptions.</li>
-        <li>Specialist reports.</li>
-        <li>Passport copy and travel documents.</li>
-        <li>Insurance documents, if applicable.</li>
-        <li>Any additional documents requested by hospitals or physicians.</li>
-      </ul>
-      <p class="p">Carebridge may require additional documentation for proper coordination.</p>
+      <h2 class="sec"><span class="n">12.0</span><span class="lang-en">Medical Documentation Requirements</span><span class="lang-so" hidden>Shuruudaha Dukumentiyada Caafimaadka</span></h2>
+      <div class="lang-en">
+        <p class="p">The Patient may be required to provide:</p>
+        <ul class="list">
+          <li>Medical reports and diagnosis records.</li>
+          <li>Laboratory test results.</li>
+          <li>Imaging results (MRI, CT scans, X-rays, and similar).</li>
+          <li>Previous treatment records and prescriptions.</li>
+          <li>Specialist reports.</li>
+          <li>Passport copy and travel documents.</li>
+          <li>Insurance documents, if applicable.</li>
+          <li>Any additional documents requested by hospitals or physicians.</li>
+        </ul>
+        <p class="p">Carebridge may require additional documentation for proper coordination.</p>
+      </div>
+      <div class="lang-so" hidden>
+        <p class="p">Bukaanka waxaa laga doonkartaa in la bixiyo:</p>
+        <ul class="list">
+          <li>Warbixinnada caafimaadka iyo diiwaannada ogeysiiska.</li>
+          <li>Natiijooyinka baadhista shaybaadka.</li>
+          <li>Natiijooyinka sawirnaanshaha (MRI, CT scan, X-ray, iyo noocooda).</li>
+          <li>Diiwaannada daaweynta hore iyo daawooyinka.</li>
+          <li>Warbixinnada xirfadlayaasha.</li>
+          <li>Nuqulka baasaboorka iyo dukumentiyada safarka.</li>
+          <li>Dukumentiyada caymiska, haddii ay khuseyso.</li>
+          <li>Dukumentiyo kale oo kasta oo ay isbitaallada ama dhakhaatiirtu codsadaan.</li>
+        </ul>
+        <p class="p">Carebridge waxay u baahanaan kartaa dukumentiyo dheeraad ah marka iskaashiga saxda ah la sameeyo.</p>
+      </div>
     </div>
 
     <!-- 13 -->
     <div class="clause">
-      <h2 class="sec"><span class="n">13.0</span>Authorization to Share Medical Information</h2>
-      <ul class="list">
-        <li>The Patient authorizes Carebridge to collect, use, and share medical information.</li>
-        <li>Medical records may be shared with hospitals, physicians, clinics, and laboratories for evaluation purposes.</li>
-        <li>Information will be shared only for healthcare coordination purposes.</li>
-        <li>Carebridge will handle all information in accordance with its confidentiality obligations.</li>
-        <li>The Patient consents to the international transfer of medical data where required for treatment coordination.</li>
-      </ul>
+      <h2 class="sec"><span class="n">13.0</span><span class="lang-en">Authorization to Share Medical Information</span><span class="lang-so" hidden>Oggolaanshaha Wadaagga Macluumaadka Caafimaadka</span></h2>
+      <div class="lang-en">
+        <ul class="list">
+          <li>The Patient authorizes Carebridge to collect, use, and share medical information.</li>
+          <li>Medical records may be shared with hospitals, physicians, clinics, and laboratories for evaluation purposes.</li>
+          <li>Information will be shared only for healthcare coordination purposes.</li>
+          <li>Carebridge will handle all information in accordance with its confidentiality obligations.</li>
+          <li>The Patient consents to the international transfer of medical data where required for treatment coordination.</li>
+        </ul>
+      </div>
+      <div class="lang-so" hidden>
+        <ul class="list">
+          <li>Bukaanku wuxuu u oggolanayaa Carebridge inay uruuriso, isticmaasho, oo wadaagto macluumaadka caafimaadka.</li>
+          <li>Diiwaannada caafimaadka waxaa lagu wadaagi karaa isbitaallada, dhakhaatiirta, kilinikada, iyo shaybaadyada marka la qiimeeyo.</li>
+          <li>Macluumaadku waxaa lagu wadaagaa oo kaliya ujeedooyinka iskaashiga daryeelka caafimaadka.</li>
+          <li>Carebridge waxay maarayn doontaa dhammaan macluumaadka sida ay u waajibiso waajibaadikeeda sirta.</li>
+          <li>Bukaanku wuxuu ku waafaqsanyahay wareejinta caalamiga ah ee xogta caafimaadka haddii loo baahdo marka la iskaashiyo daaweynta.</li>
+        </ul>
+      </div>
     </div>
 
     <!-- 14 -->
     <div class="clause">
-      <h2 class="sec"><span class="n">14.0</span>Hospital &amp; Physician Selection</h2>
-      <ul class="list">
-        <li>Carebridge may recommend hospitals and physicians based on medical condition, availability, and Patient preferences.</li>
-        <li>Recommendations are based on third-party information and provider availability.</li>
-        <li>The final selection of hospital and physician is always the Patient&rsquo;s decision.</li>
-        <li>Carebridge does not control or guarantee the availability of any provider.</li>
-      </ul>
+      <h2 class="sec"><span class="n">14.0</span><span class="lang-en">Hospital &amp; Physician Selection</span><span class="lang-so" hidden>Xulashada Isbitaalka &amp; Dhakhtarka</span></h2>
+      <div class="lang-en">
+        <ul class="list">
+          <li>Carebridge may recommend hospitals and physicians based on medical condition, availability, and Patient preferences.</li>
+          <li>Recommendations are based on third-party information and provider availability.</li>
+          <li>The final selection of hospital and physician is always the Patient&rsquo;s decision.</li>
+          <li>Carebridge does not control or guarantee the availability of any provider.</li>
+        </ul>
+      </div>
+      <div class="lang-so" hidden>
+        <ul class="list">
+          <li>Carebridge waxay kugula talin kartaa isbitaallada iyo dhakhaatiirta iyadoo ku salaysan xaaladda caafimaadka, diyaarnaanta, iyo rabitaannada Bukaanka.</li>
+          <li>Tixraacyadu waxay ku salaysan yihiin macluumaadka dhinaca saddexaad iyo diyaarnaanta bixiyaha.</li>
+          <li>Xulashada ugu dambeysa ee isbitaalka iyo dhakhtarka had iyo jeer waa go'aanka Bukaanka.</li>
+          <li>Carebridge ma xukumeyso waxna kuma dammaanadeyso diyaarnaanta bixiyaha kasta.</li>
+        </ul>
+      </div>
     </div>
 
     <!-- 15 -->
     <div class="clause">
-      <h2 class="sec"><span class="n">15.0</span>Treatment Costs &amp; Financial Responsibility</h2>
-      <ul class="list">
-        <li>All treatment costs are determined by independent hospitals and healthcare providers.</li>
-        <li>Estimates may change based on medical findings or complications.</li>
-        <li>Additional procedures may result in additional costs.</li>
-        <li>The Patient is fully responsible for all medical, travel, accommodation, and related expenses.</li>
-        <li>Carebridge is not responsible for pricing changes by third parties.</li>
-        <li>All payments to hospitals or providers are separate from Carebridge service fees unless otherwise agreed.</li>
-      </ul>
+      <h2 class="sec"><span class="n">15.0</span><span class="lang-en">Treatment Costs &amp; Financial Responsibility</span><span class="lang-so" hidden>Kharashka Daaweynta &amp; Mas'uuliyadda Maaliyadda</span></h2>
+      <div class="lang-en">
+        <ul class="list">
+          <li>All treatment costs are determined by independent hospitals and healthcare providers.</li>
+          <li>Estimates may change based on medical findings or complications.</li>
+          <li>Additional procedures may result in additional costs.</li>
+          <li>The Patient is fully responsible for all medical, travel, accommodation, and related expenses.</li>
+          <li>Carebridge is not responsible for pricing changes by third parties.</li>
+          <li>All payments to hospitals or providers are separate from Carebridge service fees unless otherwise agreed.</li>
+        </ul>
+      </div>
+      <div class="lang-so" hidden>
+        <ul class="list">
+          <li>Dhammaan kharashyada daaweynta waxaa go'aaminaya isbitaallada madaxbannaan iyo bixiyeyaasha daryeelka caafimaadka.</li>
+          <li>Qiyaasaha waxay isbeddeli karaan iyadoo ku salaysan natiijooyinka caafimaadka ama xaaladaha dhib leh.</li>
+          <li>Habraacyo dheeraad ah waxay keeni karaan kharashyo dheeraad ah.</li>
+          <li>Bukaanku wuxuu si buuxda uga mas'uul yahay dhammaan kharashyada caafimaadka, safarka, hotelka, iyo kharashyada la xiriira.</li>
+          <li>Carebridge mas'uul kama aha isbeddellada qiimaha ee dhinaca saddexaad.</li>
+          <li>Dhammaan lacag-bixinnada isbitaallada ama bixiyeyaasha waxay ka gooniyihiin kharashyada adeegga Carebridge marka laga reebo haddii kale la heshiiyey.</li>
+        </ul>
+      </div>
     </div>
 
     <!-- 16 -->
     <div class="clause">
-      <h2 class="sec"><span class="n">16.0</span>Service Fees &amp; Payment Terms</h2>
-      <p class="p">Carebridge service fees, where applicable, are set out below.</p>
-      <div class="fieldbox">
-        <div class="field" style="margin-top:2px;"><span class="lbl">Service Fee Amount:</span><span class="line"></span></div>
-        <div class="field"><span class="lbl">Currency:</span><span class="line"></span></div>
-        <div class="field"><span class="lbl">Deposit (if any):</span><span class="line"></span></div>
-        <div class="field"><span class="lbl">Payment Schedule / Due Dates:</span><span class="line"></span></div>
-        <div class="field" style="margin-bottom:2px;"><span class="lbl">Non-Refundable Fees (if any):</span><span class="line"></span></div>
+      <h2 class="sec"><span class="n">16.0</span><span class="lang-en">Service Fees &amp; Payment Terms</span><span class="lang-so" hidden>Kharashyada Adeegga &amp; Shuruudaha Lacag-bixinta</span></h2>
+      <div class="lang-en">
+        <p class="p">Carebridge service fees, where applicable, are set out below.</p>
+        <div class="fieldbox">
+          <div class="field" style="margin-top:2px;"><span class="lbl">Service Fee Amount:</span><span class="line"></span></div>
+          <div class="field"><span class="lbl">Currency:</span><span class="line"></span></div>
+          <div class="field"><span class="lbl">Deposit (if any):</span><span class="line"></span></div>
+          <div class="field"><span class="lbl">Payment Schedule / Due Dates:</span><span class="line"></span></div>
+          <div class="field" style="margin-bottom:2px;"><span class="lbl">Non-Refundable Fees (if any):</span><span class="line"></span></div>
+        </div>
+        <p class="p">The Patient is responsible for all bank charges and transfer fees. Certain fees may be non-refundable as specified above. Late payment may result in delay of coordination, and Carebridge may suspend services for non-payment.</p>
       </div>
-      <p class="p">The Patient is responsible for all bank charges and transfer fees. Certain fees may be non-refundable as specified above. Late payment may result in delay of coordination, and Carebridge may suspend services for non-payment.</p>
+      <div class="lang-so" hidden>
+        <p class="p">Kharashyada adeegga Carebridge, haddii ay khuseyso, waxaa lagu muujiyaa hoosta.</p>
+        <div class="fieldbox">
+          <div class="field" style="margin-top:2px;"><span class="lbl">Xadadka Kharashka Adeegga:</span><span class="line"></span></div>
+          <div class="field"><span class="lbl">Lacagta:</span><span class="line"></span></div>
+          <div class="field"><span class="lbl">Lacagta Hordhaca (haddii ay jirto):</span><span class="line"></span></div>
+          <div class="field"><span class="lbl">Jadwalka Lacag-bixinta / Taariikhaha Dhammaan:</span><span class="line"></span></div>
+          <div class="field" style="margin-bottom:2px;"><span class="lbl">Kharashyada aan la soo celin (haddii ay jirto):</span><span class="line"></span></div>
+        </div>
+        <p class="p">Bukaanku wuxuu mas'uul ka yahay dhammaan kharashyada bangiga iyo kharashyada wareejinta. Kharashyo qaarkood ma soo celisi karaan sida kor lagu sheegay. Lacag-bixinta dib u dhac ah waxay dhigi kartaa dib u dhac iskaashiga, Carebridge-na waxay hakini kartaa adeegyada lacag la'aanta darteed.</p>
+      </div>
     </div>
 
     <!-- 17 -->
     <div class="clause">
-      <h2 class="sec"><span class="n">17.0</span>Travel &amp; Visa Coordination</h2>
-      <p class="p">Carebridge may assist with medical visa guidance and documentation support, hospital invitation letter coordination (where available), travel itinerary planning assistance, and general travel coordination support. The Patient acknowledges that:</p>
-      <ul class="list dash">
-        <li>Visa approval is determined solely by government and immigration authorities.</li>
-        <li>Carebridge does not guarantee visa approval or entry into any country.</li>
-        <li>Carebridge is not responsible for visa refusals, delays, or immigration decisions.</li>
-        <li>Travel requirements may change based on government policies.</li>
-      </ul>
+      <h2 class="sec"><span class="n">17.0</span><span class="lang-en">Travel &amp; Visa Coordination</span><span class="lang-so" hidden>Iskaashiga Safarka &amp; Fiisaha</span></h2>
+      <div class="lang-en">
+        <p class="p">Carebridge may assist with medical visa guidance and documentation support, hospital invitation letter coordination (where available), travel itinerary planning assistance, and general travel coordination support. The Patient acknowledges that:</p>
+        <ul class="list dash">
+          <li>Visa approval is determined solely by government and immigration authorities.</li>
+          <li>Carebridge does not guarantee visa approval or entry into any country.</li>
+          <li>Carebridge is not responsible for visa refusals, delays, or immigration decisions.</li>
+          <li>Travel requirements may change based on government policies.</li>
+        </ul>
+      </div>
+      <div class="lang-so" hidden>
+        <p class="p">Carebridge waxay gargaari kartaa hanuuninta fiisaha caafimaadka iyo taageerada dukumentiyada, iskaashiga warqadda martiqaadka isbitaalka (haddii diyaar tahay), taageerada qorshaha safarka, iyo taageerada guud ee iskaashiga safarka. Bukaanku wuxuu aqoonsadaa in:</p>
+        <ul class="list dash">
+          <li>Oggolaanshaha fiisaha waxaa go'aminaya oo keliya dowladda iyo hay'adaha socdaalka.</li>
+          <li>Carebridge kuma dammaanadeyso oggolaanshaha fiisaha ama galitaanka dalka kasta.</li>
+          <li>Carebridge mas'uul kama aha diidmada fiisaha, dib u dhacyada, ama go'aannada socdaalka.</li>
+          <li>Shuruudaha safarka waxay isbeddeli karaan iyadoo ku salaysan siyaasadaha dowladda.</li>
+        </ul>
+      </div>
     </div>
 
     <!-- 18 -->
     <div class="clause">
-      <h2 class="sec"><span class="n">18.0</span>Accommodation Coordination</h2>
-      <p class="p">Carebridge may coordinate hotel recommendations near hospitals, apartment or long-term stay options, family accommodation suggestions, and hospital-provided accommodation (where available). The Patient acknowledges that:</p>
-      <ul class="list dash">
-        <li>Accommodation agreements are strictly between the Patient and the provider.</li>
-        <li>Carebridge does not own, manage, or operate accommodation services.</li>
-        <li>Carebridge is not responsible for the pricing, availability, or quality of accommodation providers.</li>
-      </ul>
+      <h2 class="sec"><span class="n">18.0</span><span class="lang-en">Accommodation Coordination</span><span class="lang-so" hidden>Iskaashiga Hotelka</span></h2>
+      <div class="lang-en">
+        <p class="p">Carebridge may coordinate hotel recommendations near hospitals, apartment or long-term stay options, family accommodation suggestions, and hospital-provided accommodation (where available). The Patient acknowledges that:</p>
+        <ul class="list dash">
+          <li>Accommodation agreements are strictly between the Patient and the provider.</li>
+          <li>Carebridge does not own, manage, or operate accommodation services.</li>
+          <li>Carebridge is not responsible for the pricing, availability, or quality of accommodation providers.</li>
+        </ul>
+      </div>
+      <div class="lang-so" hidden>
+        <p class="p">Carebridge waxay iskaashi samayn kartaa ku-talaabsiga hotelka agagaarka isbitaallada, xulashada qaybaha hore u kireeysta ama joogitaanka dheer, soo jeedintada hotelka qoyska, iyo hotelka isbitaalka (haddii diyaar tahay). Bukaanku wuxuu aqoonsadaa in:</p>
+        <ul class="list dash">
+          <li>Heshiisyada hotelka waxay si adag u dhexeeyaan Bukaanka iyo bixiyaha.</li>
+          <li>Carebridge ma leh, ma maamulayso, waxna ku ma shaqayso adeegyada hotelka.</li>
+          <li>Carebridge mas'uul kama aha qiimaha, diyaarnaanta, ama tayada bixiyeyaasha hotelka.</li>
+        </ul>
+      </div>
     </div>
 
     <!-- 19 -->
     <div class="clause">
-      <h2 class="sec"><span class="n">19.0</span>Transportation Coordination</h2>
-      <p class="p">Carebridge may coordinate airport pickup and drop-off, local transportation, hospital transfers, and interpreter transportation support (where applicable). The Patient acknowledges that:</p>
-      <ul class="list dash">
-        <li>Carebridge is not a transportation company.</li>
-        <li>All transportation services are provided by independent third-party providers.</li>
-        <li>Carebridge is not responsible for delays, accidents, or service failures by transport providers.</li>
-      </ul>
+      <h2 class="sec"><span class="n">19.0</span><span class="lang-en">Transportation Coordination</span><span class="lang-so" hidden>Iskaashiga Gaadiidka</span></h2>
+      <div class="lang-en">
+        <p class="p">Carebridge may coordinate airport pickup and drop-off, local transportation, hospital transfers, and interpreter transportation support (where applicable). The Patient acknowledges that:</p>
+        <ul class="list dash">
+          <li>Carebridge is not a transportation company.</li>
+          <li>All transportation services are provided by independent third-party providers.</li>
+          <li>Carebridge is not responsible for delays, accidents, or service failures by transport providers.</li>
+        </ul>
+      </div>
+      <div class="lang-so" hidden>
+        <p class="p">Carebridge waxay iskaashi samayn kartaa qaadista iyo dajinta garoonka diyaaradda, gaadiidka maxalliga ah, wareejinnada isbitaalka, iyo taageerada gaadiidka turjumaanka (haddii ay khuseyso). Bukaanku wuxuu aqoonsadaa in:</p>
+        <ul class="list dash">
+          <li>Carebridge ma aha shirkad gaadiid.</li>
+          <li>Dhammaan adeegyada gaadiidka waxaa bixiya bixiyeyaasha madaxbannaan ee dhinaca saddexaad.</li>
+          <li>Carebridge mas'uul kama aha dib u dhacyada, shilalka, ama guul darrada adeegga bixiyeyaasha gaadiidka.</li>
+        </ul>
+      </div>
     </div>
 
     <!-- 20 -->
     <div class="clause">
-      <h2 class="sec"><span class="n">20.0</span>Translation &amp; Interpretation Services</h2>
-      <p class="p">Carebridge may provide or coordinate language interpretation during medical consultations, translation of medical documents, and communication support between the Patient and healthcare providers. The Patient acknowledges that:</p>
-      <ul class="list dash">
-        <li>Translation services are for communication assistance only.</li>
-        <li>They do not replace medical advice from licensed professionals.</li>
-        <li>Carebridge is not responsible for interpretation errors by third parties.</li>
-      </ul>
+      <h2 class="sec"><span class="n">20.0</span><span class="lang-en">Translation &amp; Interpretation Services</span><span class="lang-so" hidden>Adeegyada Turjumaadda &amp; Fasiraadda</span></h2>
+      <div class="lang-en">
+        <p class="p">Carebridge may provide or coordinate language interpretation during medical consultations, translation of medical documents, and communication support between the Patient and healthcare providers. The Patient acknowledges that:</p>
+        <ul class="list dash">
+          <li>Translation services are for communication assistance only.</li>
+          <li>They do not replace medical advice from licensed professionals.</li>
+          <li>Carebridge is not responsible for interpretation errors by third parties.</li>
+        </ul>
+      </div>
+      <div class="lang-so" hidden>
+        <p class="p">Carebridge waxay bixin ama iskaashi samayn kartaa fasiraadda luqadda inta lagu jiro la-tashadaha caafimaadka, turjumaadda dukumentiyada caafimaadka, iyo taageerada xiriirka u dhexeeya Bukaanka iyo bixiyeyaasha daryeelka caafimaadka. Bukaanku wuxuu aqoonsadaa in:</p>
+        <ul class="list dash">
+          <li>Adeegyada turjumaadda waxay u takooran yihiin taageerada xiriirka oo keliya.</li>
+          <li>Kuma beddeli karaan talo caafimaad xirfadlayaasha shatiyaysan.</li>
+          <li>Carebridge mas'uul kama aha khaladaadka fasiraadda ee dhinaca saddexaad.</li>
+        </ul>
+      </div>
     </div>
 
     <!-- 21 -->
     <div class="clause">
-      <h2 class="sec"><span class="n">21.0</span>Communication Policy</h2>
-      <p class="p">Carebridge communicates with the Patient by email, WhatsApp, phone calls, video calls, and messaging platforms. The Patient acknowledges that:</p>
-      <ul class="list">
-        <li>Carebridge will use reasonable efforts to respond in a timely manner.</li>
-        <li>Communication may depend on time zones and provider availability.</li>
-        <li>The Patient must ensure contact details are accurate and up to date.</li>
-        <li>Important updates will be communicated as necessary for coordination.</li>
-      </ul>
+      <h2 class="sec"><span class="n">21.0</span><span class="lang-en">Communication Policy</span><span class="lang-so" hidden>Siyaasadda Xiriirka</span></h2>
+      <div class="lang-en">
+        <p class="p">Carebridge communicates with the Patient by email, WhatsApp, phone calls, video calls, and messaging platforms. The Patient acknowledges that:</p>
+        <ul class="list">
+          <li>Carebridge will use reasonable efforts to respond in a timely manner.</li>
+          <li>Communication may depend on time zones and provider availability.</li>
+          <li>The Patient must ensure contact details are accurate and up to date.</li>
+          <li>Important updates will be communicated as necessary for coordination.</li>
+        </ul>
+      </div>
+      <div class="lang-so" hidden>
+        <p class="p">Carebridge waxay kala xiriirtaa Bukaanka iyada oo la adeegsanayo email, WhatsApp, wacitaannada telefoonka, wacitaannada fiidiyooga, iyo goobaha farriimaha. Bukaanku wuxuu aqoonsadaa in:</p>
+        <ul class="list">
+          <li>Carebridge waxay isticmaali doontaa dadaalka macquulka ah si ay uga jawaabto wakhtigeedu ku haboon yahay.</li>
+          <li>Xiriirku wuxuu ku xiran yahay xilliyada wakhtiga iyo diyaarnaanta bixiyaha.</li>
+          <li>Bukaanku waa inuu hubistaa in faahfaahinta xiriirka ay saxnaato oo cusbato.</li>
+          <li>Cusboonaansheyaasha muhiimka ah waxaa laga war-geliyaa sida loo baahan yahay marka la iskaashiyo.</li>
+        </ul>
+      </div>
     </div>
 
     <!-- 22 -->
     <div class="clause">
-      <h2 class="sec"><span class="n">22.0</span>Privacy &amp; Confidentiality</h2>
-      <p class="p">Carebridge International Inc. will treat all Patient information as strictly confidential. Confidential information includes medical records, personal data, travel details, financial information, and identification documents. Carebridge will:</p>
-      <ul class="list">
-        <li>Use confidential information only for healthcare coordination purposes.</li>
-        <li>Implement reasonable safeguards to protect data.</li>
-        <li>Not disclose confidential information except where required by law or necessary for medical coordination.</li>
-      </ul>
-      <p class="p">These confidentiality obligations extend to employees, contractors, and third-party partners involved in coordination.</p>
+      <h2 class="sec"><span class="n">22.0</span><span class="lang-en">Privacy &amp; Confidentiality</span><span class="lang-so" hidden>Xurmada Gaar-ahaanshaha &amp; Sirta</span></h2>
+      <div class="lang-en">
+        <p class="p">Carebridge International Inc. will treat all Patient information as strictly confidential. Confidential information includes medical records, personal data, travel details, financial information, and identification documents. Carebridge will:</p>
+        <ul class="list">
+          <li>Use confidential information only for healthcare coordination purposes.</li>
+          <li>Implement reasonable safeguards to protect data.</li>
+          <li>Not disclose confidential information except where required by law or necessary for medical coordination.</li>
+        </ul>
+        <p class="p">These confidentiality obligations extend to employees, contractors, and third-party partners involved in coordination.</p>
+      </div>
+      <div class="lang-so" hidden>
+        <p class="p">Carebridge International Inc. waxay u dhaqmi doontaa dhammaan macluumaadka Bukaanka si garsoor buuxda leh. Macluumaadka sirta ahi wuxuu ku jiraa diiwaannada caafimaadka, xogta shakhsiga, faahfaahinta safarka, macluumaadka maaliyadda, iyo dukumentiyada aqoonsiga. Carebridge waxay:</p>
+        <ul class="list">
+          <li>U isticmaali doontaa macluumaadka sirta ah oo kaliya ujeedooyinka iskaashiga daryeelka caafimaadka.</li>
+          <li>Hirgelinaysaa tallaabooyinka xushmada leh si loo ilaaliyo xogta.</li>
+          <li>Aan shaacin macluumaadka sirta ah marka laga reebo haddii ay sharciku u baahan yahay ama loo baahan yahay iskaashiga caafimaadka.</li>
+        </ul>
+        <p class="p">Waajibaadiishahan sirtu waxay ku dhacaan shaqaalaha, qabalayaasha, iyo ortannada dhinaca saddexaad ee ku lug leh iskaashiga.</p>
+      </div>
     </div>
 
     <!-- 23 -->
     <div class="clause">
-      <h2 class="sec"><span class="n">23.0</span>Medical Information Handling</h2>
-      <p class="p">Carebridge may collect medical records from the Patient, store medical information securely for coordination purposes, share relevant medical data with hospitals, physicians, and healthcare providers, and request additional medical information when required. Medical data is shared only for treatment coordination, is not used for unrelated purposes, and the Patient consents to such handling as part of this Agreement.</p>
+      <h2 class="sec"><span class="n">23.0</span><span class="lang-en">Medical Information Handling</span><span class="lang-so" hidden>Maaraynta Macluumaadka Caafimaadka</span></h2>
+      <div class="lang-en">
+        <p class="p">Carebridge may collect medical records from the Patient, store medical information securely for coordination purposes, share relevant medical data with hospitals, physicians, and healthcare providers, and request additional medical information when required. Medical data is shared only for treatment coordination, is not used for unrelated purposes, and the Patient consents to such handling as part of this Agreement.</p>
+      </div>
+      <div class="lang-so" hidden>
+        <p class="p">Carebridge waxay ururisan kartaa diiwaannada caafimaadka Bukaanka, kaydin macluumaadka caafimaadka si ammaan ah ujeedooyinka iskaashiga, wadaagid xogta caafimaadka ee la xiriira isbitaallada, dhakhaatiirta, iyo bixiyeyaasha daryeelka caafimaadka, iyo codsashada macluumaad caafimaad dheeraad ah marka loo baahan yahay. Xogta caafimaadku waxaa lagu wadaagaa oo kaliya iskaashiga daaweynta, laguma isticmaalayo ujeedooyin aan la xiriirayn, Bukaankuna wuxuu ku waafaqsanyahay maarayntaas iyada oo ay tahay qayb ka mid ah heshiiskan.</p>
+      </div>
     </div>
 
     <!-- 24 -->
     <div class="clause">
-      <h2 class="sec"><span class="n">24.0</span>International Transfer of Medical Data</h2>
-      <ul class="list">
-        <li>Patient medical data may be transferred internationally for treatment coordination.</li>
-        <li>Hospitals and providers may be located in different countries.</li>
-        <li>The Patient consents to the cross-border transfer of medical records.</li>
-        <li>Carebridge will take reasonable steps to ensure the secure transmission of data.</li>
-      </ul>
+      <h2 class="sec"><span class="n">24.0</span><span class="lang-en">International Transfer of Medical Data</span><span class="lang-so" hidden>Wareejinta Caalamiga ah ee Xogta Caafimaadka</span></h2>
+      <div class="lang-en">
+        <ul class="list">
+          <li>Patient medical data may be transferred internationally for treatment coordination.</li>
+          <li>Hospitals and providers may be located in different countries.</li>
+          <li>The Patient consents to the cross-border transfer of medical records.</li>
+          <li>Carebridge will take reasonable steps to ensure the secure transmission of data.</li>
+        </ul>
+      </div>
+      <div class="lang-so" hidden>
+        <ul class="list">
+          <li>Xogta caafimaadka Bukaanka waxaa lagu wareejin karaa caalamiga ahaan iskaashiga daaweynta.</li>
+          <li>Isbitaallada iyo bixiyeyaasha waxay ku yaalli karaan dalal kala duwan.</li>
+          <li>Bukaanku wuxuu ku waafaqsanyahay wareejinta xadka-gudbida ee diiwaannada caafimaadka.</li>
+          <li>Carebridge waxay qaadi doontaa tallaabooyin macquul ah si ay u hubiso gudbinta ammaan ah ee xogta.</li>
+        </ul>
+      </div>
     </div>
 
     <!-- 25 -->
     <div class="clause">
-      <h2 class="sec"><span class="n">25.0</span>Electronic Communication &amp; Consent</h2>
-      <p class="p">The Patient agrees to receive communications via email, WhatsApp, SMS, and phone, and to allow the electronic sharing of medical and travel information. Electronic communication is valid for coordination purposes. Carebridge is not responsible for delays or failures in electronic communication systems, and the Patient must ensure access to the communication channels provided.</p>
+      <h2 class="sec"><span class="n">25.0</span><span class="lang-en">Electronic Communication &amp; Consent</span><span class="lang-so" hidden>Xiriirka Elektaroonigga ah &amp; Oggolaanshaha</span></h2>
+      <div class="lang-en">
+        <p class="p">The Patient agrees to receive communications via email, WhatsApp, SMS, and phone, and to allow the electronic sharing of medical and travel information. Electronic communication is valid for coordination purposes. Carebridge is not responsible for delays or failures in electronic communication systems, and the Patient must ensure access to the communication channels provided.</p>
+      </div>
+      <div class="lang-so" hidden>
+        <p class="p">Bukaanku wuxuu ku waafaqsanyahay helitaanka xiriirka iyada oo la adeegsanayo email, WhatsApp, SMS, iyo telefoon, iyo inuu u oggolaado wadaagga elektaroonigga ah ee macluumaadka caafimaadka iyo safarka. Xiriirka elektaroonigga ahi wuxuu ansax yahay ujeedooyinka iskaashiga. Carebridge mas'uul kama aha dib u dhacyada ama guul darrooyinka nidaamyada xiriirka elektaroonigga, Bukaankuna waa inuu hubistaa gelitaanka baraha xiriirka la siiyey.</p>
+      </div>
     </div>
 
     <!-- 26 -->
     <div class="clause">
-      <h2 class="sec"><span class="n">26.0</span>Electronic Signatures</h2>
-      <ul class="list">
-        <li>Electronic signatures are legally binding.</li>
-        <li>Scanned copies, PDFs, and digital signatures are valid forms of agreement.</li>
-        <li>This Agreement may be executed electronically without physical signatures.</li>
-        <li>Electronic execution does not affect enforceability.</li>
-      </ul>
+      <h2 class="sec"><span class="n">26.0</span><span class="lang-en">Electronic Signatures</span><span class="lang-so" hidden>Saxiixyadda Elektaroonigga ah</span></h2>
+      <div class="lang-en">
+        <ul class="list">
+          <li>Electronic signatures are legally binding.</li>
+          <li>Scanned copies, PDFs, and digital signatures are valid forms of agreement.</li>
+          <li>This Agreement may be executed electronically without physical signatures.</li>
+          <li>Electronic execution does not affect enforceability.</li>
+        </ul>
+      </div>
+      <div class="lang-so" hidden>
+        <ul class="list">
+          <li>Saxiixyadda elektaroonigga ah waxay ansax yihiin sharci ahaan.</li>
+          <li>Nuqulladda shaandheynta, PDF-yada, iyo saxiixyadda dijitaalka waxay ah qaababka ansaxa ah ee heshiiska.</li>
+          <li>Heshiiskan waxaa la fulinkartaa si elektaroonig ah iyada oo aan saxiixyo jir ah la samayn.</li>
+          <li>Fulintu elektarooniggu ma saameynayso hirgalinta.</li>
+        </ul>
+      </div>
     </div>
 
     <!-- 27 -->
     <div class="clause">
-      <h2 class="sec"><span class="n">27.0</span>Data Retention</h2>
-      <p class="p">Carebridge may retain Patient records for a reasonable period for legal, administrative, and coordination purposes. Retention may be required by law or regulatory obligations. The Patient may request information regarding data retention policies, subject to legal limitations.</p>
+      <h2 class="sec"><span class="n">27.0</span><span class="lang-en">Data Retention</span><span class="lang-so" hidden>Haynta Xogta</span></h2>
+      <div class="lang-en">
+        <p class="p">Carebridge may retain Patient records for a reasonable period for legal, administrative, and coordination purposes. Retention may be required by law or regulatory obligations. The Patient may request information regarding data retention policies, subject to legal limitations.</p>
+      </div>
+      <div class="lang-so" hidden>
+        <p class="p">Carebridge waxay haysan kartaa diiwaannada Bukaanka muddo macquul ah ujeedooyinka sharciga, maamulka, iyo iskaashiga. Hayntu waxaa loo baahanaan karaa sharciga ama waajibaadiinta sharaaciyadda. Bukaanku wuxuu codsankartaa macluumaad ku saabsan siyaasadaha haynta xogta, iyadoo la raacayo xaddidaadaha sharciga.</p>
+      </div>
     </div>
 
     <!-- 28 -->
     <div class="clause">
-      <h2 class="sec"><span class="n">28.0</span>Compliance with Privacy Laws</h2>
-      <p class="p">Carebridge will comply with the applicable privacy and data protection laws relevant to its operations, including international data handling standards where applicable.</p>
+      <h2 class="sec"><span class="n">28.0</span><span class="lang-en">Compliance with Privacy Laws</span><span class="lang-so" hidden>Raacidda Sharciyada Xurmada Gaar-ahaanshaha</span></h2>
+      <div class="lang-en">
+        <p class="p">Carebridge will comply with the applicable privacy and data protection laws relevant to its operations, including international data handling standards where applicable.</p>
+      </div>
+      <div class="lang-so" hidden>
+        <p class="p">Carebridge waxay raaci doontaa sharciyada amniga iyo ilaalinta xogta ee khuseeya howlaheedu, oo ay ku jiraan heerarka maaraynta xogta caalamiga ah haddii ay khuseyso.</p>
+      </div>
     </div>
 
     <!-- 29 -->
     <div class="clause">
-      <h2 class="sec"><span class="n">29.0</span>Data Security, Patient Consent &amp; Limitation of Liability</h2>
-      <p class="p">The Patient acknowledges and understands that Carebridge International Inc. may collect, use, store, process, and transmit personal, medical, financial, travel, and other confidential information electronically and, where necessary, share such information with healthcare providers, hospitals, laboratories, insurance companies, travel service providers, government authorities, and other authorized third parties for the purpose of coordinating the Patient&rsquo;s requested medical treatment and related services.</p>
-      <p class="p">The Patient further acknowledges that, despite Carebridge International Inc.&rsquo;s implementation of commercially reasonable administrative, technical, and physical safeguards, no electronic system, network, cloud platform, email service, or method of data transmission or storage can be guaranteed to be completely secure or immune from cyberattacks, unauthorized access, data breaches, system failures, or other security incidents.</p>
-      <p class="p">By signing this Agreement, the Patient expressly consents to the electronic collection, storage, processing, transfer, and transmission of their personal and medical information and acknowledges the inherent risks associated with such activities, including the possibility of unauthorized access or disclosure despite reasonable security measures.</p>
-      <p class="p">To the fullest extent permitted by applicable law, the Patient agrees that Carebridge International Inc. shall not be liable for any loss, damage, claim, cost, or expense arising from any unauthorized access, cybersecurity incident, data breach, hacking event, ransomware attack, theft, disclosure, alteration, corruption, or loss of data that occurs despite Carebridge International Inc. having exercised reasonable care and implemented commercially reasonable security measures, except where such incident is directly caused by Carebridge International Inc.&rsquo;s gross negligence, willful misconduct, or fraud.</p>
-      <p class="p">The Patient agrees to release, indemnify, and hold harmless Carebridge International Inc., its directors, officers, employees, contractors, and affiliates from any claims, liabilities, damages, or expenses arising out of or relating to any such cybersecurity incident or data breach, except to the extent prohibited by applicable law.</p>
-      <p class="p">Nothing in this Agreement shall exclude or limit any liability that cannot lawfully be excluded or limited under applicable law.</p>
-      <div class="between" style="margin-top:18px;">
-        <div class="partyhead" style="margin-top:0;">Patient Acknowledgment and Consent</div>
-        <p class="p" style="margin-top:8px;">I have read and understood the Privacy, Confidentiality, Data Security, and Limitation of Liability provisions of this Agreement. I understand that no electronic system is completely secure and that, despite reasonable safeguards, cybersecurity incidents or data breaches may occur. I voluntarily consent to the collection, use, storage, processing, and international transfer of my personal and medical information for the purpose of coordinating my medical care and related services, and I acknowledge and accept the risks described above.</p>
-        <div class="field" style="margin-top:16px;"><span class="lbl">Patient Name:</span><span class="line"></span></div>
-        <div class="field"><span class="lbl">Signature:</span><span class="line"></span></div>
-        <div class="field"><span class="lbl">Date:</span><span class="line"></span></div>
+      <h2 class="sec"><span class="n">29.0</span><span class="lang-en">Data Security, Patient Consent &amp; Limitation of Liability</span><span class="lang-so" hidden>Amniga Xogta, Oggolaanshaha Bukaanka &amp; Xaddidaadda Mas'uuliyadda</span></h2>
+      <div class="lang-en">
+        <p class="p">The Patient acknowledges and understands that Carebridge International Inc. may collect, use, store, process, and transmit personal, medical, financial, travel, and other confidential information electronically and, where necessary, share such information with healthcare providers, hospitals, laboratories, insurance companies, travel service providers, government authorities, and other authorized third parties for the purpose of coordinating the Patient&rsquo;s requested medical treatment and related services.</p>
+        <p class="p">The Patient further acknowledges that, despite Carebridge International Inc.&rsquo;s implementation of commercially reasonable administrative, technical, and physical safeguards, no electronic system, network, cloud platform, email service, or method of data transmission or storage can be guaranteed to be completely secure or immune from cyberattacks, unauthorized access, data breaches, system failures, or other security incidents.</p>
+        <p class="p">By signing this Agreement, the Patient expressly consents to the electronic collection, storage, processing, transfer, and transmission of their personal and medical information and acknowledges the inherent risks associated with such activities, including the possibility of unauthorized access or disclosure despite reasonable security measures.</p>
+        <p class="p">To the fullest extent permitted by applicable law, the Patient agrees that Carebridge International Inc. shall not be liable for any loss, damage, claim, cost, or expense arising from any unauthorized access, cybersecurity incident, data breach, hacking event, ransomware attack, theft, disclosure, alteration, corruption, or loss of data that occurs despite Carebridge International Inc. having exercised reasonable care and implemented commercially reasonable security measures, except where such incident is directly caused by Carebridge International Inc.&rsquo;s gross negligence, willful misconduct, or fraud.</p>
+        <p class="p">The Patient agrees to release, indemnify, and hold harmless Carebridge International Inc., its directors, officers, employees, contractors, and affiliates from any claims, liabilities, damages, or expenses arising out of or relating to any such cybersecurity incident or data breach, except to the extent prohibited by applicable law.</p>
+        <p class="p">Nothing in this Agreement shall exclude or limit any liability that cannot lawfully be excluded or limited under applicable law.</p>
+        <div class="between" style="margin-top:18px;">
+          <div class="partyhead" style="margin-top:0;">Patient Acknowledgment and Consent</div>
+          <p class="p" style="margin-top:8px;">I have read and understood the Privacy, Confidentiality, Data Security, and Limitation of Liability provisions of this Agreement. I understand that no electronic system is completely secure and that, despite reasonable safeguards, cybersecurity incidents or data breaches may occur. I voluntarily consent to the collection, use, storage, processing, and international transfer of my personal and medical information for the purpose of coordinating my medical care and related services, and I acknowledge and accept the risks described above.</p>
+          <div class="field" style="margin-top:16px;"><span class="lbl">Patient Name:</span><span class="line"></span></div>
+          <div class="field"><span class="lbl">Signature:</span><span class="line"></span></div>
+          <div class="field"><span class="lbl">Date:</span><span class="line"></span></div>
+        </div>
+      </div>
+      <div class="lang-so" hidden>
+        <p class="p">Bukaanku wuxuu aqoonsadaa oo gartaa in Carebridge International Inc. ay ururisan kartaa, isticmaali karto, kaydin karto, habayn karto, iyo gudbin karto macluumaadka shakhsiga, caafimaadka, maaliyadda, safarka, iyo macluumaadka kale ee sirta ah si elektaroonig ah, marka loo baahan yahay wadaagi bixiyeyaasha daryeelka caafimaadka, isbitaallada, shaybaadyada, shirkadaha caymiska, bixiyeyaasha adeegga safarka, hay'adaha dowladda, iyo dhinacyada saddexaad kale oo oggolaantay si loogu iskaashiyo daaweynta caafimaadka ee bukaanka iyo adeegyada la xiriira.</p>
+        <p class="p">Bukaanku wuxuu aqoonsadaa in, in kasta oo Carebridge International Inc. ay hirgeliyeen tallaabooyinka amniga ee maamulidda, farsamada, iyo jirka ee macquulka ah ee ganacsiga, nidaam elektaroonig ah, shabakad, goob daruuraha, adeeg email, ama habka gudbinta ama kaydinta xogta midna si buuxda uga ammaan u noqon karin ama ka dhicin karin weerarada kibersecurity, gelitaanka aan la oggolayn, jebinta xogta, guul darrooyinka nidaamka, ama xaaladaha amniga kale.</p>
+        <p class="p">Marka la saxiixo heshiiskan, Bukaanku si cad ayuu u ogolanayaa ururinta, kaydinta, habynta, wareejinta, iyo gudbinta elektaroonigga ah ee macluumaadkiisa shakhsiga iyo caafimaadka wuxuuna aqoonsadaa khataraha dabiiciga ah ee la xiriira howlahaas, oo ay ku jiraan suurtagalka gelitaanka aan la oggolayn ama shaacinta in kasta oo tallaabooyinka amniga macquulka ah la qaadeen.</p>
+        <p class="p">Xaddidka ugu sarreeya ee sharciga dejinta u oggolaanaya, Bukaanku wuxuu ku waafaqsanyahay in Carebridge International Inc. aan mas'uul u ahayn khasaaro, dhaawac, dacwad, kharash, ama qalad ka dhasha gelitaan aan la oggolayn, xaalad kibersecurity, jebinta xogta, dhacdo hacking, weerarka ransomware, xatooyo, shaac, isbeddel, xumaan, ama lunaansho xogta ah oo dhacda in kasta oo Carebridge International Inc. ay dareenka macquulka ah u isticmaasheen tallaabooyinka amniga macquulka ah ee ganacsiga, marka laga reebo halka xaaladda ay si toos ah uga dhigtay bur-barkii Carebridge International Inc. ee dayacan, dhaqanka dila-doon, ama khiyaanadda.</p>
+        <p class="p">Bukaanku wuxuu ku waafaqsanyahay in uu sii daayo, bogsiiyo, iyo ka xoroodo Carebridge International Inc., agaasimayaasheeda, saraakiisheeda, shaqaalaheedu, qabalayaasheeda, iyo xidhibaaladeedu dhammaan dacwadaha, mas'uuliyaadka, dhaawacyada, ama kharashyada ka dhasha ama la xiriira xaalad kibersecurity ama jebinta xogta, marka laga reebo haddii ay sharciga dejinta u oggolaanayo ka hortago ama xaddiddo.</p>
+        <p class="p">Waxba heshiiskan ka jirin ma ka saari karo ama ma xaddidi karo mas'uuliyad kasta oo sharci ahaan laga saari karo ama la xaddidi karo ee sharcigu dejinayo.</p>
+        <div class="between" style="margin-top:18px;">
+          <div class="partyhead" style="margin-top:0;">Aqoonsiga iyo Oggolaanshaha Bukaanka</div>
+          <p class="p" style="margin-top:8px;">Waxaan akhristay oo gartay qodobada Xurmada Gaar-ahaanshaha, Sirta, Amniga Xogta, iyo Xaddidaadda Mas'uuliyadda ee heshiiskan. Waxaan gartaa in nidaam elektaroonig ah oo dhamaystiran uu ammaan ahayn karo waxaana jira, in kasta oo tallaabooyinka ammaanka macquulka ah la qaadeen, xaaladaha kibersecurity ama jebinta xogta ay dhici karaan. Si ikhtiyaari ah ayaan u oggolanayaa ururinta, isticmaalka, kaydinta, habynta, iyo wareejinta caalamiga ah ee macluumaadkeyga shakhsiga iyo caafimaadka ujeedada iskaashiga daryeelkeyga caafimaadka iyo adeegyada la xiriira, waxaana aqoonsanahay oo aqbalay khataraha lagu soo sheegay.</p>
+          <div class="field" style="margin-top:16px;"><span class="lbl">Magaca Bukaanka:</span><span class="line"></span></div>
+          <div class="field"><span class="lbl">Saxiixa:</span><span class="line"></span></div>
+          <div class="field"><span class="lbl">Taariikhda:</span><span class="line"></span></div>
+        </div>
       </div>
     </div>
 
     <!-- 30 -->
     <div class="clause">
-      <h2 class="sec"><span class="n">30.0</span>Limitation of Medical Responsibility</h2>
-      <ul class="list">
-        <li>Carebridge International Inc. does not provide medical diagnosis, treatment, surgery, or prescriptions.</li>
-        <li>All medical services are provided exclusively by independent licensed healthcare providers.</li>
-        <li>Carebridge is not responsible for medical decisions made by doctors or hospitals.</li>
-        <li>The Patient acknowledges that all medical risks are inherent to treatment and remain between the Patient and the healthcare provider.</li>
-      </ul>
+      <h2 class="sec"><span class="n">30.0</span><span class="lang-en">Limitation of Medical Responsibility</span><span class="lang-so" hidden>Xaddidaadda Mas'uuliyadda Caafimaadka</span></h2>
+      <div class="lang-en">
+        <ul class="list">
+          <li>Carebridge International Inc. does not provide medical diagnosis, treatment, surgery, or prescriptions.</li>
+          <li>All medical services are provided exclusively by independent licensed healthcare providers.</li>
+          <li>Carebridge is not responsible for medical decisions made by doctors or hospitals.</li>
+          <li>The Patient acknowledges that all medical risks are inherent to treatment and remain between the Patient and the healthcare provider.</li>
+        </ul>
+      </div>
+      <div class="lang-so" hidden>
+        <ul class="list">
+          <li>Carebridge International Inc. kuma ogeysiisayso, daaweynayso, ku qalliin-jirayso, ama ku qortooda bukaannada.</li>
+          <li>Dhammaan adeegyada caafimaadka waxaa si gaar ah u bixiya bixiyeyaasha daryeelka caafimaadka ee shatiyaysan ee madaxbannaan.</li>
+          <li>Carebridge mas'uul kama aha go'aannada caafimaadka ee dhakhaatiirta ama isbitaallada.</li>
+          <li>Bukaanku wuxuu aqoonsadaa in dhammaan khataraha caafimaadka ay dabiici u yihiin daaweynta waxayna u dhexeeyaan Bukaanka iyo bixiyaha daryeelka caafimaadka.</li>
+        </ul>
+      </div>
     </div>
 
     <!-- 31 -->
     <div class="clause">
-      <h2 class="sec"><span class="n">31.0</span>Limitation of Liability</h2>
-      <p class="p">To the maximum extent permitted by law, Carebridge shall not be liable for any of the following:</p>
-      <ul class="list dash">
-        <li>Medical injury, complications, disability, or death.</li>
-        <li>Treatment failure or poor medical outcomes.</li>
-        <li>Hospital or physician negligence or malpractice.</li>
-        <li>Visa refusals, immigration delays, or entry denial.</li>
-        <li>Flight delays, cancellations, or airline issues.</li>
-        <li>Accommodation issues or third-party failures.</li>
-        <li>Transportation accidents or delays.</li>
-        <li>Loss of documents, baggage, or personal belongings.</li>
-        <li>Government actions, policy changes, or border closures.</li>
-        <li>Natural disasters, pandemics, or force majeure events.</li>
-        <li>Carebridge is not responsible for <b>any</b> financial losses related to third-party services.</li>
-      </ul>
-      <div class="callout"><p><b>Total liability.</b> In all cases, the total liability of Carebridge under this Agreement, if any, is limited to the amount of service fees actually paid by the Patient to Carebridge.</p></div>
+      <h2 class="sec"><span class="n">31.0</span><span class="lang-en">Limitation of Liability</span><span class="lang-so" hidden>Xaddidaadda Mas'uuliyadda</span></h2>
+      <div class="lang-en">
+        <p class="p">To the maximum extent permitted by law, Carebridge shall not be liable for any of the following:</p>
+        <ul class="list dash">
+          <li>Medical injury, complications, disability, or death.</li>
+          <li>Treatment failure or poor medical outcomes.</li>
+          <li>Hospital or physician negligence or malpractice.</li>
+          <li>Visa refusals, immigration delays, or entry denial.</li>
+          <li>Flight delays, cancellations, or airline issues.</li>
+          <li>Accommodation issues or third-party failures.</li>
+          <li>Transportation accidents or delays.</li>
+          <li>Loss of documents, baggage, or personal belongings.</li>
+          <li>Government actions, policy changes, or border closures.</li>
+          <li>Natural disasters, pandemics, or force majeure events.</li>
+          <li>Carebridge is not responsible for <b>any</b> financial losses related to third-party services.</li>
+        </ul>
+        <div class="callout"><p><b>Total liability.</b> In all cases, the total liability of Carebridge under this Agreement, if any, is limited to the amount of service fees actually paid by the Patient to Carebridge.</p></div>
+      </div>
+      <div class="lang-so" hidden>
+        <p class="p">Xaddidka ugu sarreeya ee sharciga u oggolaaday, Carebridge kuma mas'uuliyaanayso mid kasta oo kuwan soo socda:</p>
+        <ul class="list dash">
+          <li>Dhaawaca caafimaadka, xaaladaha dhib leh, naafonimada, ama dhimasho.</li>
+          <li>Guul darrada daaweynta ama natiijooyinka caafimaadka ee xun.</li>
+          <li>Dayacanka ama xad-gudubka xirfadeed ee isbitaalka ama dhakhtarka.</li>
+          <li>Diidmada fiisaha, dib u dhacyada socdaalka, ama diidmada galitaanka.</li>
+          <li>Dib u dhacyada diyaaradaha, baajinta, ama xaaladaha diyaaradeed.</li>
+          <li>Xaaladaha hotelka ama guul darrooyinka dhinaca saddexaad.</li>
+          <li>Shilalka gaadiidka ama dib u dhacyada.</li>
+          <li>Lunaanshaha dukumentiyada, baajiga, ama hantida shakhsiga.</li>
+          <li>Ficilada dowladda, isbeddellada siyaasadda, ama xiritaanka xadka.</li>
+          <li>Masiibada dabiiciga ah, faafida cudurrada, ama xaaladaha Aan La Xukumi Karin.</li>
+          <li>Carebridge mas'uul kama aha <b>wax</b> khasaaro maaliyadeed oo la xiriira adeegyada dhinaca saddexaad.</li>
+        </ul>
+        <div class="callout"><p><b>Mas'uuliyadda guud.</b> Dhammaan kiisaska, mas'uuliyadda guud ee Carebridge ee heshiiskan, haddii ay jirto, waxaa lagu xaddidayaa xadadka kharashyada adeegga ee Bukaanku u bixiyey Carebridge.</p></div>
+      </div>
     </div>
 
     <!-- 32 -->
     <div class="clause">
-      <h2 class="sec"><span class="n">32.0</span>No Guarantee of Outcomes</h2>
-      <p class="p">Carebridge does not guarantee any medical, travel, or service outcomes, including treatment results, recovery, approvals, or timelines. All outcomes depend on independent third parties and individual circumstances.</p>
+      <h2 class="sec"><span class="n">32.0</span><span class="lang-en">No Guarantee of Outcomes</span><span class="lang-so" hidden>Natiijada lama Damaanaado</span></h2>
+      <div class="lang-en">
+        <p class="p">Carebridge does not guarantee any medical, travel, or service outcomes, including treatment results, recovery, approvals, or timelines. All outcomes depend on independent third parties and individual circumstances.</p>
+      </div>
+      <div class="lang-so" hidden>
+        <p class="p">Carebridge kuma dammaanadeyso wax natiijooyin caafimaad, safar, ama adeeg ah, oo ay ku jiraan natiijooyinka daaweynta, bogsashada, oggolaanshayaasha, ama jadwalyada. Dhammaan natiijooyintu waxay ku xiran yihiin dhinacyada saddexaad ee madaxbannaan iyo xaaladaha shakhsiga.</p>
+      </div>
     </div>
 
     <!-- 33 -->
     <div class="clause">
-      <h2 class="sec"><span class="n">33.0</span>Independent Third-Party Providers</h2>
-      <ul class="list">
-        <li>Hospitals, doctors, clinics, laboratories, airlines, hotels, transport providers, and translators are independent third parties.</li>
-        <li>They are not employees, agents, partners, or representatives of Carebridge.</li>
-        <li>Carebridge is not responsible for the acts, omissions, negligence, or performance of third parties.</li>
-        <li>Any contract for services is strictly between the Patient and the third-party provider.</li>
-      </ul>
+      <h2 class="sec"><span class="n">33.0</span><span class="lang-en">Independent Third-Party Providers</span><span class="lang-so" hidden>Bixiyeyaasha Madaxbannaan ee Dhinaca Saddexaad</span></h2>
+      <div class="lang-en">
+        <ul class="list">
+          <li>Hospitals, doctors, clinics, laboratories, airlines, hotels, transport providers, and translators are independent third parties.</li>
+          <li>They are not employees, agents, partners, or representatives of Carebridge.</li>
+          <li>Carebridge is not responsible for the acts, omissions, negligence, or performance of third parties.</li>
+          <li>Any contract for services is strictly between the Patient and the third-party provider.</li>
+        </ul>
+      </div>
+      <div class="lang-so" hidden>
+        <ul class="list">
+          <li>Isbitaallada, dhakhaatiirta, kilinikada, shaybaadyada, diyaaradaha, hudheelada, bixiyeyaasha gaadiidka, iyo turjumaannada waa dhinacyada saddexaad ee madaxbannaan.</li>
+          <li>Maaha shaqaale, wakiillo, ortanno, ama matalayaasho Carebridge.</li>
+          <li>Carebridge mas'uul kama aha ficilada, ka-dhaafitaanka, dayacanka, ama waxqabadka dhinacyada saddexaad.</li>
+          <li>Heshiis kasta oo adeeg ah wuxuu si adag u dhexeeyaa Bukaanka iyo bixiyaha dhinaca saddexaad.</li>
+        </ul>
+      </div>
     </div>
 
     <!-- 34 -->
     <div class="clause">
-      <h2 class="sec"><span class="n">34.0</span>Force Majeure</h2>
-      <p class="p">Carebridge shall not be liable for any delay or failure to perform caused by events beyond its reasonable control, including:</p>
-      <ul class="list dash">
-        <li>War, terrorism, or civil unrest.</li>
-        <li>Natural disasters such as earthquakes, floods, fires, and storms.</li>
-        <li>Pandemics, epidemics, or public health emergencies.</li>
-        <li>Government actions, travel bans, or border closures.</li>
-        <li>Airline strikes or transportation disruptions.</li>
-        <li>Hospital closures or medical emergencies.</li>
-        <li>Power, communication, or system failures.</li>
-        <li>Any other event beyond the reasonable control of Carebridge.</li>
-      </ul>
+      <h2 class="sec"><span class="n">34.0</span><span class="lang-en">Force Majeure</span><span class="lang-so" hidden>Xaaladaha Aan La Xukumi Karin</span></h2>
+      <div class="lang-en">
+        <p class="p">Carebridge shall not be liable for any delay or failure to perform caused by events beyond its reasonable control, including:</p>
+        <ul class="list dash">
+          <li>War, terrorism, or civil unrest.</li>
+          <li>Natural disasters such as earthquakes, floods, fires, and storms.</li>
+          <li>Pandemics, epidemics, or public health emergencies.</li>
+          <li>Government actions, travel bans, or border closures.</li>
+          <li>Airline strikes or transportation disruptions.</li>
+          <li>Hospital closures or medical emergencies.</li>
+          <li>Power, communication, or system failures.</li>
+          <li>Any other event beyond the reasonable control of Carebridge.</li>
+        </ul>
+      </div>
+      <div class="lang-so" hidden>
+        <p class="p">Carebridge kuma mas'uuliyaanayso dib u dhac kasta ama guul darrada fulinta ay keentay xaaladaha ka baxsan awooddeeda macquulka ah, oo ay ku jiraan:</p>
+        <ul class="list dash">
+          <li>Dagaallo, argagixisanimo, ama buuqyada shacabka.</li>
+          <li>Masiibada dabiiciga ah sida dhul gariirta, daadaha, dabka, iyo duufaanada.</li>
+          <li>Faafida cudurrada, baaxadyada cudurrada, ama xaaladaha degdeg ah ee caafimaadka guud.</li>
+          <li>Ficilada dowladda, mamnuucidda safarka, ama xiritaanka xadka.</li>
+          <li>Dhibaatooyin shaqaalaha diyaaradaha ama xayiraadda gaadiidka.</li>
+          <li>Xiritaanka isbitaalka ama xaaladaha degdeg ah ee caafimaadka.</li>
+          <li>Guul darrooyinka korontada, xiriirka, ama nidaamka.</li>
+          <li>Xaalad kasta oo kale ee ka baxsan xukumidda macquulka ah ee Carebridge.</li>
+        </ul>
+      </div>
     </div>
 
     <!-- 35 -->
     <div class="clause">
-      <h2 class="sec"><span class="n">35.0</span>Insurance Responsibility</h2>
-      <ul class="list">
-        <li>The Patient is solely responsible for obtaining appropriate travel, medical, and emergency insurance.</li>
-        <li>Carebridge does not provide insurance coverage.</li>
-        <li>Carebridge is not responsible for uninsured medical or travel costs.</li>
-      </ul>
-      <p class="p">Patients are strongly encouraged to obtain comprehensive international medical insurance before travelling.</p>
+      <h2 class="sec"><span class="n">35.0</span><span class="lang-en">Insurance Responsibility</span><span class="lang-so" hidden>Mas'uuliyadda Caymiska</span></h2>
+      <div class="lang-en">
+        <ul class="list">
+          <li>The Patient is solely responsible for obtaining appropriate travel, medical, and emergency insurance.</li>
+          <li>Carebridge does not provide insurance coverage.</li>
+          <li>Carebridge is not responsible for uninsured medical or travel costs.</li>
+        </ul>
+        <p class="p">Patients are strongly encouraged to obtain comprehensive international medical insurance before travelling.</p>
+      </div>
+      <div class="lang-so" hidden>
+        <ul class="list">
+          <li>Bukaanku keliya waa mas'uul ka ah helista caymiska safarka, caafimaadka, iyo degdegga ah ee ku haboon.</li>
+          <li>Carebridge ma bixiso daabacaadda caymiska.</li>
+          <li>Carebridge mas'uul kama aha kharashyada caafimaadka ama safarka ee aan caymiska haysan.</li>
+        </ul>
+        <p class="p">Si xoogan ayaa loogu dhiirrigelinayaa bukaannada in ay helaan caymis caafimaad oo caalami ah oo dhammaystiran ka hor inta ay safarka ka bixin.</p>
+      </div>
     </div>
 
     <!-- 36 -->
     <div class="clause">
-      <h2 class="sec"><span class="n">36.0</span>Patient Conduct &amp; Professional Behaviour</h2>
-      <p class="p">The Patient agrees to behave respectfully and professionally at all times when interacting with Carebridge, hospitals, physicians, translators, transport providers, and any third parties, and agrees not to:</p>
-      <ul class="list">
-        <li>Harass, threaten, or abuse any staff or representatives.</li>
-        <li>Use offensive, discriminatory, or inappropriate language.</li>
-        <li>Disrupt coordination services or medical processes.</li>
-        <li>Request services outside the agreed scope without approval.</li>
-        <li>Engage in fraudulent or deceptive conduct.</li>
-        <li>Damage relationships between Carebridge and healthcare providers.</li>
-      </ul>
-      <p class="p">Carebridge may suspend or terminate services immediately if misconduct occurs.</p>
+      <h2 class="sec"><span class="n">36.0</span><span class="lang-en">Patient Conduct &amp; Professional Behaviour</span><span class="lang-so" hidden>Dabeecadda Bukaanka &amp; Dhaqanka Xirfadlaha</span></h2>
+      <div class="lang-en">
+        <p class="p">The Patient agrees to behave respectfully and professionally at all times when interacting with Carebridge, hospitals, physicians, translators, transport providers, and any third parties, and agrees not to:</p>
+        <ul class="list">
+          <li>Harass, threaten, or abuse any staff or representatives.</li>
+          <li>Use offensive, discriminatory, or inappropriate language.</li>
+          <li>Disrupt coordination services or medical processes.</li>
+          <li>Request services outside the agreed scope without approval.</li>
+          <li>Engage in fraudulent or deceptive conduct.</li>
+          <li>Damage relationships between Carebridge and healthcare providers.</li>
+        </ul>
+        <p class="p">Carebridge may suspend or terminate services immediately if misconduct occurs.</p>
+      </div>
+      <div class="lang-so" hidden>
+        <p class="p">Bukaanku wuxuu ku waafaqsanyahay in uu si xurmo leh oo xirfadlaysi leh u dhaqmo had iyo jeer marka uu la xiriirayo Carebridge, isbitaallada, dhakhaatiirta, turjumaannada, bixiyeyaasha gaadiidka, iyo dhinacyada saddexaad kasta, wuxuuna ku waafaqsanyahay inaanu:</p>
+        <ul class="list">
+          <li>Xayirayn, hanjabayn, ama xad-gudbin shaqaalaha ama matalayaasha.</li>
+          <li>Isticmaalin luqadda xun, takoorka, ama kuwa aan habboonayn.</li>
+          <li>Xayirayn adeegyada iskaashiga ama habsyada caafimaadka.</li>
+          <li>Codsanin adeegyo ka baxsan xaddidka la waafaqay iyada oo aan oggolaanshaha la helin.</li>
+          <li>Kujirnayn dhaqanka khiyaanadda ama khad-madoobaha.</li>
+          <li>Dhaawacin xiriirka u dhexeeya Carebridge iyo bixiyeyaasha daryeelka caafimaadka.</li>
+        </ul>
+        <p class="p">Carebridge waxay haki ama joojin kartaa adeegyada si deg-deg ah haddii baylacsi ka dhaco.</p>
+      </div>
     </div>
 
     <!-- 37 -->
     <div class="clause">
-      <h2 class="sec"><span class="n">37.0</span>False Information, Fraud &amp; Misrepresentation</h2>
-      <p class="p">The Patient agrees to provide truthful, complete, and accurate information at all times, disclose all relevant medical history and conditions, avoid submitting false or altered documents, and not misrepresent Carebridge services or staff. Carebridge is not responsible for consequences resulting from false, incomplete, or misleading information provided by the Patient.</p>
+      <h2 class="sec"><span class="n">37.0</span><span class="lang-en">False Information, Fraud &amp; Misrepresentation</span><span class="lang-so" hidden>Macluumaadka Beenta ah, Khiyaanadda &amp; Muuqaal-beeneed</span></h2>
+      <div class="lang-en">
+        <p class="p">The Patient agrees to provide truthful, complete, and accurate information at all times, disclose all relevant medical history and conditions, avoid submitting false or altered documents, and not misrepresent Carebridge services or staff. Carebridge is not responsible for consequences resulting from false, incomplete, or misleading information provided by the Patient.</p>
+      </div>
+      <div class="lang-so" hidden>
+        <p class="p">Bukaanku wuxuu ku waafaqsanyahay in uu bixiyo macluumaad run ah, dhamaystiran, oo sax ah had iyo jeer, sheego taariikhda caafimaadka oo dhamaystiran iyo xaaladaha oo dhan, ka fogaado gudinta dukumentiyada been ah ama wax laga beddelay, waxna ku matalin adeegyada ama shaqaalaha Carebridge. Carebridge mas'uul kama aha natiijooyinka ka dhasha macluumaadka been ah, dhamaystiranayn, ama khad-madoobaha Bukaanka ku bixiyey.</p>
+      </div>
     </div>
 
     <!-- 38 -->
     <div class="clause">
-      <h2 class="sec"><span class="n">38.0</span>Non-Interference With Other Patients</h2>
-      <ul class="list">
-        <li>The Patient must not interfere with or influence other Carebridge patients in a misleading or harmful way.</li>
-        <li>The Patient must not provide false, misleading, or unauthorized medical or travel advice to other patients.</li>
-        <li>The Patient must not impersonate Carebridge staff or representatives.</li>
-        <li>The Patient must not disrupt or interfere with other patients&rsquo; treatment coordination or decisions.</li>
-        <li>The Patient must respect the confidentiality and independence of all other patients.</li>
-      </ul>
-      <p class="p">This clause does not restrict truthful communication or lawful personal opinions.</p>
+      <h2 class="sec"><span class="n">38.0</span><span class="lang-en">Non-Interference With Other Patients</span><span class="lang-so" hidden>Aan La Xadgudbin Bukaannada Kale</span></h2>
+      <div class="lang-en">
+        <ul class="list">
+          <li>The Patient must not interfere with or influence other Carebridge patients in a misleading or harmful way.</li>
+          <li>The Patient must not provide false, misleading, or unauthorized medical or travel advice to other patients.</li>
+          <li>The Patient must not impersonate Carebridge staff or representatives.</li>
+          <li>The Patient must not disrupt or interfere with other patients&rsquo; treatment coordination or decisions.</li>
+          <li>The Patient must respect the confidentiality and independence of all other patients.</li>
+        </ul>
+        <p class="p">This clause does not restrict truthful communication or lawful personal opinions.</p>
+      </div>
+      <div class="lang-so" hidden>
+        <ul class="list">
+          <li>Bukaanku waa inuusan xayirin ama saamaynin bukaannada Carebridge kale si khiyaanah ama dhaawac leh.</li>
+          <li>Bukaanku waa inuusan bixin talo caafimaad ama safar oo been ah, khad-madoobah, ama aan oggolaanshe lahayn bukaannada kale.</li>
+          <li>Bukaanku waa inuusan u muujin inuu yahay shaqaale ama matalee Carebridge.</li>
+          <li>Bukaanku waa inuusan xayirin ama ku fakirin iskaashiga daaweynta ama go'aannada bukaannada kale.</li>
+          <li>Bukaanku waa inuu xurmeeyaa sirta iyo madax-bannaanida dhammaan bukaannada kale.</li>
+        </ul>
+        <p class="p">Qodobkani kuma xayirin karo xiriirka run ah ama aragtida shakhsiga ee sharciga ah.</p>
+      </div>
     </div>
 
     <!-- 39 -->
     <div class="clause">
-      <h2 class="sec"><span class="n">39.0</span>Non-Circumvention</h2>
-      <ul class="list">
-        <li>The Patient agrees not to bypass Carebridge by directly engaging hospitals, doctors, clinics, or service providers introduced or coordinated by Carebridge for the purpose of avoiding service fees.</li>
-        <li>If the Patient independently engages such providers without Carebridge involvement, Carebridge shall not be responsible for coordination, support, outcomes, or services.</li>
-        <li>Carebridge retains the right to charge applicable fees if its introduced providers are used in connection with services originally coordinated by Carebridge.</li>
-      </ul>
+      <h2 class="sec"><span class="n">39.0</span><span class="lang-en">Non-Circumvention</span><span class="lang-so" hidden>Ka Fogaanshaha Wareejinta</span></h2>
+      <div class="lang-en">
+        <ul class="list">
+          <li>The Patient agrees not to bypass Carebridge by directly engaging hospitals, doctors, clinics, or service providers introduced or coordinated by Carebridge for the purpose of avoiding service fees.</li>
+          <li>If the Patient independently engages such providers without Carebridge involvement, Carebridge shall not be responsible for coordination, support, outcomes, or services.</li>
+          <li>Carebridge retains the right to charge applicable fees if its introduced providers are used in connection with services originally coordinated by Carebridge.</li>
+        </ul>
+      </div>
+      <div class="lang-so" hidden>
+        <ul class="list">
+          <li>Bukaanku wuxuu ku waafaqsanyahay inaanu ka wareejin Carebridge iyada oo si toos ah ula xiriirayo isbitaallada, dhakhaatiirta, kilinikada, ama bixiyeyaasha adeegga ee ay Carebridge horseentay ama iskaashisay ujeedada ka hortagga kharashyada adeegga.</li>
+          <li>Haddii Bukaanka si madaxbannaan ula xiriirto bixiyeyaashaas iyada oo Carebridge ku lug lahayn, Carebridge kuma mas'uuliyaanayso iskaashiga, taageerada, natiijooyinka, ama adeegyada.</li>
+          <li>Carebridge waxay haysaa xaqa lagu dhejiyo kharashyada khuseeya haddii bixiyeyaasha ay horseedeen ay la isticmaalaan xiriirka adeegyada asaliga ah ee Carebridge ay iskaashisay.</li>
+        </ul>
+      </div>
     </div>
 
     <!-- 40 -->
     <div class="clause">
-      <h2 class="sec"><span class="n">40.0</span>Suspension &amp; Termination of Services</h2>
-      <p class="p">Carebridge may suspend or terminate services immediately if:</p>
-      <ul class="list">
-        <li>The Patient breaches this Agreement.</li>
-        <li>The Patient provides false or misleading information.</li>
-        <li>The Patient engages in abusive, threatening, or fraudulent conduct.</li>
-        <li>The Patient fails to make required payments.</li>
-        <li>The Patient violates hospital or legal requirements.</li>
-        <li>Continued service becomes unsafe or impractical.</li>
-      </ul>
-      <p class="p">Termination does not affect any rights accrued prior to termination.</p>
+      <h2 class="sec"><span class="n">40.0</span><span class="lang-en">Suspension &amp; Termination of Services</span><span class="lang-so" hidden>Hakinta &amp; Joojinta Adeegyada</span></h2>
+      <div class="lang-en">
+        <p class="p">Carebridge may suspend or terminate services immediately if:</p>
+        <ul class="list">
+          <li>The Patient breaches this Agreement.</li>
+          <li>The Patient provides false or misleading information.</li>
+          <li>The Patient engages in abusive, threatening, or fraudulent conduct.</li>
+          <li>The Patient fails to make required payments.</li>
+          <li>The Patient violates hospital or legal requirements.</li>
+          <li>Continued service becomes unsafe or impractical.</li>
+        </ul>
+        <p class="p">Termination does not affect any rights accrued prior to termination.</p>
+      </div>
+      <div class="lang-so" hidden>
+        <p class="p">Carebridge waxay haki ama joojin kartaa adeegyada si deg-deg ah haddii:</p>
+        <ul class="list">
+          <li>Bukaanku jebiyey heshiiskan.</li>
+          <li>Bukaanku bixiyey macluumaad been ah ama khad-madoobah.</li>
+          <li>Bukaanku ku dhaqmey dhaqan xun, hanjabaad, ama khiyaadeyn.</li>
+          <li>Bukaanku ku guuldareystey bixinta lacagta loo baahan yahay.</li>
+          <li>Bukaanku jebiyey shuruudaha isbitaalka ama sharciga.</li>
+          <li>Sii wadida adeegga ay ahayd mid aan amaan lahayn ama suurtagalin.</li>
+        </ul>
+        <p class="p">Joojintu ma saameynayso xuquuq kasta oo la heshiiyey ka hor joojinta.</p>
+      </div>
     </div>
 
     <!-- 41 -->
     <div class="clause">
-      <h2 class="sec"><span class="n">41.0</span>Intellectual Property &amp; Confidential Information</h2>
-      <ul class="list">
-        <li>All Carebridge systems, processes, documentation, pricing structures, templates, and operational methods are confidential and proprietary.</li>
-        <li>The Patient must not copy, reproduce, or distribute Carebridge materials without written permission.</li>
-        <li>The Patient must not share internal coordination processes or business methods with third parties.</li>
-      </ul>
-      <p class="p">This clause does not restrict the lawful personal use of documents received for medical purposes.</p>
+      <h2 class="sec"><span class="n">41.0</span><span class="lang-en">Intellectual Property &amp; Confidential Information</span><span class="lang-so" hidden>Hantida Aqoonta &amp; Macluumaadka Sirta ah</span></h2>
+      <div class="lang-en">
+        <ul class="list">
+          <li>All Carebridge systems, processes, documentation, pricing structures, templates, and operational methods are confidential and proprietary.</li>
+          <li>The Patient must not copy, reproduce, or distribute Carebridge materials without written permission.</li>
+          <li>The Patient must not share internal coordination processes or business methods with third parties.</li>
+        </ul>
+        <p class="p">This clause does not restrict the lawful personal use of documents received for medical purposes.</p>
+      </div>
+      <div class="lang-so" hidden>
+        <ul class="list">
+          <li>Dhammaan nidaamyada Carebridge, hababka, dukumentiyada, qaabdhismeedyada qiimaha, qalabyada, iyo hababka hawlgalka waa sir ah oo gaar ah.</li>
+          <li>Bukaanku waa inuusan nuqlin, tarjumin, ama faafin agabka Carebridge iyada oo aan oggolaanshaha qoraalka ah la helin.</li>
+          <li>Bukaanku waa inuusan wadaaginin hababka iskaashiga gudaha ama hababka ganacsiga dhinacyada saddexaad.</li>
+        </ul>
+        <p class="p">Qodobkani kuma xayirin karo isticmaalka shakhsiga ee sharciga ah ee dukumentiyada la helay ujeedooyinka caafimaadka.</p>
+      </div>
     </div>
 
-    <!-- SIGNATURES -->
+    <!-- 42 SIGNATURES -->
     <div class="sigwrap">
-      <h2 class="sec"><span class="n">42.0</span>Signatures &amp; Witnesses</h2>
-      <p class="p">By signing below, the parties confirm that they have read, understood, and agreed to all terms of this Agreement. Each party acknowledges receipt of a copy of this Agreement.</p>
+      <h2 class="sec"><span class="n">42.0</span><span class="lang-en">Signatures &amp; Witnesses</span><span class="lang-so" hidden>Saxiixyadda &amp; Maraqda</span></h2>
+      <p class="p lang-en">By signing below, the parties confirm that they have read, understood, and agreed to all terms of this Agreement. Each party acknowledges receipt of a copy of this Agreement.</p>
+      <p class="p lang-so" hidden>Marka la saxiixo hoosta, dhinacyadu waxay xaqiijiyaan in ay akhriyeen, gartay, oo ku waafaqsanaadeen dhammaan shuruudaha heshiiskan. Dhinac kastaa wuxuu aqoonsadaa helitaanka nuqul heshiiskan.</p>
       <div class="siggrid">
         <div class="sigcard">
           <div class="role">Carebridge International Inc.</div>
-          <div class="rep">Authorized Representative</div>
-          <div class="field"><span class="lbl">Name:</span><span class="line"></span></div>
-          <div class="field"><span class="lbl">Title:</span><span class="line"></span></div>
-          <div class="sigline"><div class="ln"></div><div class="cap">Signature</div></div>
-          <div class="field" style="margin-top:16px;"><span class="lbl">Date:</span><span class="line"></span></div>
+          <div class="rep"><span class="lang-en">Authorized Representative</span><span class="lang-so" hidden>Wakiilka Oggolaanshe</span></div>
+          <div class="field"><span class="lbl"><span class="lang-en">Name:</span><span class="lang-so" hidden>Magac:</span></span><span class="line"></span></div>
+          <div class="field"><span class="lbl"><span class="lang-en">Title:</span><span class="lang-so" hidden>Cinwaanka:</span></span><span class="line"></span></div>
+          <div class="sigline"><div class="ln"></div><div class="cap"><span class="lang-en">Signature</span><span class="lang-so" hidden>Saxiixa</span></div></div>
+          <div class="field" style="margin-top:16px;"><span class="lbl"><span class="lang-en">Date:</span><span class="lang-so" hidden>Taariikhda:</span></span><span class="line"></span></div>
         </div>
         <div class="sigcard">
-          <div class="role">Patient / Authorized Representative</div>
-          <div class="rep">Signed by the Patient or a person authorized to sign on the Patient&rsquo;s behalf</div>
-          <div class="field"><span class="lbl">Name:</span><span class="line"></span></div>
-          <div class="field"><span class="lbl">Relationship:</span><span class="line"></span></div>
-          <div class="sigline"><div class="ln"></div><div class="cap">Signature</div></div>
-          <div class="field" style="margin-top:16px;"><span class="lbl">Date:</span><span class="line"></span></div>
+          <div class="role"><span class="lang-en">Patient / Authorized Representative</span><span class="lang-so" hidden>Bukaanka / Wakiilka Oggolaanshe</span></div>
+          <div class="rep"><span class="lang-en">Signed by the Patient or a person authorized to sign on the Patient&rsquo;s behalf</span><span class="lang-so" hidden>Saxixay Bukaanka ama qofka u oggolaanshe ah u saxiixida Bukaanka magaciisa</span></div>
+          <div class="field"><span class="lbl"><span class="lang-en">Name:</span><span class="lang-so" hidden>Magac:</span></span><span class="line"></span></div>
+          <div class="field"><span class="lbl"><span class="lang-en">Relationship:</span><span class="lang-so" hidden>Xiriirka:</span></span><span class="line"></span></div>
+          <div class="sigline"><div class="ln"></div><div class="cap"><span class="lang-en">Signature</span><span class="lang-so" hidden>Saxiixa</span></div></div>
+          <div class="field" style="margin-top:16px;"><span class="lbl"><span class="lang-en">Date:</span><span class="lang-so" hidden>Taariikhda:</span></span><span class="line"></span></div>
         </div>
       </div>
       <div class="siggrid" style="margin-top:22px;">
         <div class="sigcard">
-          <div class="role">Witness 1</div>
-          <div class="rep">Witness to the signatures above</div>
-          <div class="field"><span class="lbl">Name:</span><span class="line"></span></div>
-          <div class="sigline"><div class="ln"></div><div class="cap">Signature</div></div>
-          <div class="field" style="margin-top:16px;"><span class="lbl">Date:</span><span class="line"></span></div>
+          <div class="role"><span class="lang-en">Witness 1</span><span class="lang-so" hidden>Marag 1</span></div>
+          <div class="rep"><span class="lang-en">Witness to the signatures above</span><span class="lang-so" hidden>Maraqda saxiixyadda kor ku yaal</span></div>
+          <div class="field"><span class="lbl"><span class="lang-en">Name:</span><span class="lang-so" hidden>Magac:</span></span><span class="line"></span></div>
+          <div class="sigline"><div class="ln"></div><div class="cap"><span class="lang-en">Signature</span><span class="lang-so" hidden>Saxiixa</span></div></div>
+          <div class="field" style="margin-top:16px;"><span class="lbl"><span class="lang-en">Date:</span><span class="lang-so" hidden>Taariikhda:</span></span><span class="line"></span></div>
         </div>
         <div class="sigcard">
-          <div class="role">Witness 2</div>
-          <div class="rep">Witness to the signatures above</div>
-          <div class="field"><span class="lbl">Name:</span><span class="line"></span></div>
-          <div class="sigline"><div class="ln"></div><div class="cap">Signature</div></div>
-          <div class="field" style="margin-top:16px;"><span class="lbl">Date:</span><span class="line"></span></div>
+          <div class="role"><span class="lang-en">Witness 2</span><span class="lang-so" hidden>Marag 2</span></div>
+          <div class="rep"><span class="lang-en">Witness to the signatures above</span><span class="lang-so" hidden>Maraqda saxiixyadda kor ku yaal</span></div>
+          <div class="field"><span class="lbl"><span class="lang-en">Name:</span><span class="lang-so" hidden>Magac:</span></span><span class="line"></span></div>
+          <div class="sigline"><div class="ln"></div><div class="cap"><span class="lang-en">Signature</span><span class="lang-so" hidden>Saxiixa</span></div></div>
+          <div class="field" style="margin-top:16px;"><span class="lbl"><span class="lang-en">Date:</span><span class="lang-so" hidden>Taariikhda:</span></span><span class="line"></span></div>
         </div>
       </div>
     </div>
@@ -837,36 +1379,13 @@
   </section>
 </main>
 
-<!-- Google Translate — auto-triggered when ?lang=so is in URL -->
-<div id="gte" style="position:fixed;top:-300px;left:-300px;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none"></div>
-<style>
-  .goog-te-banner-frame,.skiptranslate{display:none!important}
-  body{top:0!important}
-  #goog-gt-tt,.goog-tooltip,.goog-tooltip-img,.goog-te-balloon-frame{display:none!important}
-  .VIpgJd-ZVi9od-aZ2wEe-wOHMyf{display:none!important}
-</style>
 <script>
-(function() {
-  var params = new URLSearchParams(window.location.search);
-  if (params.get('lang') !== 'so') return;
-  window.googleTranslateElementInit = function() {
-    new google.translate.TranslateElement({ pageLanguage:'en', includedLanguages:'so', autoDisplay:false }, 'gte');
-    function tryTrigger(n) {
-      var sel = document.querySelector('.goog-te-combo');
-      if (sel) {
-        sel.value = 'so';
-        sel.dispatchEvent(new Event('change'));
-      } else if (n > 0) {
-        setTimeout(function() { tryTrigger(n - 1); }, 400);
-      }
-    }
-    tryTrigger(30);
-  };
-  var s = document.createElement('script');
-  s.src = '//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
-  document.head.appendChild(s);
-})();
+window.addEventListener('message', function(e) {
+  if (!e.data || e.data.type !== 'setDocLang') return;
+  var so = e.data.lang === 'so';
+  document.querySelectorAll('.lang-en').forEach(function(el) { el.hidden = so; });
+  document.querySelectorAll('.lang-so').forEach(function(el) { el.hidden = !so; });
+});
 </script>
-
 </body>
 </html>
