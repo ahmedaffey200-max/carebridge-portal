@@ -17,6 +17,7 @@
     Copy: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>,
     Download: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
     Doc: () => <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" style={{opacity:0.25,display:"block",margin:"0 auto 16px"}}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>,
+    Trash: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>,
   };
 
   function downloadAgreementPDF(a) {
@@ -111,8 +112,15 @@
   function nextAgrId() {
     const year = new Date().getFullYear();
     const existing = window.CBStore.getAgreements ? window.CBStore.getAgreements() : [];
-    const nums = existing.map((a) => parseInt((a.id || "").split("-").pop(), 10)).filter((n) => !isNaN(n));
-    const next = nums.length ? Math.max(...nums) + 1 : 1;
+    // Only count IDs from the current year
+    const nums = existing
+      .filter((a) => (a.id || "").startsWith("AGR-" + year + "-"))
+      .map((a) => parseInt((a.id || "").split("-").pop(), 10))
+      .filter((n) => !isNaN(n));
+    // High-water mark from store ensures deleted IDs are never reused
+    const s = window.CBStore.state ? window.CBStore.state() : {};
+    const hwm = (s.lastAgrSeq && s.lastAgrSeq.year === year) ? s.lastAgrSeq.seq : 0;
+    const next = Math.max(nums.length ? Math.max(...nums) : 0, hwm) + 1;
     return "AGR-" + year + "-" + String(next).padStart(3, "0");
   }
 
@@ -126,6 +134,10 @@
     const [filter, setFilter] = useState("all");
     const [copied, setCopied] = useState(null);
     const [syncing, setSyncing] = useState(false);
+    const [confirmDel, setConfirmDel] = useState(null); // id of agreement pending delete confirm
+    const [deleting, setDeleting] = useState(false);
+
+    const isAdmin = window.CBStore.getRole ? window.CBStore.getRole() === "admin" : false;
 
     const syncFromSupabase = (silent) => {
       if (!silent) setSyncing(true);
@@ -177,6 +189,32 @@
       navigator.clipboard.writeText(link || "").catch(() => {});
       setCopied(id);
       setTimeout(() => setCopied(null), 2000);
+    }
+
+    async function handleDelete(id) {
+      setDeleting(true);
+      // 1. Delete locally — commit() calls CB_SyncToSupabase automatically
+      if (window.CBStore.deleteAgreement) window.CBStore.deleteAgreement(id);
+      // 2. Patch Supabase directly so the deletion is durable even before the next full sync
+      try {
+        const rows = await fetch(SB_URL + "/rest/v1/portal_state?id=eq.main&select=state", {
+          headers: { apikey: SB_ANON, Authorization: "Bearer " + SB_ANON }
+        }).then(r => r.json());
+        if (rows && rows[0] && rows[0].state) {
+          const sbState = rows[0].state;
+          sbState.agreements = (sbState.agreements || []).filter(a => a.id !== id);
+          // Propagate the new high-water mark so other devices also keep the gap
+          const localState = window.CBStore.state ? window.CBStore.state() : {};
+          if (localState.lastAgrSeq) sbState.lastAgrSeq = localState.lastAgrSeq;
+          await fetch(SB_URL + "/rest/v1/portal_state?id=eq.main", {
+            method: "PATCH",
+            headers: { apikey: SB_ANON, Authorization: "Bearer " + SB_ANON, "Content-Type": "application/json", Prefer: "return=minimal" },
+            body: JSON.stringify({ state: sbState })
+          });
+        }
+      } catch(e) {}
+      setConfirmDel(null);
+      setDeleting(false);
     }
 
     return (
@@ -238,7 +276,7 @@
                       <span className={"cb-pill cb-pill--" + statusColor(a.status) + " cb-pill--dot"}>{statusLabel(a.status)}</span>
                     </td>
                     <td style={{ padding: "12px 16px" }}>
-                      <div style={{ display: "flex", gap: 6 }}>
+                      <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                         <button className="cb-icon-pill" title={copied === a.id ? "Copied!" : "Copy patient link"} onClick={() => copyLink(a.id, a.link)} style={{ width: 32, height: 32, background: copied === a.id ? "var(--teal-600, #1CA89C)" : "", color: copied === a.id ? "#fff" : "" }}>
                           <Icon.Link />
                         </button>
@@ -251,6 +289,24 @@
                           <button className="cb-icon-pill" title="Download signed PDF" onClick={() => downloadAgreementPDF(a)} style={{ width: 32, height: 32 }}>
                             <Icon.Download />
                           </button>
+                        )}
+                        {isAdmin && confirmDel !== a.id && (
+                          <button className="cb-icon-pill" title="Delete agreement" onClick={() => setConfirmDel(a.id)}
+                            style={{ width: 32, height: 32, color: "#e53e3e" }}>
+                            <Icon.Trash />
+                          </button>
+                        )}
+                        {isAdmin && confirmDel === a.id && (
+                          <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                            <button onClick={() => handleDelete(a.id)} disabled={deleting}
+                              style={{ padding: "4px 10px", borderRadius: 6, background: "#e53e3e", color: "#fff", border: "none", fontWeight: 700, fontSize: 12, cursor: "pointer", opacity: deleting ? 0.6 : 1 }}>
+                              {deleting ? "…" : "Delete"}
+                            </button>
+                            <button onClick={() => setConfirmDel(null)}
+                              style={{ padding: "4px 10px", borderRadius: 6, background: "var(--surface-2,#f8fafc)", border: "1px solid var(--border)", fontWeight: 600, fontSize: 12, cursor: "pointer" }}>
+                              Cancel
+                            </button>
+                          </div>
                         )}
                       </div>
                     </td>
