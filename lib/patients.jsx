@@ -95,37 +95,50 @@ function PatientsView({ go, onAdd, onEdit }) {
 /* ---------------- Patient detail ---------------- */
 /* ---- Real-time presence hook: true when the patient's portal is open ---- */
 function usePatientOnline(pid) {
-  const [online, setOnline] = useState(false);
+  const [online, setOnline]       = useState(false);
   const [onlineSince, setOnlineSince] = useState(null);
-  const chRef = useRef(null);
+
   useEffect(() => {
     const sb = _getAdminSB(); if (!sb || !pid) return;
-    // per-patient channel name avoids collision when switching patients or
-    // when cleanup hasn't fully finished before the next effect fires
-    const chName = "patient-online-" + pid;
-    // tear down any existing channel for this pid before creating a new one
-    if (chRef.current) { try { sb.removeChannel(chRef.current); } catch(e) {} chRef.current = null; }
-    const ch = sb.channel(chName);
-    chRef.current = ch;
-    const sync = () => {
-      const all = Object.values(ch.presenceState()).flat();
-      const match = all.find(p => p.patient_id === pid);
-      setOnline(!!match);
-      setOnlineSince(match ? match.online_at : null);
+    const THRESHOLD = 90000; // 90 s — two missed heartbeats still counts as online
+
+    // check the freshest heartbeat/session_end record and update state
+    const evaluate = (rows) => {
+      if (!rows || rows.length === 0) { setOnline(false); setOnlineSince(null); return; }
+      const latest = rows[0]; // already ordered desc
+      const age = Date.now() - new Date(latest.created_at).getTime();
+      if (latest.activity_type === "heartbeat" && age < THRESHOLD) {
+        setOnline(true); setOnlineSince(latest.created_at);
+      } else {
+        setOnline(false); setOnlineSince(null);
+      }
     };
-    try {
-      ch.on("presence", { event: "sync" }, sync)
-        .on("presence", { event: "join" }, sync)
-        .on("presence", { event: "leave" }, sync)
-        .subscribe();
-    } catch(e) {
-      // channel was already subscribed (stale ref) — ignore, presence will be unavailable
-    }
-    return () => {
-      try { sb.removeChannel(ch); } catch(e) {}
-      chRef.current = null;
-    };
+
+    // initial query — show correct state immediately when admin opens the page
+    sb.from("patient_activities")
+      .select("activity_type,created_at")
+      .eq("patient_id", pid)
+      .in("activity_type", ["heartbeat", "session_end"])
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .then(({ data }) => evaluate(data || []));
+
+    // real-time: detect every heartbeat and session_end the moment it is inserted
+    const ch = sb.channel("po-" + pid)
+      .on("postgres_changes", {
+        event: "INSERT", schema: "public", table: "patient_activities",
+        filter: "patient_id=eq." + pid,
+      }, (payload) => {
+        if (!payload.new) return;
+        const { activity_type, created_at } = payload.new;
+        if (activity_type === "heartbeat")   { setOnline(true);  setOnlineSince(created_at); }
+        if (activity_type === "session_end") { setOnline(false); setOnlineSince(null); }
+      })
+      .subscribe();
+
+    return () => { try { sb.removeChannel(ch); } catch(e) {} };
   }, [pid]);
+
   return { online, onlineSince };
 }
 
