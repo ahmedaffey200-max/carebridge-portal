@@ -1432,6 +1432,49 @@ function App() {
     return () => sb.removeChannel(channel);
   }, [screen, invitation?.id]);
 
+  /* Session tracking: record login + measure screen time for admin analytics */
+  useEffect(() => {
+    if (screen !== "dashboard" || !invitation?.patient_id) return;
+    const pid = invitation.patient_id;
+    const start = Date.now();
+    const dateStr = new Date().toLocaleDateString("en-US");
+
+    // Record this login
+    sb.from("patient_activities").insert({
+      patient_id:    pid,
+      activity_type: "login",
+      title:         "Patient portal login",
+      description:   dateStr,
+      created_by:    "patient",
+    }).catch(() => {});
+
+    // Flush session duration to Supabase
+    let flushed = false;
+    const flush = () => {
+      if (flushed) return;
+      flushed = true;
+      const secs = Math.round((Date.now() - start) / 1000);
+      if (secs < 5) return;
+      sb.from("patient_activities").insert({
+        patient_id:    pid,
+        activity_type: "session_time",
+        title:         "Portal session",
+        description:   dateStr,
+        new_value:     String(secs),
+        created_by:    "patient",
+      }).catch(() => {});
+    };
+
+    const onVisibility = () => { if (document.visibilityState === "hidden") flush(); };
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("beforeunload", flush);
+    return () => {
+      flush();
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("beforeunload", flush);
+    };
+  }, [screen, invitation?.patient_id]);
+
   /* Enrich invitation with coordinator name if missing or placeholder */
   const enrichInvitation = useCallback(async (data) => {
     const bad = !data.coordinator_name || data.coordinator_name === "—" || data.coordinator_name === "-";

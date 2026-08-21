@@ -341,10 +341,11 @@ function MessagePanel({ invitation, onClose, onPatientUpdated }) {
     { id: "documents", label: "Docs",      icon: "file-text" },
   ];
   const MORE_TABS = [
-    { id: "info",      label: "Edit Info",  icon: "edit-3" },
-    { id: "emergency", label: "Emergency",  icon: "phone-call" },
-    { id: "alerts",    label: "Alerts",     icon: "bell" },
-    { id: "ratings",   label: "Ratings",    icon: "star" },
+    { id: "info",        label: "Edit Info",   icon: "edit-3" },
+    { id: "emergency",   label: "Emergency",   icon: "phone-call" },
+    { id: "alerts",      label: "Alerts",      icon: "bell" },
+    { id: "ratings",     label: "Ratings",     icon: "star" },
+    { id: "screen-time", label: "Screen Time", icon: "monitor" },
   ];
   const PANEL_TABS = [...MAIN_TABS, ...MORE_TABS];
   const [showMore, setShowMore] = useSt(false);
@@ -489,6 +490,14 @@ function MessagePanel({ invitation, onClose, onPatientUpdated }) {
         <div style={{ flex: 1, overflowY: "auto" }}>
           <HintBar icon="star" patientTab="Rate Us" text={"View the star rating and comment this patient submitted. Read-only — only the patient can submit a rating."} />
           <RatingsPanel invitation={invitation} />
+        </div>
+      )}
+
+      {/* Screen Time tab */}
+      {panelTab === "screen-time" && (
+        <div style={{ flex: 1, overflowY: "auto" }}>
+          <HintBar icon="monitor" patientTab="(admin only)" text={"Login count, daily screen time, and a 7-day usage chart. Auto-recorded each time the patient opens their portal — no action needed."} />
+          <ScreenTimePanel invitation={invitation} />
         </div>
       )}
     </div>
@@ -1310,6 +1319,110 @@ function EmergencyInlinePanel() {
           <i data-lucide="save" style={{ width:14, height:14 }} /> {saving ? "Saving…" : "Save Emergency Contacts"}
         </button>
       </>)}
+    </div>
+  );
+}
+
+/* ---- Screen Time panel (admin view of patient login count + portal usage hours) ---- */
+function ScreenTimePanel({ invitation }) {
+  const [logins,   setLogins]   = useSt([]);
+  const [sessions, setSessions] = useSt([]);
+  const [loading,  setLoading]  = useSt(true);
+
+  useEff(() => {
+    const sb = getSB(); if (!sb) return;
+    sb.from("patient_activities")
+      .select("*")
+      .eq("patient_id", invitation.patient_id)
+      .in("activity_type", ["login", "session_time"])
+      .order("created_at", { ascending: false })
+      .limit(500)
+      .then(({ data }) => {
+        const all = data || [];
+        setLogins(all.filter(a => a.activity_type === "login"));
+        setSessions(all.filter(a => a.activity_type === "session_time"));
+        setLoading(false);
+      }).catch(() => setLoading(false));
+  }, [invitation.patient_id]);
+
+  if (loading) return <div style={{ padding: 32, textAlign: "center", color: "var(--text-faint)", fontSize: 13 }}>Loading…</div>;
+
+  const totalSecs  = sessions.reduce((s, r) => s + (parseInt(r.new_value, 10) || 0), 0);
+  const totalHours = (totalSecs / 3600).toFixed(1);
+
+  const todayStr  = new Date().toLocaleDateString("en-US");
+  const todaySecs = sessions.filter(r => r.description === todayStr).reduce((s, r) => s + (parseInt(r.new_value, 10) || 0), 0);
+  const todayMins = Math.round(todaySecs / 60);
+  const todayLabel = todayMins >= 60 ? (todaySecs / 3600).toFixed(1) + "h" : todayMins + "m";
+
+  // Last 7 days bar chart data
+  const last7 = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const key = d.toLocaleDateString("en-US");
+    const secs = sessions.filter(r => r.description === key).reduce((s, r) => s + (parseInt(r.new_value, 10) || 0), 0);
+    return { key, secs, dayName: d.toLocaleDateString("en-US", { weekday: "short" }), dayNum: d.toLocaleDateString("en-GB", { day: "numeric", month: "short" }) };
+  });
+  const maxSecs = Math.max(...last7.map(d => d.secs), 1);
+
+  const fmtTs = (ts) => new Date(ts).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) + " · " + new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+  const Stat = ({ label, value, sub }) => (
+    <div style={{ flex: 1, minWidth: 100, background: "var(--surface)", border: "1.5px solid var(--border)", borderRadius: 12, padding: "14px 12px", textAlign: "center" }}>
+      <div style={{ fontSize: 26, fontWeight: 800, color: "var(--teal-600,#1CA89C)", lineHeight: 1 }}>{value}</div>
+      {sub && <div style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 2 }}>{sub}</div>}
+      <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-faint)", textTransform: "uppercase", letterSpacing: "0.08em", marginTop: 6 }}>{label}</div>
+    </div>
+  );
+
+  return (
+    <div style={{ padding: "16px 14px 24px", display: "flex", flexDirection: "column", gap: 14 }}>
+
+      {/* KPI row */}
+      <div style={{ display: "flex", gap: 8 }}>
+        <Stat label="Total Logins" value={logins.length} />
+        <Stat label="Today" value={todayMins === 0 ? "—" : todayLabel} sub="screen time" />
+        <Stat label="All-time" value={+totalHours === 0 ? "—" : totalHours + "h"} sub="total hours" />
+      </div>
+
+      {/* Last 7 days bar chart */}
+      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>
+        <div style={{ padding: "11px 14px", borderBottom: "1px solid var(--border)", fontWeight: 700, fontSize: 12, color: "var(--navy-700,#1B3A6B)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Last 7 Days</div>
+        {last7.map(({ key, secs, dayName, dayNum }) => {
+          const mins = Math.round(secs / 60);
+          const pct  = (secs / maxSecs) * 100;
+          return (
+            <div key={key} style={{ padding: "9px 14px", display: "flex", alignItems: "center", gap: 10, borderBottom: "1px solid var(--border)" }}>
+              <div style={{ width: 44, flexShrink: 0 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text)" }}>{dayName}</div>
+                <div style={{ fontSize: 10, color: "var(--text-faint)" }}>{dayNum}</div>
+              </div>
+              <div style={{ flex: 1, height: 8, background: "var(--bg-page,#f8fafc)", borderRadius: 4, overflow: "hidden" }}>
+                <div style={{ height: "100%", width: pct + "%", background: "linear-gradient(90deg,#1CA89C,#1B3A6B)", borderRadius: 4 }} />
+              </div>
+              <div style={{ width: 38, textAlign: "right", fontSize: 12, fontWeight: 600, color: mins > 0 ? "var(--teal-600,#1CA89C)" : "var(--text-faint)" }}>
+                {mins >= 60 ? (secs / 3600).toFixed(1) + "h" : mins > 0 ? mins + "m" : "—"}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Login history */}
+      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>
+        <div style={{ padding: "11px 14px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ fontWeight: 700, fontSize: 12, color: "var(--navy-700,#1B3A6B)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Login History</span>
+          <span style={{ fontSize: 11, color: "var(--text-faint)" }}>{logins.length} total</span>
+        </div>
+        {logins.length === 0 ? (
+          <div style={{ padding: 24, textAlign: "center", color: "var(--text-faint)", fontSize: 13 }}>No logins recorded yet — patient has not accessed the portal.</div>
+        ) : logins.slice(0, 20).map((l, i) => (
+          <div key={i} style={{ padding: "9px 14px", display: "flex", gap: 10, alignItems: "center", borderBottom: "1px solid var(--border)", fontSize: 13 }}>
+            <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#1CA89C", flexShrink: 0 }} />
+            <div style={{ flex: 1, color: "var(--text)" }}>{fmtTs(l.created_at)}</div>
+            <div style={{ fontSize: 11, color: "var(--text-faint)", fontFamily: "monospace" }}>#{logins.length - i}</div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
