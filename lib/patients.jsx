@@ -99,7 +99,7 @@ function PatientDetail({ id, go, onEdit }) {
   const [confirmDel, setConfirmDel] = useState(false);
   const p = (window.CBStore.patientById(id)) || PD.PATIENTS.find((x) => x.id === id) || PD.PATIENTS[0];
   const dest = PD.destByCode(p.dest), co = PD.coordById(p.coordinator), hosp = PD.hospitalById(p.hospital);
-  const tabs = ["Overview", "Medical history", "Documents", "Travel", "Workflow", "Communication", "Notes"];
+  const tabs = ["Overview", "Medical history", "Documents", "Travel", "Workflow", "Communication", "Notes", "Screen Time"];
 
   return (
     <div className="cb-grid" style={{ gap: "var(--gap-grid)" }}>
@@ -155,6 +155,7 @@ function PatientDetail({ id, go, onEdit }) {
       {tab === "Workflow" ? <PatientWorkflow p={p} hosp={hosp} /> : null}
       {tab === "Communication" ? <PatientComms p={p} co={co} /> : null}
       {tab === "Notes" ? <PatientNotesTab pid={p.id} /> : null}
+      {tab === "Screen Time" ? <PatientScreenTime pid={p.id} /> : null}
       {confirmDel ? (
         <ConfirmDialog
           title="Are you sure you want to delete this patient?"
@@ -1224,6 +1225,116 @@ function PatientWorkflow({ p, hosp }) {
         })}
       </ol>
     </Card>
+  );
+}
+
+/* ---- Screen Time tab — login count + portal usage analytics ---- */
+function PatientScreenTime({ pid }) {
+  const { useEffect, useState: useSt } = React;
+  const [logins,   setLogins]   = useSt([]);
+  const [sessions, setSessions] = useSt([]);
+  const [loading,  setLoading]  = useSt(true);
+
+  useEffect(() => {
+    const sb = _getAdminSB(); if (!sb) { setLoading(false); return; }
+    sb.from("patient_activities")
+      .select("*")
+      .eq("patient_id", pid)
+      .in("activity_type", ["login", "session_time"])
+      .order("created_at", { ascending: false })
+      .limit(500)
+      .then(({ data }) => {
+        const all = data || [];
+        setLogins(all.filter(a => a.activity_type === "login"));
+        setSessions(all.filter(a => a.activity_type === "session_time"));
+        setLoading(false);
+      }).catch(() => setLoading(false));
+  }, [pid]);
+
+  if (loading) return <div style={{ padding: 48, textAlign: "center", color: "var(--text-muted)", fontSize: 14 }}>Loading screen time data…</div>;
+
+  const totalSecs  = sessions.reduce((s, r) => s + (parseInt(r.new_value, 10) || 0), 0);
+  const totalHours = (totalSecs / 3600).toFixed(1);
+
+  const todayStr  = new Date().toLocaleDateString("en-US");
+  const todaySecs = sessions.filter(r => r.description === todayStr).reduce((s, r) => s + (parseInt(r.new_value, 10) || 0), 0);
+  const todayMins = Math.round(todaySecs / 60);
+  const todayLabel = todayMins === 0 ? "—" : todayMins >= 60 ? (todaySecs / 3600).toFixed(1) + "h" : todayMins + "m";
+
+  // Last 7 days
+  const last7 = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const key = d.toLocaleDateString("en-US");
+    const secs = sessions.filter(r => r.description === key).reduce((s, r) => s + (parseInt(r.new_value, 10) || 0), 0);
+    return { key, secs, dayName: d.toLocaleDateString("en-US", { weekday: "short" }), dayNum: d.toLocaleDateString("en-GB", { day: "numeric", month: "short" }) };
+  });
+  const maxSecs = Math.max(...last7.map(d => d.secs), 1);
+
+  const fmtTs = (ts) => new Date(ts).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) + " · " + new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+  const kpiStyle = { flex: 1, minWidth: 140, background: "var(--surface)", border: "1.5px solid var(--border)", borderRadius: 14, padding: "20px 16px", textAlign: "center" };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 20, padding: "24px 0" }}>
+
+      {/* KPI cards */}
+      <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+        <div style={kpiStyle}>
+          <div style={{ fontSize: 36, fontWeight: 800, color: "var(--teal-600,#1CA89C)", lineHeight: 1 }}>{logins.length}</div>
+          <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 4 }}>Total logins</div>
+        </div>
+        <div style={kpiStyle}>
+          <div style={{ fontSize: 36, fontWeight: 800, color: "var(--teal-600,#1CA89C)", lineHeight: 1 }}>{todayLabel}</div>
+          <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 4 }}>Screen time today</div>
+        </div>
+        <div style={kpiStyle}>
+          <div style={{ fontSize: 36, fontWeight: 800, color: "var(--teal-600,#1CA89C)", lineHeight: 1 }}>{+totalHours === 0 ? "—" : totalHours + "h"}</div>
+          <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 4 }}>Total hours all-time</div>
+        </div>
+      </div>
+
+      {/* Last 7 days bar chart */}
+      <div className="cb-card" style={{ overflow: "hidden", padding: 0 }}>
+        <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--border)", fontWeight: 700, fontSize: 14, color: "var(--navy-700,#1B3A6B)" }}>Last 7 Days</div>
+        {last7.map(({ key, secs, dayName, dayNum }) => {
+          const mins = Math.round(secs / 60);
+          const pct  = (secs / maxSecs) * 100;
+          return (
+            <div key={key} style={{ padding: "12px 20px", display: "flex", alignItems: "center", gap: 14, borderBottom: "1px solid var(--border)" }}>
+              <div style={{ width: 56, flexShrink: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 700 }}>{dayName}</div>
+                <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{dayNum}</div>
+              </div>
+              <div style={{ flex: 1, height: 10, background: "var(--bg-page,#f8fafc)", borderRadius: 5, overflow: "hidden" }}>
+                <div style={{ height: "100%", width: pct + "%", background: "linear-gradient(90deg,#1CA89C,#1B3A6B)", borderRadius: 5, transition: "width 0.4s" }} />
+              </div>
+              <div style={{ width: 44, textAlign: "right", fontSize: 13, fontWeight: 600, color: mins > 0 ? "#1CA89C" : "var(--text-muted)" }}>
+                {mins >= 60 ? (secs / 3600).toFixed(1) + "h" : mins > 0 ? mins + "m" : "—"}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Login history */}
+      <div className="cb-card" style={{ overflow: "hidden", padding: 0 }}>
+        <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ fontWeight: 700, fontSize: 14, color: "var(--navy-700,#1B3A6B)" }}>Login History</span>
+          <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{logins.length} total</span>
+        </div>
+        {logins.length === 0 ? (
+          <div style={{ padding: "40px 20px", textAlign: "center", color: "var(--text-muted)", fontSize: 14 }}>
+            No logins recorded yet.<br /><span style={{ fontSize: 12 }}>Data is captured automatically when the patient opens their portal.</span>
+          </div>
+        ) : logins.slice(0, 25).map((l, i) => (
+          <div key={i} style={{ padding: "11px 20px", display: "flex", gap: 12, alignItems: "center", borderBottom: "1px solid var(--border)", fontSize: 14 }}>
+            <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#1CA89C", flexShrink: 0 }} />
+            <div style={{ flex: 1 }}>{fmtTs(l.created_at)}</div>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "monospace" }}>Login #{logins.length - i}</div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
