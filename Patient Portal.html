@@ -946,6 +946,7 @@ function JourneyTab({ invitation }) {
       .from("patient_activities")
       .select("*")
       .eq("patient_id", invitation.patient_id)
+      .not("activity_type", "in", "(heartbeat,session_end,login,session_time)")
       .order("created_at", { ascending: false })
       .limit(50);
     setActivities(data || []);
@@ -1449,10 +1450,14 @@ function App() {
     }).catch(() => {});
     insert("heartbeat"); // fire immediately on login
     const iv = setInterval(() => insert("heartbeat"), 30000);
+    // fire when patient returns to the tab (handles mobile backgrounding)
+    const onVisible = () => { if (document.visibilityState === "visible") insert("heartbeat"); };
+    document.addEventListener("visibilitychange", onVisible);
     const goodbye = () => insert("session_end");
     window.addEventListener("beforeunload", goodbye);
     return () => {
       clearInterval(iv);
+      document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("beforeunload", goodbye);
       goodbye();
     };

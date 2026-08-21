@@ -100,7 +100,7 @@ function usePatientOnline(pid) {
 
   useEffect(() => {
     const sb = _getAdminSB(); if (!sb || !pid) return;
-    const THRESHOLD = 90000; // 90 s — two missed heartbeats still counts as online
+    const THRESHOLD = 5 * 60 * 1000; // 5 min — accounts for mobile background throttling
 
     // check the freshest heartbeat/session_end record and update state
     const evaluate = (rows) => {
