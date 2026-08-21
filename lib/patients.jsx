@@ -1,7 +1,7 @@
 /* ============================================================
    Carebridge Portal — Patient Management (list + detail)
    ============================================================ */
-const { useState } = React;
+const { useState, useEffect, useRef } = React;
 const PD = window.CB_DATA;
 
 function PatientsView({ go, onAdd, onEdit }) {
@@ -93,12 +93,35 @@ function PatientsView({ go, onAdd, onEdit }) {
 }
 
 /* ---------------- Patient detail ---------------- */
+/* ---- Real-time presence hook: true when the patient's portal is open ---- */
+function usePatientOnline(pid) {
+  const [online, setOnline] = useState(false);
+  const [onlineSince, setOnlineSince] = useState(null);
+  useEffect(() => {
+    const sb = _getAdminSB(); if (!sb) return;
+    const ch = sb.channel("patient-online");
+    const sync = () => {
+      const all = Object.values(ch.presenceState()).flat();
+      const match = all.find(p => p.patient_id === pid);
+      setOnline(!!match);
+      setOnlineSince(match ? match.online_at : null);
+    };
+    ch.on("presence", { event: "sync" }, sync)
+      .on("presence", { event: "join" }, sync)
+      .on("presence", { event: "leave" }, sync)
+      .subscribe();
+    return () => { sb.removeChannel(ch); };
+  }, [pid]);
+  return { online, onlineSince };
+}
+
 function PatientDetail({ id, go, onEdit }) {
   const [tab, setTab] = useState("Overview");
   usePatients(); // re-render when this patient is edited
   const [confirmDel, setConfirmDel] = useState(false);
   const p = (window.CBStore.patientById(id)) || PD.PATIENTS.find((x) => x.id === id) || PD.PATIENTS[0];
   const dest = PD.destByCode(p.dest), co = PD.coordById(p.coordinator), hosp = PD.hospitalById(p.hospital);
+  const { online, onlineSince } = usePatientOnline(p.id);
   const tabs = ["Overview", "Medical history", "Documents", "Travel", "Workflow", "Communication", "Notes", "Screen Time"];
 
   return (
@@ -111,9 +134,20 @@ function PatientDetail({ id, go, onEdit }) {
           <div className="cb-row" style={{ gap: 18 }}>
             <Avatar initials={p.initials} color={co.color} size="lg" />
             <div>
-              <div className="cb-row" style={{ gap: 10 }}>
+              <div className="cb-row" style={{ gap: 10, flexWrap: "wrap" }}>
                 <h2 style={{ fontSize: 24, fontWeight: 800 }}>{p.name}</h2>
                 <PriorityPill priority={p.priority} />
+                {online ? (
+                  <span style={{ display:"inline-flex", alignItems:"center", gap:5, padding:"3px 10px", borderRadius:20, background:"#dcfce7", color:"#166534", fontSize:12, fontWeight:700 }}>
+                    <span style={{ width:7, height:7, borderRadius:"50%", background:"#22c55e", display:"inline-block", boxShadow:"0 0 0 2px #86efac", animation:"cbOnlinePulse 1.8s ease-in-out infinite" }} />
+                    Online now
+                  </span>
+                ) : onlineSince ? (
+                  <span style={{ display:"inline-flex", alignItems:"center", gap:5, padding:"3px 10px", borderRadius:20, background:"#f1f5f9", color:"var(--text-muted)", fontSize:12, fontWeight:600 }}>
+                    <span style={{ width:7, height:7, borderRadius:"50%", background:"#94a3b8", display:"inline-block" }} />
+                    Last seen {new Date(onlineSince).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" })}
+                  </span>
+                ) : null}
               </div>
               <div className="cb-row" style={{ gap: 16, marginTop: 8, color: "var(--text-muted)", fontSize: 13.5, flexWrap: "wrap" }}>
                 <span><b style={{ color: "var(--text-strong)" }}>{p.id}</b></span>
@@ -1230,10 +1264,10 @@ function PatientWorkflow({ p, hosp }) {
 
 /* ---- Screen Time tab — login count + portal usage analytics ---- */
 function PatientScreenTime({ pid }) {
-  const { useEffect, useState: useSt } = React;
-  const [logins,   setLogins]   = useSt([]);
-  const [sessions, setSessions] = useSt([]);
-  const [loading,  setLoading]  = useSt(true);
+  const [logins,   setLogins]   = useState([]);
+  const [sessions, setSessions] = useState([]);
+  const [loading,  setLoading]  = useState(true);
+  const { online, onlineSince } = usePatientOnline(pid);
 
   useEffect(() => {
     const sb = _getAdminSB(); if (!sb) { setLoading(false); return; }
@@ -1276,6 +1310,35 @@ function PatientScreenTime({ pid }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20, padding: "24px 0" }}>
+
+      {/* Real-time online status */}
+      <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px 20px", borderRadius: 14, border: online ? "2px solid #86efac" : "1.5px solid var(--border)", background: online ? "#f0fdf4" : "var(--surface)" }}>
+        <div style={{ position: "relative", width: 14, height: 14, flexShrink: 0 }}>
+          <span style={{ position:"absolute", inset:0, borderRadius:"50%", background: online ? "#22c55e" : "#94a3b8", display:"block" }} />
+          {online && <span style={{ position:"absolute", inset:0, borderRadius:"50%", background:"#22c55e", animation:"cbOnlinePulse 1.8s ease-in-out infinite" }} />}
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: 800, fontSize: 15, color: online ? "#166534" : "var(--text-muted)" }}>
+            {online ? "Patient is online right now" : "Patient is offline"}
+          </div>
+          {online && onlineSince && (
+            <div style={{ fontSize: 12, color: "#16a34a", marginTop: 2 }}>
+              Active since {new Date(onlineSince).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+            </div>
+          )}
+          {!online && onlineSince && (
+            <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>
+              Last seen at {new Date(onlineSince).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+            </div>
+          )}
+          {!online && !onlineSince && (
+            <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>Has not opened portal this session</div>
+          )}
+        </div>
+        <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: online ? "#16a34a" : "var(--text-muted)", padding: "4px 10px", borderRadius: 20, background: online ? "#dcfce7" : "var(--bg-page,#f8fafc)" }}>
+          {online ? "● Live" : "○ Offline"}
+        </div>
+      </div>
 
       {/* KPI cards */}
       <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
