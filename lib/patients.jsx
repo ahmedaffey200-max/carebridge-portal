@@ -97,20 +97,34 @@ function PatientsView({ go, onAdd, onEdit }) {
 function usePatientOnline(pid) {
   const [online, setOnline] = useState(false);
   const [onlineSince, setOnlineSince] = useState(null);
+  const chRef = useRef(null);
   useEffect(() => {
-    const sb = _getAdminSB(); if (!sb) return;
-    const ch = sb.channel("patient-online");
+    const sb = _getAdminSB(); if (!sb || !pid) return;
+    // per-patient channel name avoids collision when switching patients or
+    // when cleanup hasn't fully finished before the next effect fires
+    const chName = "patient-online-" + pid;
+    // tear down any existing channel for this pid before creating a new one
+    if (chRef.current) { try { sb.removeChannel(chRef.current); } catch(e) {} chRef.current = null; }
+    const ch = sb.channel(chName);
+    chRef.current = ch;
     const sync = () => {
       const all = Object.values(ch.presenceState()).flat();
       const match = all.find(p => p.patient_id === pid);
       setOnline(!!match);
       setOnlineSince(match ? match.online_at : null);
     };
-    ch.on("presence", { event: "sync" }, sync)
-      .on("presence", { event: "join" }, sync)
-      .on("presence", { event: "leave" }, sync)
-      .subscribe();
-    return () => { sb.removeChannel(ch); };
+    try {
+      ch.on("presence", { event: "sync" }, sync)
+        .on("presence", { event: "join" }, sync)
+        .on("presence", { event: "leave" }, sync)
+        .subscribe();
+    } catch(e) {
+      // channel was already subscribed (stale ref) — ignore, presence will be unavailable
+    }
+    return () => {
+      try { sb.removeChannel(ch); } catch(e) {}
+      chRef.current = null;
+    };
   }, [pid]);
   return { online, onlineSince };
 }
@@ -189,7 +203,7 @@ function PatientDetail({ id, go, onEdit }) {
       {tab === "Workflow" ? <PatientWorkflow p={p} hosp={hosp} /> : null}
       {tab === "Communication" ? <PatientComms p={p} co={co} /> : null}
       {tab === "Notes" ? <PatientNotesTab pid={p.id} /> : null}
-      {tab === "Screen Time" ? <PatientScreenTime pid={p.id} /> : null}
+      {tab === "Screen Time" ? <PatientScreenTime pid={p.id} online={online} onlineSince={onlineSince} /> : null}
       {confirmDel ? (
         <ConfirmDialog
           title="Are you sure you want to delete this patient?"
@@ -1263,11 +1277,10 @@ function PatientWorkflow({ p, hosp }) {
 }
 
 /* ---- Screen Time tab — login count + portal usage analytics ---- */
-function PatientScreenTime({ pid }) {
+function PatientScreenTime({ pid, online, onlineSince }) {
   const [logins,   setLogins]   = useState([]);
   const [sessions, setSessions] = useState([]);
   const [loading,  setLoading]  = useState(true);
-  const { online, onlineSince } = usePatientOnline(pid);
 
   useEffect(() => {
     const sb = _getAdminSB(); if (!sb) { setLoading(false); return; }
