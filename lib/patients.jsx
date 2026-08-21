@@ -114,14 +114,16 @@ function usePatientOnline(pid) {
       }
     };
 
-    // initial query — show correct state immediately when admin opens the page
-    sb.from("patient_activities")
+    const query = () => sb.from("patient_activities")
       .select("activity_type,created_at")
       .eq("patient_id", pid)
       .in("activity_type", ["heartbeat", "session_end"])
       .order("created_at", { ascending: false })
       .limit(1)
       .then(({ data }) => evaluate(data || []));
+
+    query(); // immediate check on mount
+    const pollId = setInterval(query, 45000); // fallback poll every 45 s
 
     // real-time: detect every heartbeat and session_end the moment it is inserted
     const ch = sb.channel("po-" + pid)
@@ -136,7 +138,10 @@ function usePatientOnline(pid) {
       })
       .subscribe();
 
-    return () => { try { sb.removeChannel(ch); } catch(e) {} };
+    return () => {
+      clearInterval(pollId);
+      try { sb.removeChannel(ch); } catch(e) {}
+    };
   }, [pid]);
 
   return { online, onlineSince };

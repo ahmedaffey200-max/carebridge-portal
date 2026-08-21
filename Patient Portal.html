@@ -1432,20 +1432,24 @@ function App() {
     return () => sb.removeChannel(channel);
   }, [screen, invitation?.id]);
 
-  /* Heartbeat: lets admin see realtime online/offline status via postgres_changes */
+  /* Heartbeat: lets admin see realtime online/offline status */
   useEffect(() => {
     if (screen !== "dashboard" || !invitation?.patient_id) return;
     const pid = invitation.patient_id;
-    const beat = () => sb.from("patient_activities").insert({
-      patient_id: pid, activity_type: "heartbeat", title: "Online",
-      description: new Date().toISOString(), created_by: "patient",
+    // Use direct fetch so the insert is independent of the Supabase client state
+    const SB_URL  = "https://htvjjwfenvittdritjni.supabase.co";
+    const SB_KEY  = SUPABASE_ANON;
+    const insert = (type) => fetch(SB_URL + "/rest/v1/patient_activities", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: SB_KEY,
+                 Authorization: "Bearer " + SB_KEY, Prefer: "return=minimal" },
+      body: JSON.stringify({ patient_id: pid, activity_type: type,
+                             title: type === "heartbeat" ? "Online" : "Offline",
+                             description: new Date().toISOString(), created_by: "patient" }),
     }).catch(() => {});
-    const goodbye = () => sb.from("patient_activities").insert({
-      patient_id: pid, activity_type: "session_end", title: "Offline",
-      description: new Date().toISOString(), created_by: "patient",
-    }).catch(() => {});
-    beat(); // immediate on mount
-    const iv = setInterval(beat, 30000);
+    insert("heartbeat"); // fire immediately on login
+    const iv = setInterval(() => insert("heartbeat"), 30000);
+    const goodbye = () => insert("session_end");
     window.addEventListener("beforeunload", goodbye);
     return () => {
       clearInterval(iv);
