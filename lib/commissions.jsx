@@ -320,9 +320,9 @@ function CommissionModal({ mode, commission, onClose }) {
     hospital:       commission.hospital,
     patient:        commission.patient || "",
     currency:       commission.currency || "USD",
-    totalAmount:    commission.originalAmount ? String(commission.originalAmount) : "",
+    totalAmount:    commission.invoiceAmount ? String(commission.invoiceAmount) : "",  // full invoice total
     commissionRate: commission.commissionRate || null,
-    manualAmount:   commission.currency && commission.currency !== "USD" ? String(commission.originalAmount || commission.amount) : String(commission.amount),
+    manualAmount:   commission.originalAmount ? String(commission.originalAmount) : String(commission.amount),
     status:         commission.status,
     recorded:       commission.recordedISO || toISODate(commission.recorded) || "",
     dueDate:        commission.dueISO      || toISODate(commission.dueDate)  || "",
@@ -342,7 +342,8 @@ function CommissionModal({ mode, commission, onClose }) {
   const [touched, setTouched] = useStateHC(false);
   /* USD amount entered manually — this is what gets saved as the commission amount */
   const [usdManual, setUsdManual] = useStateHC(editing ? String(commission.amount || "") : "");
-  const [usdTouched, setUsdTouched] = useStateHC(false);
+  /* start true in edit so autofill never overwrites the saved USD value */
+  const [usdTouched, setUsdTouched] = useStateHC(editing);
   const set = (k, v) => setF((s) => ({ ...s, [k]: v }));
 
   /* fetch live rates on mount */
@@ -410,7 +411,8 @@ function CommissionModal({ mode, commission, onClose }) {
       patient:        f.patient,
       amount:         Math.round(finalUSD * 100) / 100, // USD — what is recorded & tracked
       currency:       f.currency,
-      originalAmount: effectiveAmount,
+      invoiceAmount:  totalNum,          // full invoice total in original currency
+      originalAmount: effectiveAmount,   // commission amount in original currency
       commissionRate: f.commissionRate,
       status:         f.status,
       recorded:       hcMonth(f.recorded),
