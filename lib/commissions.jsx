@@ -458,7 +458,7 @@ function CommissionModal({ mode, commission, onClose }) {
             {/* Live rate line */}
             <div style={{ marginTop: 8, fontSize: 12, color: "var(--text-faint)", display: "flex", alignItems: "center", gap: 6, minHeight: 18 }}>
               {f.currency !== "USD" ? (
-                rateErr ? <span style={{ color: "var(--warning)" }}>⚠ Rate unavailable — enter USD manually</span>
+                rateErr ? <span style={{ color: "var(--warning)" }}>⚠ Live rate unavailable — amount will be saved in {f.currency}</span>
                 : rates ? <><Icon name="trending-up" size={13} /><span>Live rate: 1 {f.currency} = <b>${rateLabel(f.currency)} USD</b></span><span style={{ opacity: 0.6 }}>· as of {rateTs}</span></>
                 : <><span style={{ animation: "cbpulse 1s infinite" }}>⏳</span><span>Fetching live rate…</span></>
               ) : <span style={{ color: "var(--teal-600)" }}>USD selected — no conversion needed</span>}
@@ -528,25 +528,14 @@ function CommissionModal({ mode, commission, onClose }) {
               <div style={{ marginTop: 8, display: "inline-flex", alignItems: "center", gap: 6, background: "var(--sky-100)", borderRadius: 999, padding: "4px 12px" }}>
                 <Icon name="arrow-right-left" size={13} style={{ color: "var(--navy-600)" }} />
                 <span style={{ fontSize: 13, fontWeight: 700, color: "var(--navy-700)" }}>
-                  {rates && rates[f.currency] ? "$" + usdValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " USD" : "Enter USD equivalent below"}
+                  {rates && rates[f.currency]
+                    ? "$" + usdValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " USD"
+                    : "Saved as " + cInfo.symbol + effectiveAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " " + f.currency}
                 </span>
-                {rateErr ? <span style={{ fontSize: 11, color: "var(--warning)" }}>— rate unavailable</span> : null}
               </div>
             ) : null}
             {touched && amountBad && !hasDerived ? <div style={{ fontSize: 12, color: "var(--danger)", marginTop: 5 }}>Enter an amount &gt; 0</div> : null}
           </div>
-
-          {/* USD override when rate unavailable and non-USD */}
-          {rateErr && f.currency !== "USD" ? (
-            <div>
-              <label style={{ ...lst, color: "var(--warning)" }}>USD equivalent amount <span style={{ fontWeight: 400, fontSize: 12 }}>(rate fetch failed — enter manually)</span></label>
-              <div style={{ position: "relative" }}>
-                <span style={{ position: "absolute", left: 13, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)", fontSize: 14, fontWeight: 600, pointerEvents: "none" }}>$</span>
-                <input type="number" min="0" step="any" style={{ ...fst(false), paddingLeft: 28 }}
-                  value={f.manualUSD || ""} onChange={(e) => set("manualUSD", e.target.value)} placeholder="0" />
-              </div>
-            </div>
-          ) : null}
 
           {/* Status */}
           <div>
