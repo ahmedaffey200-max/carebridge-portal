@@ -7,6 +7,7 @@ const { useState } = React;
 const FD = window.CB_DATA;
 const fmtMoney = (n) => (n < 0 ? "-$" : "$") + Math.abs(Math.round(n)).toLocaleString("en-US");
 const fmtK = (n) => "$" + Math.round(n / 1000) + "K";
+const fmtSmart = (n) => Math.abs(n) >= 1000 ? fmtK(n) : fmtMoney(n);
 
 function FinancialView({ go }) {
   const store = useStore();
@@ -49,13 +50,13 @@ function FinancialView({ go }) {
   return (
     <div className="cb-grid" style={{ gap: "var(--gap-grid)" }}>
       <div className="cb-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "var(--gap-grid)" }}>
-        <StatCard icon="trending-up" chip="teal" value={fmtK(totalIncome)} label="Total income" />
-        <StatCard icon="trending-down" chip="sky" value={fmtK(totalExpense)} label="Total expense" />
-        <StatCard icon="bar-chart-3" chip={netProfit >= 0 ? "teal" : "danger"} value={fmtK(netProfit)} label="Net profit" />
+        <StatCard icon="trending-up" chip="teal" value={fmtSmart(totalIncome)} label="Total income" />
+        <StatCard icon="trending-down" chip="sky" value={fmtSmart(totalExpense)} label="Total expense" />
+        <StatCard icon="bar-chart-3" chip={netProfit >= 0 ? "teal" : "danger"} value={fmtSmart(netProfit)} label="Net profit" />
         <StatCard icon="hourglass" chip="warm" value={fmtMoney(outstandingReceivable)} label="Outstanding receivable" />
         <StatCard icon="alert-circle" chip="navy" value={fmtMoney(outstandingPayable)} label="Outstanding payable" />
-        <StatCard icon="hospital" chip="navy" value={fmtK(totalCommissions)} label="Total commissions" />
-        <StatCard icon="briefcase" chip="teal" value={fmtK(totalService)} label="Total service" />
+        <StatCard icon="hospital" chip="navy" value={fmtSmart(totalCommissions)} label="Total commissions" />
+        <StatCard icon="briefcase" chip="teal" value={fmtSmart(totalService)} label="Total service" />
       </div>
 
       <div className="cb-between" style={{ flexWrap: "wrap", gap: 12 }}>
