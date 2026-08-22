@@ -280,6 +280,14 @@ function hcMonth(iso) {
   try { return t.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }); } catch (e) { return iso; }
 }
 
+/* Parse any date string (ISO or formatted like "Aug 22, 2026") → ISO yyyy-mm-dd */
+function toISODate(val) {
+  if (!val) return "";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val; // already ISO
+  try { var d = new Date(val); if (!isNaN(d)) return d.toISOString().slice(0, 10); } catch(e) {}
+  return "";
+}
+
 function CommissionModal({ mode, commission, onClose }) {
   const editing = mode === "edit";
   const hospitals = useHospitals();
@@ -301,8 +309,8 @@ function CommissionModal({ mode, commission, onClose }) {
     commissionRate: commission.commissionRate || null,
     manualAmount:   commission.currency && commission.currency !== "USD" ? String(commission.originalAmount || commission.amount) : String(commission.amount),
     status:         commission.status,
-    recorded:       commission.recordedISO || "",
-    dueDate:        commission.dueISO || "",
+    recorded:       commission.recordedISO || toISODate(commission.recorded) || "",
+    dueDate:        commission.dueISO      || toISODate(commission.dueDate)  || "",
     notes:          commission.notes || "",
   } : {
     hospital:       active[0] ? active[0].name : "",
