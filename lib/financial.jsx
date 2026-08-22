@@ -26,24 +26,25 @@ function FinancialView({ go }) {
   const spend = expenses.reduce((s, e) => s + e.amount, 0);
   const plannedTotal = budget.reduce((s, b) => s + b.planned, 0);
   const spentTotal = budget.reduce((s, b) => s + b.spent, 0);
-  
-  // 7 dashboard metrics
-  const totalIncome = collected;
-  const totalExpense = spend;
-  const netProfit = totalIncome - totalExpense;
-  const outstandingReceivable = outstanding;
-  const outstandingPayable = plannedTotal - spentTotal;
-  const totalCommissions = Math.round(revenue * 0.15);
-  const totalService = revenue - totalCommissions;
 
-  const tabs = ["Overview", "Invoices", "Billing Records", "All Patient Financials", "Expenses", "Budget", "Invoice Generator"];
+  // Real commission records (USD amounts)
+  const commissions = store.getCommissions ? store.getCommissions() : [];
+  const totalCommissions = commissions.reduce((s, c) => s + (c.amount || 0), 0);
+
+  // Patient service billing totals
   const billed = store.getPatients().filter((p) => p.pkg || p.pkgTotal > 0);
   const psTotal = billed.reduce((s, p) => s + (p.pkgTotal || 0), 0);
   const psPaid = billed.reduce((s, p) => s + (p.pkgPaid || 0), 0);
-  
-  // Hospital commissions: 15% of invoiced value
-  const hospitalCommissions = Math.round(revenue * 0.15);
-  const serviceFee = revenue - hospitalCommissions;
+
+  // 7 dashboard metrics — income = invoice collections + patient payments + commissions
+  const totalIncome = collected + psPaid + totalCommissions;
+  const totalExpense = spend;
+  const netProfit = totalIncome - totalExpense;
+  const outstandingReceivable = outstanding + (psTotal - psPaid);
+  const outstandingPayable = plannedTotal - spentTotal;
+  const totalService = psTotal;
+
+  const tabs = ["Overview", "Invoices", "Billing Records", "All Patient Financials", "Expenses", "Budget", "Invoice Generator"];
 
   return (
     <div className="cb-grid" style={{ gap: "var(--gap-grid)" }}>
@@ -76,7 +77,7 @@ function FinancialView({ go }) {
           </Card>
           <Card>
             <CardHead title="Budget utilisation" sub={fmtMoney(spentTotal) + " of " + fmtMoney(plannedTotal) + " annual"} />
-            <Donut segments={[{ label: "Spent", value: spentTotal, color: "var(--teal-500)" }, { label: "Remaining", value: Math.max(0, plannedTotal - spentTotal), color: "var(--sky-300)" }]} centerTop={Math.round((spentTotal / plannedTotal) * 100) + "%"} centerBottom="utilised" size={150} />
+            <Donut segments={[{ label: "Spent", value: spentTotal || 0, color: "var(--teal-500)" }, { label: "Remaining", value: Math.max(0, (plannedTotal || 0) - (spentTotal || 0)), color: "var(--sky-300)" }]} centerTop={(plannedTotal > 0 ? Math.round((spentTotal / plannedTotal) * 100) : 0) + "%"} centerBottom="utilised" size={150} />
           </Card>
           <Card style={{ gridColumn: "1 / -1" }}>
             <CardHead title="Patient service billing" sub="Live totals from patient packages" action="Open billing records" actionReal onAction={() => setTab("Billing Records")} icon={false} />
