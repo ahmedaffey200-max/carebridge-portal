@@ -317,6 +317,9 @@ function CommissionModal({ mode, commission, onClose }) {
     notes:          "",
   });
   const [touched, setTouched] = useStateHC(false);
+  /* USD amount entered manually — this is what gets saved as the commission amount */
+  const [usdManual, setUsdManual] = useStateHC(editing ? String(commission.amount || "") : "");
+  const [usdTouched, setUsdTouched] = useStateHC(false);
   const set = (k, v) => setF((s) => ({ ...s, [k]: v }));
 
   /* fetch live rates on mount */
@@ -343,7 +346,7 @@ function CommissionModal({ mode, commission, onClose }) {
   function toUSD(amount, code) {
     if (!amount || isNaN(+amount) || +amount <= 0) return 0;
     if (code === "USD") return +amount;
-    if (!rates || !rates[code]) return +amount; // fallback: treat as USD
+    if (!rates || !rates[code]) return 0;
     return +amount / rates[code];
   }
   function rateLabel(code) {
@@ -351,20 +354,29 @@ function CommissionModal({ mode, commission, onClose }) {
     return (1 / rates[code]).toFixed(5);
   }
 
-  /* derived commission */
+  /* derived commission in original currency */
   const totalNum = parseFloat(f.totalAmount) || 0;
   const hasDerived = totalNum > 0 && f.commissionRate;
   const derivedAmount = hasDerived ? (totalNum * f.commissionRate / 100) : null;
-
-  /* effective commission in original currency */
   const effectiveAmount = hasDerived ? derivedAmount : (parseFloat(f.manualAmount) || 0);
-  const usdValue = toUSD(effectiveAmount, f.currency);
+
+  /* auto-fill USD field from live rate when amount or rate changes, unless admin has typed manually */
+  React.useEffect(() => {
+    if (f.currency === "USD") return;
+    if (usdTouched) return;
+    if (effectiveAmount <= 0 || !rates || !rates[f.currency]) { setUsdManual(""); return; }
+    setUsdManual((effectiveAmount / rates[f.currency]).toFixed(2));
+  }, [effectiveAmount, rates, f.currency]);
+
+  /* the USD value that actually gets recorded */
+  const finalUSD = f.currency === "USD" ? effectiveAmount : (parseFloat(usdManual) || 0);
 
   /* validation */
-  const amountBad  = effectiveAmount <= 0;
+  const amountBad   = effectiveAmount <= 0;
+  const usdBad      = f.currency !== "USD" && finalUSD <= 0;
   const hospitalBad = !f.hospital.trim();
   const dueBad      = !f.dueDate;
-  const valid       = !amountBad && !hospitalBad && !dueBad;
+  const valid       = !amountBad && !hospitalBad && !dueBad && !usdBad;
 
   const noKeys = (e) => { if (e.key !== "Tab" && e.key !== "Escape") e.preventDefault(); };
 
@@ -373,7 +385,7 @@ function CommissionModal({ mode, commission, onClose }) {
     const payload = {
       hospital:       f.hospital.trim(),
       patient:        f.patient,
-      amount:         Math.round(usdValue * 100) / 100, // always USD for backward compat
+      amount:         Math.round(finalUSD * 100) / 100, // USD — what is recorded & tracked
       currency:       f.currency,
       originalAmount: effectiveAmount,
       commissionRate: f.commissionRate,
@@ -450,7 +462,7 @@ function CommissionModal({ mode, commission, onClose }) {
             <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
               {HC_CURRENCIES.map(c => (
                 <button key={c.code} type="button" style={pillBtn(f.currency === c.code)}
-                  onClick={() => { set("currency", c.code); set("commissionRate", null); set("manualAmount", ""); set("totalAmount", ""); }}>
+                  onClick={() => { set("currency", c.code); set("commissionRate", null); set("manualAmount", ""); set("totalAmount", ""); setUsdManual(""); setUsdTouched(false); }}>
                   {c.flag} {c.code}
                 </button>
               ))}
@@ -523,19 +535,33 @@ function CommissionModal({ mode, commission, onClose }) {
                 onChange={(e) => { if (!hasDerived) set("manualAmount", e.target.value); }}
                 placeholder="0" />
             </div>
-            {/* USD equivalent chip */}
-            {f.currency !== "USD" && effectiveAmount > 0 ? (
-              <div style={{ marginTop: 8, display: "inline-flex", alignItems: "center", gap: 6, background: "var(--sky-100)", borderRadius: 999, padding: "4px 12px" }}>
-                <Icon name="arrow-right-left" size={13} style={{ color: "var(--navy-600)" }} />
-                <span style={{ fontSize: 13, fontWeight: 700, color: "var(--navy-700)" }}>
-                  {rates && rates[f.currency]
-                    ? "$" + usdValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " USD"
-                    : "Saved as " + cInfo.symbol + effectiveAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " " + f.currency}
-                </span>
-              </div>
-            ) : null}
             {touched && amountBad && !hasDerived ? <div style={{ fontSize: 12, color: "var(--danger)", marginTop: 5 }}>Enter an amount &gt; 0</div> : null}
           </div>
+
+          {/* USD amount — always shown for non-USD currencies; this is what gets recorded */}
+          {f.currency !== "USD" ? (
+            <div style={{ padding: "14px 16px", background: "var(--sky-50, #f0f9ff)", border: "1.5px solid var(--sky-200, #bae6fd)", borderRadius: "var(--radius-sm)" }}>
+              <label style={{ ...lst, color: "var(--navy-700)", display: "flex", alignItems: "center", gap: 7, marginBottom: 10 }}>
+                <Icon name="dollar-sign" size={15} />
+                USD amount — recorded in commission
+                {rates && rates[f.currency] && !usdTouched && finalUSD > 0
+                  ? <span style={{ fontWeight: 400, fontSize: 11, color: "var(--text-faint)" }}>auto-filled from live rate · edit to override</span>
+                  : <span style={{ fontWeight: 400, fontSize: 11, color: "var(--text-faint)" }}>enter manually</span>}
+              </label>
+              <div style={{ position: "relative" }}>
+                <span style={{ position: "absolute", left: 13, top: "50%", transform: "translateY(-50%)", color: "var(--navy-600)", fontSize: 15, fontWeight: 700, pointerEvents: "none" }}>$</span>
+                <input type="number" min="0" step="any"
+                  style={{ ...fst(touched && usdBad), paddingLeft: 28, fontWeight: 700, fontSize: 16, color: "var(--navy-700)" }}
+                  value={usdManual}
+                  placeholder="0.00"
+                  onChange={(e) => { setUsdManual(e.target.value); setUsdTouched(true); }} />
+              </div>
+              {touched && usdBad ? <div style={{ fontSize: 12, color: "var(--danger)", marginTop: 5 }}>Enter the USD amount to record</div> : null}
+              <div style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 6 }}>
+                This is the value saved to the commission record and shown in all USD totals.
+              </div>
+            </div>
+          ) : null}
 
           {/* Status */}
           <div>
