@@ -8,6 +8,13 @@ const FD = window.CB_DATA;
 const fmtMoney = (n) => (n < 0 ? "-$" : "$") + Math.abs(Math.round(n)).toLocaleString("en-US");
 const fmtK = (n) => "$" + Math.round(n / 1000) + "K";
 const fmtSmart = (n) => Math.abs(n) >= 1000 ? fmtK(n) : fmtMoney(n);
+const FD_CUR = {
+  USD: { sym: "$",   name: "US Dollar",       flag: "🇺🇸" },
+  CAD: { sym: "CA$", name: "Canadian Dollar", flag: "🇨🇦" },
+  EUR: { sym: "€",   name: "Euro",            flag: "🇪🇺" },
+  INR: { sym: "₹",   name: "Indian Rupee",    flag: "🇮🇳" },
+  TRY: { sym: "₺",   name: "Turkish Lira",    flag: "🇹🇷" },
+};
 
 function FinancialView({ go }) {
   const store = useStore();
@@ -35,6 +42,17 @@ function FinancialView({ go }) {
   const commissions = store.getCommissions ? store.getCommissions() : [];
   const totalCommissions = commissions.reduce((s, c) => s + (c.amount || 0), 0);
 
+  // Group commissions by currency — one card per recorded currency
+  const commByCur = {};
+  commissions.forEach(function(c) {
+    const cur = c.currency || "USD";
+    if (!commByCur[cur]) commByCur[cur] = { count: 0, origTotal: 0, invoiceTotal: 0, usdTotal: 0 };
+    commByCur[cur].count++;
+    commByCur[cur].origTotal += c.originalAmount != null ? +c.originalAmount : (+c.amount || 0);
+    commByCur[cur].invoiceTotal += c.invoiceAmount != null ? +c.invoiceAmount : 0;
+    commByCur[cur].usdTotal += +c.amount || 0;
+  });
+
   // Patient service billing totals
   const billed = store.getPatients().filter((p) => p.pkg || p.pkgTotal > 0);
   const psTotal = billed.reduce((s, p) => s + (p.pkgTotal || 0), 0);
@@ -58,9 +76,50 @@ function FinancialView({ go }) {
         <StatCard icon="bar-chart-3" chip={netProfit >= 0 ? "teal" : "danger"} value={fmtSmart(netProfit)} label="Net profit" />
         <StatCard icon="hourglass" chip="warm" value={fmtMoney(outstandingReceivable)} label="Outstanding receivable" />
         <StatCard icon="alert-circle" chip="navy" value={fmtMoney(outstandingPayable)} label="Outstanding payable" />
-        <StatCard icon="hospital" chip="navy" value={fmtSmart(totalCommissions)} label="Total commissions" />
+        <StatCard icon="hospital" chip="navy" value={fmtSmart(totalCommissions)} label="Total commissions (USD)" />
         <StatCard icon="briefcase" chip="teal" value={fmtSmart(totalService)} label="Total service" />
       </div>
+
+      {Object.keys(commByCur).length > 0 ? (
+        <div className="cb-grid" style={{ gap: "var(--gap-grid)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-strong)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Commission breakdown by currency</span>
+            <span style={{ fontSize: 12, color: "var(--text-muted)" }}>· totals per recorded currency</span>
+          </div>
+          <div className="cb-grid" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "var(--gap-grid)" }}>
+            {Object.entries(commByCur).map(function([cur, data]) {
+              const info = FD_CUR[cur] || { sym: "$", name: cur, flag: "💱" };
+              const origVal = info.sym + Math.round(data.origTotal).toLocaleString("en-US");
+              const invVal = data.invoiceTotal > 0 ? (info.sym + Math.round(data.invoiceTotal).toLocaleString("en-US")) : null;
+              return (
+                <div key={cur} className="cb-card" style={{ padding: "var(--pad-card)", display: "flex", flexDirection: "column", gap: 10 }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 22, lineHeight: 1 }}>{info.flag}</span>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-strong)" }}>{cur}</div>
+                        <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{info.name}</div>
+                      </div>
+                    </div>
+                    <span style={{ fontSize: 11, fontWeight: 600, background: "var(--sky-100)", color: "var(--sky-700)", borderRadius: 99, padding: "2px 8px" }}>{data.count} rec</span>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 2 }}>Commission total</div>
+                    <div style={{ fontSize: 22, fontWeight: 800, color: "var(--teal-700)", fontFamily: "var(--font-display)", lineHeight: 1 }}>{origVal}</div>
+                    {cur !== "USD" ? <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 3 }}>≈ {fmtMoney(data.usdTotal)} USD</div> : null}
+                  </div>
+                  {invVal ? (
+                    <div style={{ borderTop: "1px solid var(--border)", paddingTop: 8 }}>
+                      <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 1 }}>Invoice total</div>
+                      <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-strong)" }}>{invVal}</div>
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
 
       <div className="cb-between" style={{ flexWrap: "wrap", gap: 12 }}>
         <div className="cb-seg cb-seg--scroll">
