@@ -78,6 +78,7 @@ function CommsView() {
   var [sending, setSending] = React.useState(false);
   var endRef = React.useRef(null);
   var pollRef = React.useRef(null);
+  var selRef = React.useRef(null);
 
   function buildThreads(rows) {
     var byPid = {};
@@ -131,13 +132,22 @@ function CommsView() {
         .on("postgres_changes", { event: "INSERT", schema: "public", table: "patient_messages" }, function(payload) {
           var m = payload.new;
           if (!m || m.sender_role === "coordinator" || m.sender_role === "admin") return;
-          // Find patient name from current threads
-          setThreads(function(prev) {
-            var th = prev.find(function(t) { return t.patient_id === m.patient_id; });
-            var name = (th && th.patient_name) || m.sender_name || "Patient";
-            cbRedAlert(name, m.content);
-            return prev;
-          });
+          var isViewing = selRef.current === m.patient_id;
+          // Only show alert if admin isn't already in that conversation
+          if (!isViewing) {
+            setThreads(function(prev) {
+              var th = prev.find(function(t) { return t.patient_id === m.patient_id; });
+              var name = (th && th.patient_name) || m.sender_name || "Patient";
+              cbRedAlert(name, m.content);
+              return prev;
+            });
+          } else {
+            // Admin is viewing this thread — mark the incoming message as read right away
+            sb.from("patient_messages")
+              .update({ read_at: new Date().toISOString() })
+              .eq("id", m.id)
+              .then(function(){});
+          }
           load(); // refresh thread list
         })
         .subscribe();
@@ -153,6 +163,37 @@ function CommsView() {
   React.useEffect(function() {
     if (endRef.current) endRef.current.scrollTop = endRef.current.scrollHeight;
   }, [sel, threads.length]);
+
+  // Mark all unread patient messages as read when admin opens a thread
+  React.useEffect(function() {
+    selRef.current = sel;
+    if (!sel) return;
+    var sb = window.CB_SB;
+    if (!sb) return;
+    var now = new Date().toISOString();
+    // Optimistic: clear badge immediately in UI
+    setThreads(function(prev) {
+      return prev.map(function(t) {
+        if (t.patient_id !== sel || t.unread === 0) return t;
+        return Object.assign({}, t, {
+          unread: 0,
+          msgs: t.msgs.map(function(m) {
+            if (m.sender_role !== "patient" || m.read_at) return m;
+            return Object.assign({}, m, { read_at: now });
+          })
+        });
+      });
+    });
+    // Persist to Supabase
+    sb.from("patient_messages")
+      .update({ read_at: now })
+      .eq("patient_id", sel)
+      .eq("sender_role", "patient")
+      .is("read_at", null)
+      .then(function(res) {
+        if (res.error) console.warn("[CB] mark-read error:", res.error.message);
+      });
+  }, [sel]);
 
   var thread = threads.find(function(th) { return th.patient_id === sel; });
   var msgs = thread ? thread.msgs : [];
