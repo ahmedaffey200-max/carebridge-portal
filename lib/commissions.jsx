@@ -1,11 +1,30 @@
 /* ============================================================
    Carebridge Portal — Hospital Commissions
-   Executive dashboard: Paid / Unpaid / Holding categories,
-   CRUD records, and due-date reminders (≤2 days → popup).
+   Multi-currency · Live FX · Commission % calculator
    ============================================================ */
 const { useState: useStateHC } = React;
 const HCD = window.CB_DATA;
-const hcMoney = (n) => "$" + Math.round(n || 0).toLocaleString("en-US");
+
+/* ---- Currency catalogue ---- */
+const HC_CURRENCIES = [
+  { code: "USD", symbol: "$",   name: "US Dollar",        flag: "🇺🇸" },
+  { code: "CAD", symbol: "CA$", name: "Canadian Dollar",  flag: "🇨🇦" },
+  { code: "EUR", symbol: "€",   name: "Euro",             flag: "🇪🇺" },
+  { code: "INR", symbol: "₹",   name: "Indian Rupee",     flag: "🇮🇳" },
+  { code: "TRY", symbol: "₺",   name: "Turkish Lira",     flag: "🇹🇷" },
+];
+const HC_PCTS = [15, 20, 25, 30, 35];
+
+function hcCurrInfo(code) { return HC_CURRENCIES.find(c => c.code === code) || HC_CURRENCIES[0]; }
+
+function hcMoney(n) { return "$" + Math.round(n || 0).toLocaleString("en-US"); }
+function hcFmt(n, code) {
+  var info = hcCurrInfo(code || "USD");
+  var abs = Math.abs(n || 0);
+  if (abs >= 1000000) return info.symbol + (abs / 1000000).toFixed(2) + "M";
+  if (abs >= 1000) return info.symbol + Math.round(abs).toLocaleString("en-US");
+  return info.symbol + (abs).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
 
 function hcTone(s) { return s === "Paid" ? "teal" : s === "Holding" ? "navy" : "warn"; }
 
@@ -14,14 +33,30 @@ function daysUntilLabel(dueDate) {
     var t = new Date(dueDate); if (isNaN(t)) return null;
     var now = new Date(); now.setHours(0, 0, 0, 0); t.setHours(0, 0, 0, 0);
     var d = Math.round((t - now) / 86400000);
-    if (d < 0) return { txt: Math.abs(d) + "d overdue", tone: "danger" };
-    if (d === 0) return { txt: "Due today", tone: "danger" };
-    if (d === 1) return { txt: "Due tomorrow", tone: "warn" };
-    if (d <= 2) return { txt: "Due in " + d + "d", tone: "warn" };
+    if (d < 0)  return { txt: Math.abs(d) + "d overdue", tone: "danger" };
+    if (d === 0) return { txt: "Due today",              tone: "danger" };
+    if (d === 1) return { txt: "Due tomorrow",           tone: "warn" };
+    if (d <= 2)  return { txt: "Due in " + d + "d",     tone: "warn" };
     return { txt: "Due in " + d + "d", tone: "muted" };
   } catch (e) { return null; }
 }
 
+/* ---- Currency breakdown helper ---- */
+function buildCurrencyBreakdown(commissions) {
+  var byCur = {};
+  commissions.forEach(function(c) {
+    var cur = c.currency || "USD";
+    if (!byCur[cur]) byCur[cur] = { total: 0, usdTotal: 0, count: 0 };
+    byCur[cur].total += (cur === "USD" ? (c.amount || 0) : (c.originalAmount || c.amount || 0));
+    byCur[cur].usdTotal += (c.amount || 0);
+    byCur[cur].count++;
+  });
+  return byCur;
+}
+
+/* ================================================================
+   CommissionsView
+   ================================================================ */
 function CommissionsView() {
   const commissions = useCommissions();
   const hospitals = useHospitals();
@@ -33,7 +68,7 @@ function CommissionsView() {
 
   const cats = ["Paid", "Unpaid", "Holding"].map((status) => {
     const rows = commissions.filter((c) => c.status === status);
-    return { status: status, count: rows.length, total: rows.reduce((s, c) => s + (c.amount || 0), 0) };
+    return { status, count: rows.length, total: rows.reduce((s, c) => s + (c.amount || 0), 0) };
   });
   const grandTotal = commissions.reduce((s, c) => s + (c.amount || 0), 0);
   const dueSoon = window.CBStore.dueCommissions(2);
@@ -45,13 +80,18 @@ function CommissionsView() {
   });
 
   const catMeta = {
-    Paid: { icon: "badge-check", chip: "", note: "Settled with partners" },
-    Unpaid: { icon: "hourglass", chip: "warm", note: "Awaiting settlement" },
-    Holding: { icon: "shield", chip: "navy", note: "Pending verification" },
+    Paid:    { icon: "badge-check", chip: "",     note: "Settled with partners" },
+    Unpaid:  { icon: "hourglass",   chip: "warm", note: "Awaiting settlement"  },
+    Holding: { icon: "shield",      chip: "navy", note: "Pending verification" },
   };
+
+  /* currency breakdown for the FX section */
+  const byCur = buildCurrencyBreakdown(commissions);
+  const curKeys = Object.keys(byCur).filter(k => byCur[k].count > 0);
 
   return (
     <div className="cb-grid" style={{ gap: "var(--gap-grid)" }}>
+
       {/* Reminder banner */}
       {dueSoon.length ? (
         <div className="cb-hc-alert" role="alert">
@@ -71,7 +111,7 @@ function CommissionsView() {
           <div>
             <div className="cb-eyebrow" style={{ color: "var(--teal-300)" }}>Hospital commissions</div>
             <div className="cb-hc-band__total">{hcMoney(grandTotal)}</div>
-            <div className="cb-hc-band__label">Total commission value across {commissions.length} records</div>
+            <div className="cb-hc-band__label">Total commission value (USD) across {commissions.length} records</div>
           </div>
           {canEdit ? <button className="cb-hc-band__add" data-real onClick={() => setModal({ mode: "add" })}><Icon name="plus" size={17} />Add commission</button> : null}
         </div>
@@ -92,24 +132,57 @@ function CommissionsView() {
                 <span className="cb-hc-cat__count">{c.count} record{c.count === 1 ? "" : "s"}</span>
                 <span className="cb-hc-cat__note">{m.note}</span>
               </div>
-              <div className="cb-prog" style={{ height: 6, marginTop: 12 }}><div className="cb-prog__fill" style={{ width: (grandTotal ? Math.round((c.total / grandTotal) * 100) : 0) + "%", background: c.status === "Paid" ? "var(--grad-heartbeat)" : c.status === "Holding" ? "var(--navy-500)" : "var(--warning)" }} /></div>
+              <div className="cb-prog" style={{ height: 6, marginTop: 12 }}>
+                <div className="cb-prog__fill" style={{ width: (grandTotal ? Math.round((c.total / grandTotal) * 100) : 0) + "%", background: c.status === "Paid" ? "var(--grad-heartbeat)" : c.status === "Holding" ? "var(--navy-500)" : "var(--warning)" }} />
+              </div>
             </Card>
           );
         })}
       </div>
 
-      {/* Partner hospital roster — every hospital from the network, status synced live */}
+      {/* Currency breakdown */}
+      {curKeys.length > 0 ? (
+        <Card>
+          <CardHead title="Currency breakdown" sub="Totals per original currency · all values also shown in USD equivalent" icon={false} />
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 14 }}>
+            {curKeys.map(function(code) {
+              var b = byCur[code];
+              var info = hcCurrInfo(code);
+              return (
+                <div key={code} style={{ background: "var(--bg-subtle)", border: "1.5px solid var(--border-subtle)", borderRadius: "var(--radius-sm)", padding: "14px 18px", minWidth: 160, flex: "1 1 160px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 8 }}>
+                    <span style={{ fontSize: 20 }}>{info.flag}</span>
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)", letterSpacing: ".05em" }}>{code}</div>
+                      <div style={{ fontSize: 11, color: "var(--text-faint)" }}>{info.name}</div>
+                    </div>
+                    <div style={{ marginLeft: "auto" }}>
+                      <span style={{ fontSize: 11, background: "var(--sky-100)", color: "var(--navy-600)", borderRadius: 999, padding: "2px 8px", fontWeight: 600 }}>{b.count} rec</span>
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: "var(--text-strong)", fontFamily: "var(--font-display)" }}>{hcFmt(b.total, code)}</div>
+                  {code !== "USD" ? (
+                    <div style={{ fontSize: 12, color: "var(--teal-600)", marginTop: 3, fontWeight: 600 }}>≈ {hcMoney(b.usdTotal)} USD</div>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      ) : null}
+
+      {/* Partner hospital roster */}
       <Card pad0>
         <div style={{ padding: "var(--space-5) var(--pad-card)" }}>
           <CardHead title="Partner hospitals" sub="All hospitals from Hospital Network — Active/Inactive status syncs automatically" icon={false} />
         </div>
         <div style={{ overflowX: "auto" }}>
           <table className="cb-table">
-            <thead><tr><th>Hospital</th><th>Network status</th><th>Records</th><th>Total commission</th><th>Unpaid</th></tr></thead>
+            <thead><tr><th>Hospital</th><th>Network status</th><th>Records</th><th>Total (USD)</th><th>Unpaid (USD)</th></tr></thead>
             <tbody>
               {hospitals.map((h) => {
                 const recs = commissions.filter((c) => c.hospital === h.name);
-                const total = recs.reduce((s, c) => s + (c.amount || 0), 0);
+                const total  = recs.reduce((s, c) => s + (c.amount || 0), 0);
                 const unpaid = recs.filter((c) => c.status !== "Paid").reduce((s, c) => s + (c.amount || 0), 0);
                 return (
                   <tr key={h.id}>
@@ -142,18 +215,32 @@ function CommissionsView() {
         </div>
         <div style={{ overflowX: "auto" }}>
           <table className="cb-table">
-            <thead><tr><th>Hospital</th><th>Amount</th><th>Status</th><th>Due date</th><th>Recorded</th><th>Notes</th>{canEdit ? <th></th> : null}</tr></thead>
+            <thead><tr><th>Hospital</th><th>Amount</th><th>USD value</th><th>Status</th><th>Due date</th><th>Recorded</th><th>Notes</th>{canEdit ? <th></th> : null}</tr></thead>
             <tbody>
               {rows.map((c) => {
                 const dl = daysUntilLabel(c.dueDate);
+                const hasFx = c.currency && c.currency !== "USD";
+                const cInfo = hcCurrInfo(c.currency || "USD");
                 return (
                   <tr key={c.id}>
-                    <td><div className="cb-row" style={{ gap: 10 }}><div className="cb-chip cb-chip--navy" style={{ width: 34, height: 34, flex: "none" }}><Icon name="hospital" size={17} /></div><b style={{ fontWeight: 600, color: "var(--text-strong)" }}>{c.hospital}</b></div></td>
-                    <td style={{ fontWeight: 700, color: "var(--text-strong)", fontFamily: "var(--font-display)" }}>{hcMoney(c.amount)}</td>
+                    <td>
+                      <div className="cb-row" style={{ gap: 10 }}>
+                        <div className="cb-chip cb-chip--navy" style={{ width: 34, height: 34, flex: "none" }}><Icon name="hospital" size={17} /></div>
+                        <div>
+                          <b style={{ fontWeight: 600, color: "var(--text-strong)" }}>{c.hospital}</b>
+                          {c.commissionRate ? <div style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 2 }}>{c.commissionRate}% commission</div> : null}
+                        </div>
+                      </div>
+                    </td>
+                    <td style={{ fontWeight: 700, color: "var(--text-strong)", fontFamily: "var(--font-display)" }}>
+                      {hasFx ? hcFmt(c.originalAmount || c.amount, c.currency) : hcMoney(c.amount)}
+                      {hasFx ? <div style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 1 }}>{cInfo.flag} {c.currency}</div> : null}
+                    </td>
+                    <td style={{ fontWeight: 600, color: "var(--teal-700)", fontFamily: "var(--font-display)" }}>{hcMoney(c.amount)}</td>
                     <td><Pill tone={hcTone(c.status)} dot>{c.status}</Pill></td>
                     <td><div style={{ display: "flex", flexDirection: "column", gap: 3 }}><span className="cb-muted">{c.dueDate || "—"}</span>{dl && c.status !== "Paid" ? <span style={{ fontSize: 11, fontWeight: 700, color: dl.tone === "danger" ? "var(--danger)" : dl.tone === "warn" ? "#8a5b1c" : "var(--text-faint)" }}>{dl.txt}</span> : null}</div></td>
                     <td className="cb-muted">{c.recorded || "—"}</td>
-                    <td className="cb-muted" style={{ maxWidth: 220 }}>{c.notes || "—"}</td>
+                    <td className="cb-muted" style={{ maxWidth: 200 }}>{c.notes || "—"}</td>
                     {canEdit ? (
                       <td><div className="cb-row" style={{ gap: 4, justifyContent: "flex-end" }}>
                         {c.status !== "Paid" ? <button className="cb-rowbtn" data-real aria-label="Mark paid" title="Mark as paid" onClick={() => { window.CBStore.updateCommission(c.id, { status: "Paid" }); window.cbToast("Commission marked paid", { icon: "badge-check", sub: c.hospital }); }}><Icon name="check" size={16} /></button> : null}
@@ -167,10 +254,11 @@ function CommissionsView() {
               {rows.length ? (
                 <tr style={{ background: "var(--sky-100)" }}>
                   <td style={{ fontWeight: 800, color: "var(--text-strong)" }}>Total ({rows.length})</td>
+                  <td></td>
                   <td style={{ fontWeight: 800, color: "var(--navy-700)", fontFamily: "var(--font-display)" }}>{hcMoney(rows.reduce((s, c) => s + c.amount, 0))}</td>
                   <td colSpan={canEdit ? 5 : 4}></td>
                 </tr>
-              ) : <tr><td colSpan={canEdit ? 7 : 6}><div className="cb-empty">No commission records match your filter.</div></td></tr>}
+              ) : <tr><td colSpan={canEdit ? 8 : 7}><div className="cb-empty">No commission records match your filter.</div></td></tr>}
             </tbody>
           </table>
         </div>
@@ -182,8 +270,10 @@ function CommissionsView() {
   );
 }
 
+/* ================================================================
+   CommissionModal — multi-currency + % calculator
+   ================================================================ */
 function hcMonth(iso) {
-  // format an ISO yyyy-mm-dd as "Mon DD, YYYY" for display
   if (!iso) return "";
   var t = new Date(iso + (iso.length === 10 ? "T00:00:00" : ""));
   if (isNaN(t)) return iso;
@@ -196,63 +286,301 @@ function CommissionModal({ mode, commission, onClose }) {
   const active = hospitals.filter((h) => h.active);
   const patients = usePatients();
   const isoToday = new Date().toISOString().slice(0, 10);
-  const [f, setF] = useStateHC(editing
-    ? { hospital: commission.hospital, patient: commission.patient || "", amount: String(commission.amount), status: commission.status, recorded: commission.recordedISO || "", dueDate: commission.dueISO || "", notes: commission.notes || "" }
-    : { hospital: active[0] ? active[0].name : "", patient: "", amount: "", status: "Unpaid", recorded: isoToday, dueDate: "", notes: "" });
+
+  /* exchange rates: { CAD: 1.35, EUR: 0.92, INR: 83.1, TRY: 32.4 } — 1 USD = X foreign */
+  const [rates, setRates] = useStateHC(null);
+  const [rateTs, setRateTs] = useStateHC("");
+  const [rateErr, setRateErr] = useStateHC(false);
+
+  /* form state */
+  const [f, setF] = useStateHC(editing ? {
+    hospital:       commission.hospital,
+    patient:        commission.patient || "",
+    currency:       commission.currency || "USD",
+    totalAmount:    commission.originalAmount ? String(commission.originalAmount) : "",
+    commissionRate: commission.commissionRate || null,
+    manualAmount:   commission.currency && commission.currency !== "USD" ? String(commission.originalAmount || commission.amount) : String(commission.amount),
+    status:         commission.status,
+    recorded:       commission.recordedISO || "",
+    dueDate:        commission.dueISO || "",
+    notes:          commission.notes || "",
+  } : {
+    hospital:       active[0] ? active[0].name : "",
+    patient:        "",
+    currency:       "USD",
+    totalAmount:    "",
+    commissionRate: null,
+    manualAmount:   "",
+    status:         "Unpaid",
+    recorded:       isoToday,
+    dueDate:        "",
+    notes:          "",
+  });
   const [touched, setTouched] = useStateHC(false);
   const set = (k, v) => setF((s) => ({ ...s, [k]: v }));
-  const amountBad = f.amount === "" || isNaN(+f.amount) || +f.amount <= 0;
-  const hospitalBad = !f.hospital.trim();
-  const dueBad = !f.dueDate;
-  const valid = !amountBad && !hospitalBad && !dueBad;
-  // calendar-only: block manual keyboard entry on date inputs
-  const noKeys = (e) => { if (e.key !== "Tab" && e.key !== "Escape") e.preventDefault(); };
+
+  /* fetch live rates on mount */
+  React.useEffect(() => {
+    fetch("https://api.frankfurter.app/latest?from=USD&to=CAD,EUR,INR,TRY")
+      .then(r => r.json())
+      .then(data => {
+        setRates(data.rates || {});
+        var d = new Date(); setRateTs(d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
+      })
+      .catch(() => setRateErr(true));
+  }, []);
+
   React.useEffect(() => {
     if (window.lucide) window.lucide.createIcons();
     const onKey = (e) => { if (e.key === "Escape") onClose(); };
-    document.addEventListener("keydown", onKey); return () => document.removeEventListener("keydown", onKey);
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
   }, []);
-  const submit = (e) => {
+
+  const cInfo = hcCurrInfo(f.currency);
+
+  /* helpers */
+  function toUSD(amount, code) {
+    if (!amount || isNaN(+amount) || +amount <= 0) return 0;
+    if (code === "USD") return +amount;
+    if (!rates || !rates[code]) return +amount; // fallback: treat as USD
+    return +amount / rates[code];
+  }
+  function rateLabel(code) {
+    if (code === "USD" || !rates || !rates[code]) return null;
+    return (1 / rates[code]).toFixed(5);
+  }
+
+  /* derived commission */
+  const totalNum = parseFloat(f.totalAmount) || 0;
+  const hasDerived = totalNum > 0 && f.commissionRate;
+  const derivedAmount = hasDerived ? (totalNum * f.commissionRate / 100) : null;
+
+  /* effective commission in original currency */
+  const effectiveAmount = hasDerived ? derivedAmount : (parseFloat(f.manualAmount) || 0);
+  const usdValue = toUSD(effectiveAmount, f.currency);
+
+  /* validation */
+  const amountBad  = effectiveAmount <= 0;
+  const hospitalBad = !f.hospital.trim();
+  const dueBad      = !f.dueDate;
+  const valid       = !amountBad && !hospitalBad && !dueBad;
+
+  const noKeys = (e) => { if (e.key !== "Tab" && e.key !== "Escape") e.preventDefault(); };
+
+  function submit(e) {
     e.preventDefault(); setTouched(true); if (!valid) return;
-    const payload = { hospital: f.hospital.trim(), patient: f.patient, amount: +f.amount, status: f.status, recorded: hcMonth(f.recorded), recordedISO: f.recorded, dueDate: hcMonth(f.dueDate), dueISO: f.dueDate, notes: f.notes.trim() };
+    const payload = {
+      hospital:       f.hospital.trim(),
+      patient:        f.patient,
+      amount:         Math.round(usdValue * 100) / 100, // always USD for backward compat
+      currency:       f.currency,
+      originalAmount: effectiveAmount,
+      commissionRate: f.commissionRate,
+      status:         f.status,
+      recorded:       hcMonth(f.recorded),
+      recordedISO:    f.recorded,
+      dueDate:        hcMonth(f.dueDate),
+      dueISO:         f.dueDate,
+      notes:          f.notes.trim(),
+    };
     if (editing) { window.CBStore.updateCommission(commission.id, payload); window.cbToast("Commission updated", { icon: "check-circle-2" }); }
-    else { window.CBStore.addCommission(payload); window.cbToast("Commission added", { icon: "badge-dollar-sign" }); }
+    else         { window.CBStore.addCommission(payload);                    window.cbToast("Commission added",   { icon: "badge-dollar-sign" }); }
     onClose();
-  };
-  const fst = (b) => ({ width: "100%", padding: "11px 13px", border: "1.5px solid " + (b ? "var(--danger)" : "var(--border-default)"), borderRadius: "var(--radius-sm)", fontFamily: "var(--font-body)", fontSize: 15, color: "var(--text-strong)", background: "#fff", outline: "none", minHeight: 46 });
+  }
+
+  /* styles */
+  const fst = (bad) => ({
+    width: "100%", padding: "11px 13px",
+    border: "1.5px solid " + (bad ? "var(--danger)" : "var(--border-default)"),
+    borderRadius: "var(--radius-sm)", fontFamily: "var(--font-body)", fontSize: 15,
+    color: "var(--text-strong)", background: "#fff", outline: "none", minHeight: 46,
+    boxSizing: "border-box",
+  });
   const lst = { display: "block", fontSize: 13, fontWeight: 600, color: "var(--text-strong)", marginBottom: 6 };
+  const pillBtn = (active) => ({
+    padding: "7px 14px", borderRadius: 999, fontSize: 13, fontWeight: 700, cursor: "pointer",
+    border: active ? "2px solid var(--teal-500)" : "1.5px solid var(--border-default)",
+    background: active ? "var(--teal-50, #f0fdfb)" : "var(--bg-page)",
+    color: active ? "var(--teal-700)" : "var(--text-muted)",
+    transition: "all .15s",
+  });
+
   return (
     <div className="cb-modal" role="dialog" aria-modal="true" aria-label={editing ? "Edit commission" : "Add commission"} onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="cb-modal__card" style={{ maxWidth: 480 }}>
+      <div className="cb-modal__card" style={{ maxWidth: 520 }}>
+
+        {/* Header */}
         <div className="cb-modal__head">
-          <div className="cb-row" style={{ gap: 11 }}><div className="cb-chip" style={{ width: 40, height: 40 }}><Icon name="badge-dollar-sign" size={20} /></div><div style={{ display: "flex", flexDirection: "column", gap: 3 }}><h3 style={{ fontSize: 18, fontWeight: 800, lineHeight: 1.15, margin: 0 }}>{editing ? "Edit commission" : "Add commission"}</h3><div style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.2 }}>Hospital partner settlement</div></div></div>
+          <div className="cb-row" style={{ gap: 11 }}>
+            <div className="cb-chip" style={{ width: 40, height: 40 }}><Icon name="badge-dollar-sign" size={20} /></div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+              <h3 style={{ fontSize: 18, fontWeight: 800, lineHeight: 1.15, margin: 0 }}>{editing ? "Edit commission" : "Add commission"}</h3>
+              <div style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.2 }}>Hospital partner settlement</div>
+            </div>
+          </div>
           <button className="cb-icon-pill" data-real aria-label="Close" onClick={onClose} style={{ width: 38, height: 38 }}><Icon name="x" size={18} /></button>
         </div>
+
         <form onSubmit={submit} className="cb-modal__body" noValidate>
-          <div><label style={lst}>Hospital</label>
+
+          {/* Hospital */}
+          <div>
+            <label style={lst}>Hospital</label>
             <select style={fst(touched && hospitalBad)} value={f.hospital} onChange={(e) => set("hospital", e.target.value)}>
               <option value="">Select a partner hospital…</option>
               {active.map((h) => <option key={h.id} value={h.name}>{h.name}</option>)}
             </select>
-            <div style={{ fontSize: 12, color: "var(--text-faint)", marginTop: 5 }}>Only active hospitals from Hospital Network appear here. Not listed? Add it in Hospital Network first.</div>
+            <div style={{ fontSize: 12, color: "var(--text-faint)", marginTop: 5 }}>Only active hospitals appear here. Not listed? Add it in Hospital Network first.</div>
             {touched && hospitalBad ? <div style={{ fontSize: 12, color: "var(--danger)", marginTop: 5 }}>Please select a hospital</div> : null}
           </div>
-          <div><label style={lst}>Patient <span style={{ color: "var(--text-faint)", fontWeight: 400 }}>(optional)</span></label>
+
+          {/* Patient */}
+          <div>
+            <label style={lst}>Patient <span style={{ color: "var(--text-faint)", fontWeight: 400 }}>(optional)</span></label>
             <select style={fst(false)} value={f.patient} onChange={(e) => set("patient", e.target.value)}>
               <option value="">Select a patient…</option>
               {patients.map((p) => <option key={p.id} value={p.name}>{p.name}</option>)}
             </select>
           </div>
-          <div className="cb-formgrid">
-            <div><label style={lst}>Commission amount (USD)</label><input type="number" min="0" style={fst(touched && amountBad)} value={f.amount} onChange={(e) => set("amount", e.target.value)} placeholder="0" />{touched && amountBad ? <div style={{ fontSize: 12, color: "var(--danger)", marginTop: 5 }}>Enter an amount &gt; 0</div> : null}</div>
-            <div><label style={lst}>Status</label><select style={fst(false)} value={f.status} onChange={(e) => set("status", e.target.value)}><option>Paid</option><option>Unpaid</option><option>Holding</option></select></div>
+
+          {/* Currency selector */}
+          <div>
+            <label style={lst}>Currency</label>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+              {HC_CURRENCIES.map(c => (
+                <button key={c.code} type="button" style={pillBtn(f.currency === c.code)}
+                  onClick={() => { set("currency", c.code); set("commissionRate", null); set("manualAmount", ""); set("totalAmount", ""); }}>
+                  {c.flag} {c.code}
+                </button>
+              ))}
+            </div>
+            {/* Live rate line */}
+            <div style={{ marginTop: 8, fontSize: 12, color: "var(--text-faint)", display: "flex", alignItems: "center", gap: 6, minHeight: 18 }}>
+              {f.currency !== "USD" ? (
+                rateErr ? <span style={{ color: "var(--warning)" }}>⚠ Rate unavailable — enter USD manually</span>
+                : rates ? <><Icon name="trending-up" size={13} /><span>Live rate: 1 {f.currency} = <b>${rateLabel(f.currency)} USD</b></span><span style={{ opacity: 0.6 }}>· as of {rateTs}</span></>
+                : <><span style={{ animation: "cbpulse 1s infinite" }}>⏳</span><span>Fetching live rate…</span></>
+              ) : <span style={{ color: "var(--teal-600)" }}>USD selected — no conversion needed</span>}
+            </div>
           </div>
-          <div className="cb-formgrid">
-            <div><label style={lst}>Recorded date</label><input type="date" style={fst(false)} value={f.recorded} max={isoToday} onChange={(e) => set("recorded", e.target.value)} onKeyDown={noKeys} /></div>
-            <div><label style={lst}>Due date</label><input type="date" style={fst(touched && dueBad)} value={f.dueDate} onChange={(e) => set("dueDate", e.target.value)} onKeyDown={noKeys} />{touched && dueBad ? <div style={{ fontSize: 12, color: "var(--danger)", marginTop: 5 }}>Pick a due date</div> : null}</div>
+
+          {/* Total treatment amount */}
+          <div>
+            <label style={lst}>
+              Total invoice / treatment amount
+              <span style={{ color: "var(--text-faint)", fontWeight: 400, marginLeft: 6 }}>(optional — used for % calculation)</span>
+            </label>
+            <div style={{ position: "relative" }}>
+              <span style={{ position: "absolute", left: 13, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)", fontSize: 14, fontWeight: 600, pointerEvents: "none", userSelect: "none" }}>{cInfo.symbol}</span>
+              <input type="number" min="0" step="any" style={{ ...fst(false), paddingLeft: cInfo.symbol.length > 1 ? 46 : 32 }}
+                value={f.totalAmount} onChange={(e) => set("totalAmount", e.target.value)} placeholder="0" />
+            </div>
+            {totalNum > 0 && f.currency !== "USD" && rates && rates[f.currency] ? (
+              <div style={{ fontSize: 12, color: "var(--text-faint)", marginTop: 5 }}>≈ ${(toUSD(totalNum, f.currency)).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD total</div>
+            ) : null}
           </div>
-          <div><label style={lst}>Notes <span style={{ color: "var(--text-faint)", fontWeight: 400 }}>(optional)</span></label><textarea className="cb-textarea" style={{ ...fst(false), minHeight: 70 }} value={f.notes} onChange={(e) => set("notes", e.target.value)} placeholder="Reference, pathway, conditions…" /></div>
-          <div className="cb-modal__foot"><button type="button" className="cb-btn-ghost" data-real onClick={onClose}>Cancel</button><button type="submit" className="cb-btn-primary" data-real><Icon name="check" size={16} />{editing ? "Save" : "Add commission"}</button></div>
+
+          {/* Commission % picker */}
+          <div>
+            <label style={lst}>Commission rate</label>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+              {HC_PCTS.map(pct => (
+                <button key={pct} type="button" style={pillBtn(f.commissionRate === pct)}
+                  onClick={() => set("commissionRate", f.commissionRate === pct ? null : pct)}>
+                  {pct}%
+                </button>
+              ))}
+            </div>
+            {/* Auto-calc preview */}
+            {hasDerived ? (
+              <div style={{ marginTop: 10, padding: "10px 13px", background: "var(--teal-50, #f0fdfb)", border: "1.5px solid var(--teal-200, #99e6de)", borderRadius: "var(--radius-sm)", display: "flex", alignItems: "center", gap: 8 }}>
+                <Icon name="calculator" size={15} style={{ color: "var(--teal-600)", flex: "none" }} />
+                <div style={{ fontSize: 13 }}>
+                  <b style={{ color: "var(--teal-700)" }}>{f.commissionRate}%</b>
+                  <span style={{ color: "var(--text-muted)" }}> of {cInfo.symbol}{totalNum.toLocaleString("en-US")} = </span>
+                  <b style={{ color: "var(--teal-700)", fontSize: 14 }}>{cInfo.symbol}{derivedAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>
+                  {f.currency !== "USD" && rates && rates[f.currency] ? (
+                    <span style={{ color: "var(--text-faint)", marginLeft: 6 }}>≈ <b>${usdValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD</b></span>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
+          </div>
+
+          {/* Commission amount (manual if no %) */}
+          <div>
+            <label style={lst}>
+              Commission amount ({f.currency})
+              {hasDerived ? <span style={{ color: "var(--teal-600)", fontWeight: 400, marginLeft: 8, fontSize: 12 }}>auto-calculated from {f.commissionRate}%</span> : null}
+            </label>
+            <div style={{ position: "relative" }}>
+              <span style={{ position: "absolute", left: 13, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)", fontSize: 14, fontWeight: 600, pointerEvents: "none", userSelect: "none" }}>{cInfo.symbol}</span>
+              <input type="number" min="0" step="any"
+                style={{ ...fst(touched && amountBad && !hasDerived), paddingLeft: cInfo.symbol.length > 1 ? 46 : 32, background: hasDerived ? "var(--bg-subtle)" : "#fff", color: hasDerived ? "var(--text-muted)" : "var(--text-strong)" }}
+                value={hasDerived ? derivedAmount.toFixed(2) : f.manualAmount}
+                readOnly={hasDerived}
+                onChange={(e) => { if (!hasDerived) set("manualAmount", e.target.value); }}
+                placeholder="0" />
+            </div>
+            {/* USD equivalent chip */}
+            {f.currency !== "USD" && effectiveAmount > 0 ? (
+              <div style={{ marginTop: 8, display: "inline-flex", alignItems: "center", gap: 6, background: "var(--sky-100)", borderRadius: 999, padding: "4px 12px" }}>
+                <Icon name="arrow-right-left" size={13} style={{ color: "var(--navy-600)" }} />
+                <span style={{ fontSize: 13, fontWeight: 700, color: "var(--navy-700)" }}>
+                  {rates && rates[f.currency] ? "$" + usdValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " USD" : "Enter USD equivalent below"}
+                </span>
+                {rateErr ? <span style={{ fontSize: 11, color: "var(--warning)" }}>— rate unavailable</span> : null}
+              </div>
+            ) : null}
+            {touched && amountBad && !hasDerived ? <div style={{ fontSize: 12, color: "var(--danger)", marginTop: 5 }}>Enter an amount &gt; 0</div> : null}
+          </div>
+
+          {/* USD override when rate unavailable and non-USD */}
+          {rateErr && f.currency !== "USD" ? (
+            <div>
+              <label style={{ ...lst, color: "var(--warning)" }}>USD equivalent amount <span style={{ fontWeight: 400, fontSize: 12 }}>(rate fetch failed — enter manually)</span></label>
+              <div style={{ position: "relative" }}>
+                <span style={{ position: "absolute", left: 13, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)", fontSize: 14, fontWeight: 600, pointerEvents: "none" }}>$</span>
+                <input type="number" min="0" step="any" style={{ ...fst(false), paddingLeft: 28 }}
+                  value={f.manualUSD || ""} onChange={(e) => set("manualUSD", e.target.value)} placeholder="0" />
+              </div>
+            </div>
+          ) : null}
+
+          {/* Status */}
+          <div>
+            <label style={lst}>Status</label>
+            <select style={fst(false)} value={f.status} onChange={(e) => set("status", e.target.value)}>
+              <option>Paid</option><option>Unpaid</option><option>Holding</option>
+            </select>
+          </div>
+
+          {/* Dates */}
+          <div className="cb-formgrid">
+            <div>
+              <label style={lst}>Recorded date</label>
+              <input type="date" style={fst(false)} value={f.recorded} max={isoToday} onChange={(e) => set("recorded", e.target.value)} onKeyDown={noKeys} />
+            </div>
+            <div>
+              <label style={lst}>Due date</label>
+              <input type="date" style={fst(touched && dueBad)} value={f.dueDate} onChange={(e) => set("dueDate", e.target.value)} onKeyDown={noKeys} />
+              {touched && dueBad ? <div style={{ fontSize: 12, color: "var(--danger)", marginTop: 5 }}>Pick a due date</div> : null}
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div>
+            <label style={lst}>Notes <span style={{ color: "var(--text-faint)", fontWeight: 400 }}>(optional)</span></label>
+            <textarea className="cb-textarea" style={{ ...fst(false), minHeight: 70 }} value={f.notes} onChange={(e) => set("notes", e.target.value)} placeholder="Reference, pathway, conditions…" />
+          </div>
+
+          <div className="cb-modal__foot">
+            <button type="button" className="cb-btn-ghost" data-real onClick={onClose}>Cancel</button>
+            <button type="submit" className="cb-btn-primary" data-real>
+              <Icon name="check" size={16} />{editing ? "Save changes" : "Add commission"}
+            </button>
+          </div>
         </form>
       </div>
     </div>
