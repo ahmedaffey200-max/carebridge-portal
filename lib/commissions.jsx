@@ -280,11 +280,26 @@ function hcMonth(iso) {
   try { return t.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }); } catch (e) { return iso; }
 }
 
-/* Parse any date string (ISO or formatted like "Aug 22, 2026") → ISO yyyy-mm-dd */
+/* Parse any date string → ISO yyyy-mm-dd.
+   Handles: "2026-08-22", "Aug 22, 2026", "Aug. 22, 2026", "22 Aug 2026" */
 function toISODate(val) {
   if (!val) return "";
-  if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val; // already ISO
-  try { var d = new Date(val); if (!isNaN(d)) return d.toISOString().slice(0, 10); } catch(e) {}
+  var s = String(val).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s; // already ISO
+  var MO = { jan:"01",feb:"02",mar:"03",apr:"04",may:"05",jun:"06",
+             jul:"07",aug:"08",sep:"09",oct:"10",nov:"11",dec:"12" };
+  // "Aug 22, 2026" or "Aug. 22, 2026"
+  var m = s.match(/^([A-Za-z]{3})\.?\s+(\d{1,2}),?\s+(\d{4})$/);
+  if (m && MO[m[1].toLowerCase()]) {
+    return m[3] + "-" + MO[m[1].toLowerCase()] + "-" + ("0" + m[2]).slice(-2);
+  }
+  // "22 Aug 2026"
+  m = s.match(/^(\d{1,2})\s+([A-Za-z]{3})\.?\s+(\d{4})$/);
+  if (m && MO[m[2].toLowerCase()]) {
+    return m[3] + "-" + MO[m[2].toLowerCase()] + "-" + ("0" + m[1]).slice(-2);
+  }
+  // last resort: browser Date
+  try { var d = new Date(s); if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10); } catch(e) {}
   return "";
 }
 
