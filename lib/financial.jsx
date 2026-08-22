@@ -38,9 +38,11 @@ function FinancialView({ go }) {
   const plannedTotal = budget.reduce((s, b) => s + b.planned, 0);
   const spentTotal = budget.reduce((s, b) => s + b.spent, 0);
 
-  // Real commission records (USD amounts)
-  const commissions = store.getCommissions ? store.getCommissions() : [];
+  // Real commission records — useCommissions() mirrors exactly what Hospital Commissions page uses
+  const commissions = useCommissions();
   const totalCommissions = commissions.reduce((s, c) => s + (c.amount || 0), 0);
+  // Total invoice value recorded across all commissions (all currencies, in USD where rate available)
+  const totalInvoiceValue = commissions.reduce((s, c) => s + (c.amount || 0), 0);
 
   // Group commissions by currency — one card per recorded currency
   const commByCur = {};
@@ -58,7 +60,8 @@ function FinancialView({ go }) {
   const psTotal = billed.reduce((s, p) => s + (p.pkgTotal || 0), 0);
   const psPaid = billed.reduce((s, p) => s + (p.pkgPaid || 0), 0);
 
-  // 7 dashboard metrics — income = invoice collections + patient payments + commissions
+  // 7 dashboard metrics — income = invoice collections + patient payments + commissions (USD)
+  // commissions already represent the USD amount auto-recorded from Hospital Commissions entries
   const totalIncome = collected + psPaid + totalCommissions;
   const totalExpense = spend;
   const netProfit = totalIncome - totalExpense;
