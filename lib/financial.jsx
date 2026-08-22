@@ -24,7 +24,10 @@ function FinancialView({ go }) {
   const revenue = invoices.reduce((s, i) => s + i.amount, 0);
   const collected = invoices.reduce((s, i) => s + i.paid, 0);
   const outstanding = revenue - collected;
-  const spend = expenses.reduce((s, e) => s + e.amount, 0);
+  // Combine invoice-based expenses + company expenses (Finance module)
+  const companyExp = store.getCompanyExpenses ? store.getCompanyExpenses() : [];
+  const allExpenses = expenses.concat(companyExp);
+  const spend = allExpenses.reduce((s, e) => s + (e.amount || 0), 0);
   const plannedTotal = budget.reduce((s, b) => s + b.planned, 0);
   const spentTotal = budget.reduce((s, b) => s + b.spent, 0);
 
@@ -143,19 +146,20 @@ function FinancialView({ go }) {
             <table className="cb-table">
               <thead><tr><th>Reference</th><th>Category</th><th>Vendor / note</th><th>Amount</th><th>Date</th><th>Status</th>{canEdit ? <th></th> : null}</tr></thead>
               <tbody>
-                {expenses.map((e) => (
+                {allExpenses.length === 0 ? <tr><td colSpan={canEdit ? 7 : 6}><div className="cb-empty">No expenses recorded yet.</div></td></tr> : null}
+                {allExpenses.map((e) => (
                   <tr key={e.id}>
                     <td><b style={{ fontWeight: 700, color: "var(--navy-700)" }}>{e.id}</b></td>
                     <td style={{ fontWeight: 600, color: "var(--text-strong)" }}>{e.category}</td>
-                    <td className="cb-muted">{e.vendor}</td>
+                    <td className="cb-muted">{e.vendor || e.description || "—"}</td>
                     <td style={{ fontWeight: 700, color: "var(--text-strong)", fontFamily: "var(--font-display)" }}>{fmtMoney(e.amount)}</td>
                     <td className="cb-muted">{e.date}</td>
-                    <td><Pill tone={e.status === "Paid" ? "teal" : "warn"} dot>{e.status}</Pill></td>
+                    <td><Pill tone={e.status === "Paid" ? "teal" : e.status === "Approved" ? "sky" : "warn"} dot>{e.status || "—"}</Pill></td>
                     {canEdit ? (
                       <td>
                         <div className="cb-row" style={{ gap: 4, justifyContent: "flex-end" }}>
                           <button className="cb-rowbtn" data-real title="Edit" aria-label="Edit expense" onClick={() => setExpModal({ mode: "edit", expense: e })}><Icon name="pencil" size={16} /></button>
-                          <button className="cb-rowbtn cb-rowbtn--danger" data-real title="Delete" aria-label="Delete expense" onClick={() => { window.CBStore.deleteExpense(e.id); window.cbToast("Expense deleted", { icon: "trash-2" }); }}><Icon name="trash-2" size={16} /></button>
+                          <button className="cb-rowbtn cb-rowbtn--danger" data-real title="Delete" aria-label="Delete expense" onClick={() => { (e.vendor !== undefined ? window.CBStore.deleteExpense : window.CBStore.deleteCompanyExpense)(e.id); window.cbToast("Expense deleted", { icon: "trash-2" }); }}><Icon name="trash-2" size={16} /></button>
                         </div>
                       </td>
                     ) : null}
