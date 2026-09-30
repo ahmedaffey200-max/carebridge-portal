@@ -432,7 +432,7 @@ function App() {
       <Sidebar active={view.name} go={(n) => go(n)} role={role} />
       <main className="cb-main" ref={mainRef}>
         <Topbar view={view.name} onMenu={() => setNavOpen(true)} privacy={privacy} onPrivacy={() => setPrivacy((p) => !p)} onLock={() => setLocked(true)} onAdd={() => setAddOpen(true)} onSearch={() => setSearchOpen(true)} theme={t.theme} onTheme={() => setTweak("theme", t.theme === "dark" ? "light" : "dark")} />
-        <div className="cb-page"><PageErrorBoundary>{content}</PageErrorBoundary></div>
+        <div className="cb-page"><PageErrorBoundary key={view.name + (view.id || "")}>{content}</PageErrorBoundary></div>
       </main>
       {locked ? <LockScreen user={user} onUnlock={() => setLocked(false)} /> : null}
       {addOpen ? <AddPatientModal onClose={() => setAddOpen(false)} go={go} /> : null}

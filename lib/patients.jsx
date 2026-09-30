@@ -152,6 +152,7 @@ function PatientDetail({ id, go, onEdit }) {
   usePatients(); // re-render when this patient is edited
   const [confirmDel, setConfirmDel] = useState(false);
   const p = (window.CBStore.patientById(id)) || PD.PATIENTS.find((x) => x.id === id) || PD.PATIENTS[0];
+  if (!p) return <div style={{ padding: 40, textAlign: "center", color: "var(--text-muted)" }}>Patient not found.</div>;
   const dest = PD.destByCode(p.dest), co = PD.coordById(p.coordinator), hosp = PD.hospitalById(p.hospital);
   const { online, onlineSince } = usePatientOnline(p.id);
   const tabs = ["Overview", "Medical history", "Documents", "Travel", "Workflow", "Communication", "Notes", "Screen Time"];
