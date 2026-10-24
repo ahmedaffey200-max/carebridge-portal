@@ -15,6 +15,7 @@ function MHeader({ title, sub, name }) {
     <div style={{ background: "var(--grad-bridge)", padding: "56px 22px 26px", color: "#fff", position: "relative", overflow: "hidden" }}>
       <div className="cb-globe-texture" style={{ position: "absolute", inset: 0, opacity: 0.5 }} />
       <div style={{ position: "relative" }}>
+        <img src="assets/carebridge-logo-full.png" alt="Carebridge" style={{ height: 28, width: "auto", objectFit: "contain", display: "block", marginBottom: 10, filter: "brightness(0) invert(1)", opacity: 0.9 }} />
         {name ? <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ fontSize: 13, opacity: 0.85, fontFamily: "var(--font-body)" }}>Assalamu alaikum,</div>
           <div style={{ width: 38, height: 38, borderRadius: "50%", background: "rgba(255,255,255,0.18)", display: "grid", placeItems: "center", fontWeight: 700, fontSize: 13, fontFamily: "var(--font-display)" }}>HA</div>
