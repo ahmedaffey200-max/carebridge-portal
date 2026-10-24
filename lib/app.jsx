@@ -147,6 +147,7 @@ function Topbar({ view, onMenu, privacy, onPrivacy, onLock, onAdd, onSearch, the
         <h1>{m.title}</h1>
       </div>
       <div className="cb-top__spacer" />
+      <img src="assets/carebridge-logo-full.png" alt="Carebridge" style={{ height: 36, width: "auto", objectFit: "contain", flexShrink: 0 }} />
       <button className="cb-search cb-search--btn" data-real aria-label="Search patients by name or case ID" onClick={onSearch}>
         <i data-lucide="search" aria-hidden="true" />
         <span className="cb-search__ph">Search by patient name or case ID…</span>
