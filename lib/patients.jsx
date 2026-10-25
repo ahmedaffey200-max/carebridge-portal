@@ -163,8 +163,8 @@ function PatientDetail({ id, go, onEdit }) {
 
       {/* Header */}
       <Card>
-        <div className="cb-between" style={{ flexWrap: "wrap", gap: 20 }}>
-          <div className="cb-row" style={{ gap: 18, cursor: "pointer" }} onClick={() => onEdit(p)} title="Click to edit patient">
+        <div className="cb-between" style={{ flexWrap: "wrap", gap: 20, cursor: "pointer" }} onClick={() => onEdit(p)} title="Click anywhere to edit patient">
+          <div className="cb-row" style={{ gap: 18 }}>
             <Avatar initials={p.initials} color={co.color} size="lg" />
             <div>
               <div className="cb-row" style={{ gap: 10, flexWrap: "wrap" }}>
@@ -192,8 +192,8 @@ function PatientDetail({ id, go, onEdit }) {
           </div>
           <div className="cb-row" style={{ gap: 10, flexWrap: "wrap" }}>
             <button className="cb-icon-pill" data-real aria-label="Edit patient" title="Edit patient" onClick={() => onEdit(p)}><Icon name="pencil" size={17} /></button>
-            <button className="cb-icon-pill" data-real aria-label="Delete patient" title="Delete patient" onClick={() => setConfirmDel(true)} style={{ color: "var(--danger)" }}><Icon name="trash-2" size={17} /></button>
-            <button className="cb-link" data-real onClick={() => setTab("Communication")} style={{ background: "var(--navy-600)", color: "#fff", padding: "11px 18px", borderRadius: 999 }}><Icon name="message-circle" size={15} />Message patient</button>
+            <button className="cb-icon-pill" data-real aria-label="Delete patient" title="Delete patient" onClick={(e) => { e.stopPropagation(); setConfirmDel(true); }} style={{ color: "var(--danger)" }}><Icon name="trash-2" size={17} /></button>
+            <button className="cb-link" data-real onClick={(e) => { e.stopPropagation(); setTab("Communication"); }} style={{ background: "var(--navy-600)", color: "#fff", padding: "11px 18px", borderRadius: 999 }}><Icon name="message-circle" size={15} />Message patient</button>
           </div>
         </div>
         <div className="cb-divider" />
@@ -477,9 +477,13 @@ function PatientOverview({ p, dest, co, hosp }) {
       <div className="cb-grid">
         <Card>
           <CardHead title="Case summary" />
-          <p style={{ fontSize: 15, lineHeight: 1.6, color: "var(--text-body)" }}>
-            {p.name} is a {p.age}-year-old {p.gender.toLowerCase()} patient referred for <b style={{ color: "var(--text-strong)" }}>{p.condition.toLowerCase()}</b>. Carebridge has coordinated a {p.specialty.toLowerCase()} pathway at {hosp.name} in {p.destCity || dest.city || PD.destCountry(p)}. The case is currently at the <b style={{ color: "var(--text-strong)" }}>{PD.STAGES[p.stage].toLowerCase()}</b> stage, managed by {co.name}.
-          </p>
+          {p.caseSummary ? (
+            <p style={{ fontSize: 15, lineHeight: 1.6, color: "var(--text-body)", whiteSpace: "pre-wrap" }}>{p.caseSummary}</p>
+          ) : (
+            <p style={{ fontSize: 15, lineHeight: 1.6, color: "var(--text-body)" }}>
+              {p.name} is a {p.age}-year-old {p.gender.toLowerCase()} patient referred for <b style={{ color: "var(--text-strong)" }}>{p.condition.toLowerCase()}</b>. Carebridge has coordinated a {p.specialty.toLowerCase()} pathway at {hosp.name} in {p.destCity || dest.city || PD.destCountry(p)}. The case is currently at the <b style={{ color: "var(--text-strong)" }}>{PD.STAGES[p.stage].toLowerCase()}</b> stage, managed by {co.name}.
+            </p>
+          )}
           <div className="cb-soft-panel" style={{ marginTop: 18, display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16 }}>
             {[["Treatment progress", p.progress + "%"], ["Care start", p.started], ["Last update", p.updated]].map((k, i) => (
               <div key={i}><div style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 600 }}>{k[0]}</div><div style={{ fontSize: 18, fontWeight: 700, color: "var(--text-strong)", fontFamily: "var(--font-display)", marginTop: 3 }}>{k[1]}</div></div>
@@ -1642,32 +1646,51 @@ function PatientComms({ p, co }) {
 function SearchableCountrySelect({ value, onChange, error }) {
   const [open, setOpen] = React.useState(false);
   const [search, setSearch] = React.useState("");
+  const [hovered, setHovered] = React.useState(null);
+  const searchRef = React.useRef("");
+  const pickedRef = React.useRef(false);
   const countries = window.CB_DATA.COUNTRIES || [];
   const filtered = search.trim() === "" ? countries : countries.filter((c) => c.toLowerCase().startsWith(search.toLowerCase()));
-  
+
+  const pick = (c) => {
+    pickedRef.current = true;
+    onChange(c);
+    setSearch(""); searchRef.current = "";
+    setOpen(false); setHovered(null);
+  };
+
   return (
     <div style={{ position: "relative" }}>
       <input
         type="text"
         value={open ? search : value}
-        onChange={(e) => setSearch(e.target.value)}
-        onFocus={() => setOpen(true)}
-        onBlur={() => setTimeout(() => { if (search.trim()) { onChange(search.trim()); setSearch(""); } setOpen(false); }, 150)}
-        onKeyDown={(e) => { if (e.key === "Enter" && search.trim()) { onChange(search.trim()); setSearch(""); setOpen(false); e.preventDefault(); } }}
+        onChange={(e) => { setSearch(e.target.value); searchRef.current = e.target.value; }}
+        onFocus={() => { setOpen(true); pickedRef.current = false; }}
+        onBlur={() => setTimeout(() => {
+          if (!pickedRef.current && searchRef.current.trim()) onChange(searchRef.current.trim());
+          pickedRef.current = false; setSearch(""); searchRef.current = ""; setOpen(false); setHovered(null);
+        }, 160)}
+        onKeyDown={(e) => { if (e.key === "Enter" && search.trim()) { pick(search.trim()); e.preventDefault(); } }}
         placeholder="Type to search…"
-        style={{ width: "100%", padding: "8px 12px", border: "1px solid var(--sky-300)", borderRadius: "6px", fontSize: "14px", fontFamily: "var(--font-body)", boxSizing: "border-box" }}
+        style={{ width: "100%", padding: "8px 12px", border: "1.5px solid " + (error ? "var(--danger)" : open ? "#0ea5e9" : "var(--sky-300)"), borderRadius: "6px", fontSize: "14px", fontFamily: "var(--font-body)", boxSizing: "border-box", outline: "none" }}
       />
       {open && filtered.length > 0 ? (
-        <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#fff", border: "1px solid var(--sky-300)", borderRadius: "6px", marginTop: "4px", maxHeight: "200px", overflowY: "auto", zIndex: 999, boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}>
+        <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#fff", border: "1.5px solid #0ea5e9", borderRadius: "6px", marginTop: "4px", maxHeight: "200px", overflowY: "auto", zIndex: 9999, boxShadow: "0 4px 16px rgba(14,165,233,0.18)" }}>
           {filtered.map((c) => (
-            <div key={c} onClick={() => { onChange(c); setSearch(""); setOpen(false); }} style={{ padding: "10px 12px", cursor: "pointer", background: value === c ? "var(--sky-100)" : "transparent", borderBottom: "1px solid var(--sky-100)", fontSize: "14px" }} onMouseEnter={(e) => e.target.style.background = "var(--sky-50)"} onMouseLeave={(e) => e.target.style.background = value === c ? "var(--sky-100)" : "transparent"}>
+            <div
+              key={c}
+              onMouseDown={(e) => { e.preventDefault(); pick(c); }}
+              onMouseEnter={() => setHovered(c)}
+              onMouseLeave={() => setHovered(null)}
+              style={{ padding: "10px 14px", cursor: "pointer", background: c === hovered ? "#0ea5e9" : (value === c ? "#e0f2fe" : "transparent"), color: c === hovered ? "#fff" : "var(--text-strong)", borderBottom: "1px solid #f0f9ff", fontSize: "14px", fontWeight: c === hovered ? 600 : 400 }}
+            >
               {c}
             </div>
           ))}
         </div>
       ) : open && search.trim() !== "" ? (
-        <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#fff", border: "1px solid var(--sky-300)", borderRadius: "6px", marginTop: "4px", padding: "10px 12px", fontSize: "13px", color: "var(--text-muted)", zIndex: 999 }}>
-          No countries found
+        <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#fff", border: "1.5px solid #0ea5e9", borderRadius: "6px", marginTop: "4px", padding: "10px 14px", fontSize: "13px", color: "var(--text-muted)", zIndex: 9999 }}>
+          No match — press <b>Enter</b> to use <b>"{search}"</b>
         </div>
       ) : null}
       {error ? <div style={{ fontSize: "12px", color: "var(--danger)", marginTop: "4px" }}>{error}</div> : null}
