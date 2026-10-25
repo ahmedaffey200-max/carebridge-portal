@@ -164,7 +164,7 @@ function PatientDetail({ id, go, onEdit }) {
       {/* Header */}
       <Card>
         <div className="cb-between" style={{ flexWrap: "wrap", gap: 20 }}>
-          <div className="cb-row" style={{ gap: 18 }}>
+          <div className="cb-row" style={{ gap: 18, cursor: "pointer" }} onClick={() => onEdit(p)} title="Click to edit patient">
             <Avatar initials={p.initials} color={co.color} size="lg" />
             <div>
               <div className="cb-row" style={{ gap: 10, flexWrap: "wrap" }}>
@@ -469,6 +469,7 @@ function PatientOverview({ p, dest, co, hosp }) {
   const canEdit = window.CBStore.can("financial") || window.CBStore.can("patients");
   const [editEst, setEditEst] = useState(false);
   const [estVal, setEstVal] = useState("");
+  const [editHosp, setEditHosp] = useState(false);
   const remaining = estimate - p.paid;
   const saveEst = () => { window.CBStore.setTreatmentEstimate(p.id, +estVal || 0); window.cbToast("Treatment estimate updated", { icon: "receipt", sub: "Synced with Travel Coordination" }); setEditEst(false); };
   return (
@@ -489,7 +490,22 @@ function PatientOverview({ p, dest, co, hosp }) {
           <CardHead title="Treatment & travel" />
           <div className="cb-grid" style={{ gridTemplateColumns: "1fr 1fr", gap: 24 }}>
             <div>
-              <InfoRow label="Partner hospital">{hosp.name}</InfoRow>
+              <InfoRow label="Partner hospital">
+                {editHosp && canEdit ? (
+                  <select autoFocus defaultValue={hosp.id}
+                    style={{ fontSize: 13, padding: "3px 8px", border: "1px solid var(--sky-300)", borderRadius: 6, fontFamily: "var(--font-body)", maxWidth: 220 }}
+                    onChange={(e) => { window.CBStore.updatePatient(p.id, { hospital: e.target.value }); window.cbToast("Hospital updated", { icon: "check-circle-2" }); setEditHosp(false); }}
+                    onBlur={() => setEditHosp(false)}
+                  >
+                    {(PD.HOSPITALS || []).map((h) => <option key={h.id} value={h.id}>{h.name} — {h.city}, {h.country}</option>)}
+                  </select>
+                ) : (
+                  <span className="cb-row" style={{ gap: 6 }}>
+                    {hosp.name}
+                    {canEdit ? <button className="cb-rowbtn" data-real aria-label="Change hospital" title="Change hospital" onClick={() => setEditHosp(true)}><Icon name="pencil" size={13} /></button> : null}
+                  </span>
+                )}
+              </InfoRow>
               <InfoRow label="Specialty">{p.specialty}</InfoRow>
               <InfoRow label="Accreditation"><Pill tone="teal" icon="badge-check">{hosp.accreditation}</Pill></InfoRow>
             </div>
@@ -1636,7 +1652,8 @@ function SearchableCountrySelect({ value, onChange, error }) {
         value={open ? search : value}
         onChange={(e) => setSearch(e.target.value)}
         onFocus={() => setOpen(true)}
-        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        onBlur={() => setTimeout(() => { if (search.trim()) { onChange(search.trim()); setSearch(""); } setOpen(false); }, 150)}
+        onKeyDown={(e) => { if (e.key === "Enter" && search.trim()) { onChange(search.trim()); setSearch(""); setOpen(false); e.preventDefault(); } }}
         placeholder="Type to search…"
         style={{ width: "100%", padding: "8px 12px", border: "1px solid var(--sky-300)", borderRadius: "6px", fontSize: "14px", fontFamily: "var(--font-body)", boxSizing: "border-box" }}
       />
@@ -1675,8 +1692,8 @@ function AddPatientModal({ onClose, go, patient }) {
     });
   }, []);
   const [f, setF] = useState(editing
-    ? { name: patient.name, age: String(patient.age), gender: patient.gender, condition: patient.condition, specialty: (settings.specialties.indexOf(patient.specialty) >= 0 ? patient.specialty : (patient.specialty ? "Other" : "")), specialtyOther: settings.specialties.indexOf(patient.specialty) >= 0 ? "" : (patient.specialty || ""), dest: patient.dest, destOther: patient.destOther || "", destCity: patient.destCity || "", homeCountry: patient.homeCountry || "", passportType: patient.passportType || "", passportTypeOther: patient.passportTypeOther || "", passportCountry: patient.passportCountry || "", priority: patient.priority, coordinator: patient.coordinator, phone: patient.phone || "", email: patient.email || "", emergencyName: patient.emergencyName || "", emergencyPhone: patient.emergencyPhone || "", emergencyCountry: patient.emergencyCountry || "", emergencyRelation: patient.emergencyRelation || "", pkg: patient.pkg || "", pkgTotal: patient.pkgTotal ? String(patient.pkgTotal) : "", pkgPaid: patient.pkgPaid ? String(patient.pkgPaid) : "" }
-    : { name: "", age: "", gender: settings.genders[0] || "Male", condition: "", specialty: "", specialtyOther: "", dest: "IN", destOther: "", destCity: "", homeCountry: "", passportType: "", passportTypeOther: "", passportCountry: "", priority: "Normal", coordinator: "", phone: "", email: "", emergencyName: "", emergencyPhone: "", emergencyCountry: "", emergencyRelation: "", pkg: "", pkgTotal: "", pkgPaid: "" });
+    ? { name: patient.name, age: String(patient.age), gender: patient.gender, condition: patient.condition, caseSummary: patient.caseSummary || "", specialty: (settings.specialties.indexOf(patient.specialty) >= 0 ? patient.specialty : (patient.specialty ? "Other" : "")), specialtyOther: settings.specialties.indexOf(patient.specialty) >= 0 ? "" : (patient.specialty || ""), hospital: patient.hospital || "", dest: patient.dest, destOther: patient.destOther || "", destCity: patient.destCity || "", homeCountry: patient.homeCountry || "", passportType: patient.passportType || "", passportTypeOther: patient.passportTypeOther || "", passportCountry: patient.passportCountry || "", priority: patient.priority, coordinator: patient.coordinator, phone: patient.phone || "", email: patient.email || "", emergencyName: patient.emergencyName || "", emergencyPhone: patient.emergencyPhone || "", emergencyCountry: patient.emergencyCountry || "", emergencyRelation: patient.emergencyRelation || "", pkg: patient.pkg || "", pkgTotal: patient.pkgTotal ? String(patient.pkgTotal) : "", pkgPaid: patient.pkgPaid ? String(patient.pkgPaid) : "" }
+    : { name: "", age: "", gender: settings.genders[0] || "Male", condition: "", caseSummary: "", specialty: "", specialtyOther: "", hospital: "", dest: "IN", destOther: "", destCity: "", homeCountry: "", passportType: "", passportTypeOther: "", passportCountry: "", priority: "Normal", coordinator: "", phone: "", email: "", emergencyName: "", emergencyPhone: "", emergencyCountry: "", emergencyRelation: "", pkg: "", pkgTotal: "", pkgPaid: "" });
   const [touched, setTouched] = useState(false);
   const set = (k, v) => setF((s) => ({ ...s, [k]: v }));
 
@@ -1709,7 +1726,7 @@ function AddPatientModal({ onClose, go, patient }) {
     e.preventDefault();
     setTouched(true);
     if (!valid) return;
-    const payload = { name: f.name.trim(), age: ageNum || 0, gender: f.gender, condition: f.condition.trim(), specialty: f.specialty === "Other" ? f.specialtyOther.trim() : f.specialty, dest: f.dest, destOther: f.dest === "OT" ? f.destOther.trim() : "", destCity: f.destCity.trim(), homeCountry: f.homeCountry.trim(), passportType: f.passportType, passportTypeOther: f.passportType === "other" ? f.passportTypeOther.trim() : "", passportCountry: f.passportCountry.trim(), priority: f.priority, coordinator: f.coordinator, phone: f.phone.trim(), email: f.email.trim(), emergencyName: f.emergencyName.trim(), emergencyPhone: f.emergencyPhone.trim(), emergencyCountry: f.emergencyCountry.trim(), emergencyRelation: f.emergencyRelation.trim(), pkg: f.pkg, pkgTotal: +f.pkgTotal || 0, pkgPaid: +f.pkgPaid || 0 };
+    const payload = { name: f.name.trim(), age: ageNum || 0, gender: f.gender, condition: f.condition.trim(), caseSummary: f.caseSummary.trim(), specialty: f.specialty === "Other" ? f.specialtyOther.trim() : f.specialty, hospital: f.hospital, dest: f.dest, destOther: f.dest === "OT" ? f.destOther.trim() : "", destCity: f.destCity.trim(), homeCountry: f.homeCountry.trim(), passportType: f.passportType, passportTypeOther: f.passportType === "other" ? f.passportTypeOther.trim() : "", passportCountry: f.passportCountry.trim(), priority: f.priority, coordinator: f.coordinator, phone: f.phone.trim(), email: f.email.trim(), emergencyName: f.emergencyName.trim(), emergencyPhone: f.emergencyPhone.trim(), emergencyCountry: f.emergencyCountry.trim(), emergencyRelation: f.emergencyRelation.trim(), pkg: f.pkg, pkgTotal: +f.pkgTotal || 0, pkgPaid: +f.pkgPaid || 0 };
     if (editing) {
       const prev = window.CBStore.getPatients().find(function(x){ return x.id === patient.id; }) || {};
       window.CBStore.updatePatient(patient.id, payload);
@@ -1761,7 +1778,7 @@ function AddPatientModal({ onClose, go, patient }) {
   const dupStyle = { fontSize: 12, color: "var(--warning)", marginTop: 5, display: "flex", gap: 4, alignItems: "center", padding: "8px 12px", background: "var(--amber-50)", borderRadius: "var(--radius-sm)", border: "1px solid var(--amber-200)" };
   return (
     <div className="cb-modal" role="dialog" aria-modal="true" aria-label={editing ? "Edit patient" : "Add patient"} onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="cb-modal__card">
+      <div className="cb-modal__card" style={{ maxWidth: 720, width: "96vw" }}>
         <div className="cb-modal__head">
           <div className="cb-row" style={{ gap: 11 }}>
             <div className="cb-chip" style={{ width: 40, height: 40 }}><Icon name={editing ? "pencil" : "user-plus"} size={20} /></div>
@@ -1792,12 +1809,22 @@ function AddPatientModal({ onClose, go, patient }) {
             <Label k="condition">Condition / reason for referral</Label>
             <input style={fieldStyle("condition")} value={f.condition} onChange={(e) => set("condition", e.target.value)} placeholder="e.g. Coronary artery disease" />
           </div>
+          <div>
+            <Label k="caseSummary">Case summary</Label>
+            <textarea style={{ ...fieldStyle("caseSummary"), minHeight: 88, resize: "vertical" }} value={f.caseSummary} onChange={(e) => set("caseSummary", e.target.value)} placeholder="Brief clinical notes, case context, or coordinator summary…" />
+          </div>
           <div className="cb-formgrid">
             <div><Label k="specialty">Specialty</Label>
               <select style={fieldStyle("specialty")} value={f.specialty} onChange={(e) => set("specialty", e.target.value)}>
                 <option value="">Select…</option>
                 {settings.specialties.map((s) => <option key={s}>{s}</option>)}
                 <option value="Other">Other</option>
+              </select>
+            </div>
+            <div><Label k="hospital">Partner hospital</Label>
+              <select style={fieldStyle("hospital")} value={f.hospital} onChange={(e) => set("hospital", e.target.value)}>
+                <option value="">— Select hospital —</option>
+                {(PD.HOSPITALS || []).map((h) => <option key={h.id} value={h.id}>{h.name} ({h.city}, {h.country})</option>)}
               </select>
             </div>
             <div><Label k="dest">Destination country</Label>
