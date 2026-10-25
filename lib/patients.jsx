@@ -501,7 +501,7 @@ function PatientOverview({ p, dest, co, hosp }) {
                     onChange={(e) => { window.CBStore.updatePatient(p.id, { hospital: e.target.value }); window.cbToast("Hospital updated", { icon: "check-circle-2" }); setEditHosp(false); }}
                     onBlur={() => setEditHosp(false)}
                   >
-                    {(PD.HOSPITALS || []).map((h) => <option key={h.id} value={h.id}>{h.name} — {h.city}, {h.country}</option>)}
+                    {window.CBStore.getHospitals().filter((h) => h.active).map((h) => <option key={h.id} value={h.id}>{h.name} — {h.city}, {h.country}</option>)}
                   </select>
                 ) : (
                   <span className="cb-row" style={{ gap: 6 }}>
@@ -1847,7 +1847,7 @@ function AddPatientModal({ onClose, go, patient }) {
             <div><Label k="hospital">Partner hospital</Label>
               <select style={fieldStyle("hospital")} value={f.hospital} onChange={(e) => set("hospital", e.target.value)}>
                 <option value="">— Select hospital —</option>
-                {(PD.HOSPITALS || []).map((h) => <option key={h.id} value={h.id}>{h.name} ({h.city}, {h.country})</option>)}
+                {window.CBStore.getHospitals().filter((h) => h.active).map((h) => <option key={h.id} value={h.id}>{h.name} ({h.city}, {h.country})</option>)}
               </select>
             </div>
             <div><Label k="dest">Destination country</Label>
